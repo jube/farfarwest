@@ -1,0 +1,10 @@
+#ifndef FFW_CONFIG_H
+#define FFW_CONFIG_H
+
+#include <string_view>
+
+namespace ffw {
+  constexpr std::string_view FarFarWestDataDirectory =  R"(@FARFARWEST_DATADIR@)";
+}
+
+#endif // FFW_CONFIG_H
