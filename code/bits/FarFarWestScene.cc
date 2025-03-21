@@ -7,6 +7,7 @@ namespace ffw {
   FarFarWestScene::FarFarWestScene(FarFarWestSystem* game, const FarFarWestResources& resources)
   : m_game(game)
   , m_action_group(compute_settings())
+  , m_console_scene_manager(game->random())
   , m_console_entity(resources.console_resource, game->resource_manager())
   {
     auto bounds = m_console_scene_manager.console().size() * 64;
