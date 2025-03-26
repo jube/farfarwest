@@ -5,6 +5,7 @@
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Heightmap.h>
 #include <gf2/core/Noises.h>
+#include <gf2/core/ProcGen.h>
 #include <gf2/core/Vec2.h>
 
 namespace ffw {
@@ -19,36 +20,39 @@ namespace ffw {
 
     constexpr bool Debug = true;
 
-    constexpr int32_t WorldOutlineBasicSize = 64;
+    constexpr int32_t WorldOutlineBasicSize = 4096;
     constexpr gf::Vec2I WorldOutlineSize = { WorldOutlineBasicSize, WorldOutlineBasicSize };
-    constexpr double WorldOutlineNoiseScale = WorldOutlineBasicSize / 4.0;
+    constexpr double WorldOutlineNoiseScale = WorldOutlineBasicSize / 256.0;
 
     constexpr double AltitudeThreshold = 0.55;
     constexpr double MoistureLoThreshold = 0.45;
     constexpr double MoistureHiThreshold = 0.55;
 
+    /*
+     * Outline
+     */
 
-    enum class WorldRegionType : uint8_t {
+    enum class WorldRegion : uint8_t {
       Prairie,
       Desert,
       Forest,
       Moutain,
     };
 
-    struct WorldOutlineRegion {
+    struct WorldCell {
       double altitude;
       double moisture;
-      WorldRegionType type = WorldRegionType::Prairie;
+      WorldRegion type = WorldRegion::Prairie;
     };
 
     struct WorldOutline {
-      gf::Array2D<WorldOutlineRegion> regions;
+      gf::Array2D<WorldCell> cells;
     };
 
     WorldOutline generate_outline(gf::Random* random)
     {
       WorldOutline outline;
-      outline.regions = { WorldOutlineSize };
+      outline.cells = { WorldOutlineSize };
 
       gf::PerlinNoise2D altitude_noise(*random, WorldOutlineNoiseScale);
       gf::Heightmap altitude_heightmap(WorldOutlineSize);
@@ -60,8 +64,8 @@ namespace ffw {
       moisture_heightmap.add_noise(&moisture_noise);
       moisture_heightmap.normalize();
 
-      for (auto position : outline.regions.position_range()) {
-        WorldOutlineRegion& region = outline.regions(position);
+      for (const gf::Vec2I position : outline.cells.position_range()) {
+        WorldCell& region = outline.cells(position);
         region.altitude = altitude_heightmap.value(position);
         region.moisture = moisture_heightmap.value(position);
 
@@ -77,15 +81,15 @@ namespace ffw {
 
         if (region.altitude < AltitudeThreshold) {
           if (region.moisture < MoistureLoThreshold) {
-            region.type = WorldRegionType::Desert;
+            region.type = WorldRegion::Desert;
           } else {
-            region.type = WorldRegionType::Prairie;
+            region.type = WorldRegion::Prairie;
           }
         } else {
           if (region.moisture < MoistureHiThreshold) {
-            region.type = WorldRegionType::Moutain;
+            region.type = WorldRegion::Moutain;
           } else {
-            region.type = WorldRegionType::Forest;
+            region.type = WorldRegion::Forest;
           }
         }
       }
@@ -93,21 +97,21 @@ namespace ffw {
       if constexpr (Debug) {
         gf::Image image(WorldOutlineSize);
 
-        for (auto position : outline.regions.position_range()) {
-          WorldOutlineRegion& region = outline.regions(position);
+        for (const gf::Vec2I position : image.position_range()) {
+          const WorldCell& region = outline.cells(position);
           gf::Color color = gf::Black;
 
           switch (region.type) {
-            case WorldRegionType::Prairie:
+            case WorldRegion::Prairie:
               color = 0xC4D6B0;
               break;
-            case WorldRegionType::Desert:
+            case WorldRegion::Desert:
               color = 0xC2B280;
               break;
-            case WorldRegionType::Forest:
+            case WorldRegion::Forest:
               color = 0x4A6A4D;
               break;
-            case WorldRegionType::Moutain:
+            case WorldRegion::Moutain:
               color = 0x8B5A2B;
               break;
           }
@@ -122,10 +126,7 @@ namespace ffw {
     }
 
 
-
-
   }
-
 
   WorldState generate_world(gf::Random* random)
   {
