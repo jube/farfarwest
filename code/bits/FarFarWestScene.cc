@@ -49,6 +49,11 @@ namespace ffw {
 
   void FarFarWestScene::do_update(gf::Time time)
   {
+    if (m_console_scene_manager.empty()) {
+      m_game->pop_all_scenes();
+      return;
+    }
+
     m_console_scene_manager.update(time);
     m_console_scene_manager.render();
     m_console_entity.graphics().update(m_console_scene_manager.console(), m_game->render_manager());

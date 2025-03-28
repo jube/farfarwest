@@ -8,6 +8,7 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "HeroState.h"
+#include "MessageLogState.h"
 
 namespace ffw {
 
@@ -17,6 +18,8 @@ namespace ffw {
     HeroState hero;
 
 
+    MessageLogState log;
+
     void load_from_file(const std::filesystem::path& filename);
     void save_to_file(const std::filesystem::path& filename) const;
   };
@@ -24,7 +27,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<WorldState, Archive>& state)
   {
-    return ar | state.hero;
+    return ar | state.hero | state.log;
   }
 
 }

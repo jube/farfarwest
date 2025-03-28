@@ -11,6 +11,7 @@ namespace ffw {
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
+  , generation(this)
   , m_random(random)
   , m_state()
   {
@@ -19,7 +20,7 @@ namespace ffw {
     // console().clear(style);
 
     push_scene(&title);
-    // push_scene(&kickoff);
+    push_scene(&kickoff);
     // start_world_generation();
   }
 

@@ -37,34 +37,25 @@ namespace ffw {
 
   TitleScene::TitleScene(FarFarWest* game)
   : m_game(game)
+  , m_title(Size)
   {
-    gf::Console console(Size);
-
     for (const gf::Vec2I position : gf::position_range(Size)) {
       const char16_t c = Title[position.y][position.x] == '#' ? gf::ConsoleChar::FullBlock : u' ';
-      console.put_character(position, c, TitleColor, gf::Transparent);
+      m_title.put_character(position, c, TitleColor, gf::Transparent);
     }
-
-    m_title = std::move(console);
   }
 
-  void TitleScene::render(gf::Console& buffer)
+  void TitleScene::render(gf::Console& console)
   {
-    const gf::Vec2I fill = buffer.size() - m_title.size();
-    const gf::Vec2I position = { fill.w / 2, fill.h / 2 - fill.h / 6 };
-    m_title.blit_to(buffer, gf::RectI::from_size(m_title.size()), position);
+    const gf::Vec2I padding = console.size() - m_title.size();
+    const gf::Vec2I title_position = { padding.w / 2, padding.h / 2 - padding.h / 6 };
+    m_title.blit_to(console, gf::RectI::from_size(m_title.size()), title_position);
 
     gf::ConsoleStyle style;
     style.color.foreground = gf::Amber;
 
-    buffer.print({ buffer.size().w / 2, fill.h / 2 - fill.h / 6 + Size.y + 1 }, gf::ConsoleAlignment::Center, style, "This mortgage was not a good idea. Find the money or run!");
-
-    style.color.foreground = gf::White;
-    buffer.print({ 35, 35 }, gf::ConsoleAlignment::Left, style, "Start a new adventure");
-    buffer.print({ 35, 36 }, gf::ConsoleAlignment::Left, style, "Continue the previous adventure");
-    buffer.print({ 35, 37 }, gf::ConsoleAlignment::Left, style, "Quit");
-
-    buffer.print({ 33, 35 }, gf::ConsoleAlignment::Left, style, ">");
+    const gf::Vec2I subtitle_position = { console.size().w / 2, title_position.y + Size.y + 2 };
+    console.print(subtitle_position, gf::ConsoleAlignment::Center, style, "This mortgage was not a good idea. Find the money or run!");
   }
 
 }
