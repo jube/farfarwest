@@ -8,6 +8,7 @@
 
 #include "GenerationScene.h"
 #include "KickoffScene.h"
+#include "MapScene.h"
 #include "TitleScene.h"
 #include "WorldState.h"
 
@@ -33,6 +34,8 @@ namespace ffw {
     TitleScene title;
     KickoffScene kickoff;
     GenerationScene generation;
+
+    MapScene map;
 
   private:
     gf::Random* m_random = nullptr;

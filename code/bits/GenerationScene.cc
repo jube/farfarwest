@@ -32,7 +32,7 @@ namespace ffw {
       console.print({ 35, 35 }, gf::ConsoleAlignment::Left, style, "Generating world" + std::string(dots, '.'));
     } else {
       m_game->pop_all_scenes();
-      m_game->push_scene(nullptr); // TODO
+      m_game->push_scene(&m_game->map);
     }
   }
 

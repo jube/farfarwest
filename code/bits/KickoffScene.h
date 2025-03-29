@@ -14,7 +14,7 @@ namespace ffw {
 
     void process_event(const gf::Event& event) override;
     void handle_actions() override;
-    void render(gf::Console& buffer) override;
+    void render(gf::Console& console) override;
 
   private:
     static gf::ActionGroupSettings compute_settings();

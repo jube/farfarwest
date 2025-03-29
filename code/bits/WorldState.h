@@ -8,6 +8,7 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "HeroState.h"
+#include "MapState.h"
 #include "MessageLogState.h"
 
 namespace ffw {
@@ -15,6 +16,7 @@ namespace ffw {
   constexpr std::uint16_t StateVersion = 1;
 
   struct WorldState {
+    MapState map;
     HeroState hero;
 
 
@@ -27,7 +29,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<WorldState, Archive>& state)
   {
-    return ar | state.hero | state.log;
+    return ar | state.map | state.hero | state.log;
   }
 
 }

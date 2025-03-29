@@ -20,13 +20,19 @@ namespace ffw {
 
     constexpr bool Debug = true;
 
-    constexpr int32_t WorldOutlineBasicSize = 4096;
-    constexpr gf::Vec2I WorldOutlineSize = { WorldOutlineBasicSize, WorldOutlineBasicSize };
-    constexpr double WorldOutlineNoiseScale = WorldOutlineBasicSize / 256.0;
+    constexpr int32_t WorldBasicSize = 4096;
+    constexpr gf::Vec2I WorldSize = { WorldBasicSize, WorldBasicSize };
+
+    constexpr double WorldNoiseScale = WorldBasicSize / 256.0;
 
     constexpr double AltitudeThreshold = 0.55;
     constexpr double MoistureLoThreshold = 0.45;
     constexpr double MoistureHiThreshold = 0.55;
+
+    constexpr gf::Color PrairieColor = 0xC4D6B0;
+    constexpr gf::Color DesertColor = 0xC2B280;
+    constexpr gf::Color ForestColor = 0x4A6A4D;
+    constexpr gf::Color MountainColor = 0x8B5A2B;
 
     /*
      * Outline
@@ -52,15 +58,15 @@ namespace ffw {
     WorldOutline generate_outline(gf::Random* random)
     {
       WorldOutline outline;
-      outline.cells = { WorldOutlineSize };
+      outline.cells = { WorldSize };
 
-      gf::PerlinNoise2D altitude_noise(*random, WorldOutlineNoiseScale);
-      gf::Heightmap altitude_heightmap(WorldOutlineSize);
+      gf::PerlinNoise2D altitude_noise(*random, WorldNoiseScale);
+      gf::Heightmap altitude_heightmap(WorldSize);
       altitude_heightmap.add_noise(&altitude_noise);
       altitude_heightmap.normalize();
 
-      gf::PerlinNoise2D moisture_noise(*random, WorldOutlineNoiseScale);
-      gf::Heightmap moisture_heightmap(WorldOutlineSize);
+      gf::PerlinNoise2D moisture_noise(*random, WorldNoiseScale);
+      gf::Heightmap moisture_heightmap(WorldSize);
       moisture_heightmap.add_noise(&moisture_noise);
       moisture_heightmap.normalize();
 
@@ -95,7 +101,7 @@ namespace ffw {
       }
 
       if constexpr (Debug) {
-        gf::Image image(WorldOutlineSize);
+        gf::Image image(WorldSize);
 
         for (const gf::Vec2I position : image.position_range()) {
           const WorldCell& region = outline.cells(position);
@@ -103,16 +109,16 @@ namespace ffw {
 
           switch (region.type) {
             case WorldRegion::Prairie:
-              color = 0xC4D6B0;
+              color = PrairieColor;
               break;
             case WorldRegion::Desert:
-              color = 0xC2B280;
+              color = DesertColor;
               break;
             case WorldRegion::Forest:
-              color = 0x4A6A4D;
+              color = ForestColor;
               break;
             case WorldRegion::Moutain:
-              color = 0x8B5A2B;
+              color = MountainColor;
               break;
           }
 
@@ -133,6 +139,31 @@ namespace ffw {
     auto outline = generate_outline(random);
 
     WorldState state = {};
+    state.map.base = gf::Console(WorldSize);
+
+    for (auto position : outline.cells.position_range()) {
+      const WorldCell& region = outline.cells(position);
+      gf::Color color = gf::Black;
+
+      switch (region.type) {
+        case WorldRegion::Prairie:
+          color = PrairieColor;
+          break;
+        case WorldRegion::Desert:
+          color = DesertColor;
+          break;
+        case WorldRegion::Forest:
+          color = ForestColor;
+          break;
+        case WorldRegion::Moutain:
+          color = MountainColor;
+          break;
+      }
+
+      state.map.base.put_character(position, ' ', gf::Transparent, color);
+    }
+
+    state.hero.position = WorldSize / 2;
 
     return state;
   }
