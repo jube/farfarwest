@@ -6,6 +6,7 @@
 #include <gf2/core/ConsoleSceneManager.h>
 #include <gf2/core/Random.h>
 
+#include "ControlScene.h"
 #include "GenerationScene.h"
 #include "KickoffScene.h"
 #include "MapScene.h"
@@ -35,7 +36,9 @@ namespace ffw {
     KickoffScene kickoff;
     GenerationScene generation;
 
+    ControlScene control;
     MapScene map;
+
 
   private:
     gf::Random* m_random = nullptr;

@@ -33,6 +33,7 @@ namespace ffw {
     } else {
       m_game->pop_all_scenes();
       m_game->push_scene(&m_game->map);
+      m_game->push_scene(&m_game->control);
     }
   }
 

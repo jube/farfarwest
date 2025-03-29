@@ -12,6 +12,7 @@ namespace ffw {
   , title(this)
   , kickoff(this)
   , generation(this)
+  , control(this)
   , map(this)
   , m_random(random)
   , m_state()
