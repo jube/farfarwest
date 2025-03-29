@@ -31,9 +31,7 @@ namespace ffw {
       std::size_t dots = std::size_t(m_time.as_seconds() * DotsPerSeconds) % 4;
       console.print({ 35, 35 }, gf::ConsoleAlignment::Left, style, "Generating world" + std::string(dots, '.'));
     } else {
-      m_game->pop_all_scenes();
-      m_game->push_scene(&m_game->map);
-      m_game->push_scene(&m_game->control);
+      m_game->start_world();
     }
   }
 

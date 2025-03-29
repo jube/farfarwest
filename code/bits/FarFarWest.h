@@ -4,12 +4,14 @@
 #include <future>
 
 #include <gf2/core/ConsoleSceneManager.h>
+#include <gf2/core/ConsoleStyle.h>
 #include <gf2/core/Random.h>
 
-#include "ControlScene.h"
 #include "GenerationScene.h"
+#include "HeroScene.h"
 #include "KickoffScene.h"
 #include "MapScene.h"
+#include "MessageLogScene.h"
 #include "TitleScene.h"
 #include "WorldState.h"
 
@@ -29,14 +31,22 @@ namespace ffw {
       return &m_state;
     }
 
+    const gf::ConsoleRichStyle& style() const
+    {
+      return m_rich_style;
+    }
+
     void start_world_generation();
     bool world_generation_finished();
+
+    void start_world();
 
     TitleScene title;
     KickoffScene kickoff;
     GenerationScene generation;
 
-    ControlScene control;
+    MessageLogScene message_log;
+    HeroScene hero;
     MapScene map;
 
 
@@ -45,6 +55,8 @@ namespace ffw {
     WorldState m_state;
     std::future<void> m_async_generation;
     bool m_async_generation_finished = false;
+
+    gf::ConsoleRichStyle m_rich_style;
   };
 
 }

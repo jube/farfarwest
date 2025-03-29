@@ -131,7 +131,6 @@ namespace ffw {
       return outline;
     }
 
-
   }
 
   WorldState generate_world(gf::Random* random)
@@ -139,6 +138,8 @@ namespace ffw {
     auto outline = generate_outline(random);
 
     WorldState state = {};
+    state.current_date = Date::generate_random(random);
+
     state.map.base = gf::Console(WorldSize);
 
     for (auto position : outline.cells.position_range()) {
@@ -164,6 +165,9 @@ namespace ffw {
     }
 
     state.hero.position = WorldSize / 2;
+
+
+    state.log.messages.push_back({ state.current_date, "Hello <style=character>John</>!" });
 
     return state;
   }

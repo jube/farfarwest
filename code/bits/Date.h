@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+#include <string>
+
+#include <gf2/core/Random.h>
 #include <gf2/core/TypeTraits.h>
 
 namespace ffw {
@@ -32,6 +35,7 @@ namespace ffw {
   };
 
   struct Date {
+    uint8_t year;
     Month month;
     uint8_t day;
     WeekDay weekday;
@@ -39,13 +43,26 @@ namespace ffw {
     uint16_t minutes;
     uint16_t seconds;
 
+    std::string to_string() const;
+
     Date& operator+=(uint16_t duration_in_seconds);
+
+    static Date generate_random(gf::Random* random);
   };
+
+  inline Date operator+(const Date& date, uint16_t duration_in_seconds)
+  {
+    Date future(date);
+    future += duration_in_seconds;
+    return future;
+  }
+
+  bool operator<(const Date& lhs, const Date& rhs);
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<Date, Archive>& date)
   {
-    return ar | date.month | date.day | date.weekday | date.hours | date.minutes | date.seconds;
+    return ar | date.year | date.month | date.day | date.weekday | date.hours | date.minutes | date.seconds;
   }
 
 }

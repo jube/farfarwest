@@ -10,7 +10,7 @@ namespace ffw {
   // constexpr gf::Vec2I ConsoleSize = { 80, 45 };
 
   constexpr gf::Vec2I GameBoxPosition = { 0, 0 };
-  constexpr gf::Vec2I GameBoxSize = { 76, 49 };
+  constexpr gf::Vec2I GameBoxSize = { 76, 47 };
   constexpr gf::RectI GameBox = gf::RectI::from_position_size(GameBoxPosition, GameBoxSize);
 
   constexpr gf::Vec2I MessageBoxPosition = { 0, 47 };

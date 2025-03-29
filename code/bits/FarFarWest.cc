@@ -7,23 +7,40 @@
 
 namespace ffw {
 
+  namespace {
+
+    constexpr gf::ConsoleStyle DefaultStyle = { {  gf::White, gf::Transparent }, gf::ConsoleEffect::none() };
+
+    constexpr gf::ConsoleColorStyle DateStyle = { gf::Yellow, gf::Transparent };
+    constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
+
+    gf::ConsoleRichStyle compute_rich_style()
+    {
+      gf::ConsoleRichStyle style;
+
+      style.set_default_style(DefaultStyle);
+      style.set_style("character", CharacterStyle);
+      style.set_style("date", DateStyle);
+
+      return style;
+    }
+
+  }
+
   FarFarWest::FarFarWest(gf::Random* random)
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
   , generation(this)
-  , control(this)
+  , message_log(this)
+  , hero(this)
   , map(this)
   , m_random(random)
   , m_state()
+  , m_rich_style(compute_rich_style())
   {
-    // gf::ConsoleStyle style;
-    // style.color.background = gf::Capri;
-    // console().clear(style);
-
     push_scene(&title);
     push_scene(&kickoff);
-    // start_world_generation();
   }
 
   void FarFarWest::start_world_generation()
@@ -42,6 +59,14 @@ namespace ffw {
     }
 
     return m_async_generation_finished;
+  }
+
+  void FarFarWest::start_world()
+  {
+    pop_all_scenes();
+    push_scene(&message_log);
+    push_scene(&hero);
+    push_scene(&map);
   }
 
 }

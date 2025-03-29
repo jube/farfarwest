@@ -7,6 +7,7 @@
 
 #include <gf2/core/TypeTraits.h>
 
+#include "Date.h"
 #include "HeroState.h"
 #include "MapState.h"
 #include "MessageLogState.h"
@@ -16,6 +17,8 @@ namespace ffw {
   constexpr std::uint16_t StateVersion = 1;
 
   struct WorldState {
+    Date current_date;
+
     MapState map;
     HeroState hero;
 
