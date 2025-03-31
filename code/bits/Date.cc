@@ -16,7 +16,7 @@ namespace ffw {
     constexpr uint8_t DaysInWeek = 7;
     constexpr uint8_t MonthsInYear = 12;
 
-    constexpr uint8_t DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    constexpr int DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
     std::tm to_tm(const Date& date)
     {
@@ -48,7 +48,7 @@ namespace ffw {
     }
 
     if (minutes >= MinutesInHour) {
-      hours += minutes / MinutesInHour;
+      hours += static_cast<uint8_t>(minutes / MinutesInHour);
       minutes %= MinutesInHour;
     }
 
@@ -77,14 +77,14 @@ namespace ffw {
     Date date = {};
 
     date.year = 0; // not used publicly so it's ok to set it to 0
-    date.month = Month{ random->compute_uniform_integer(uint8_t(0), uint8_t(MonthsInYear - 1)) };
-    date.day = random->compute_uniform_integer(uint8_t(1), DaysInMonth[uint8_t(date.month)]);
+    date.month = Month{ uint8_t(random->compute_uniform_integer(0, MonthsInYear - 1)) };
+    date.day = uint8_t(random->compute_uniform_integer(1, DaysInMonth[uint8_t(date.month)]));
 
-    date.weekday = WeekDay { random->compute_uniform_integer(uint8_t(0), uint8_t(DaysInWeek - 1)) };
+    date.weekday = WeekDay { uint8_t(random->compute_uniform_integer(0, DaysInWeek - 1)) };
 
     date.hours = 12;
-    date.minutes = random->compute_uniform_integer(0, MinutesInHour - 1);
-    date.seconds = random->compute_uniform_integer(0, SecondsInMinute - 1);
+    date.minutes = uint16_t(random->compute_uniform_integer(0, MinutesInHour - 1));
+    date.seconds = uint16_t(random->compute_uniform_integer(0, SecondsInMinute - 1));
 
     return date;
   }
