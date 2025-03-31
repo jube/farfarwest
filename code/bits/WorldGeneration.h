@@ -7,7 +7,6 @@
 
 namespace ffw {
 
-
   WorldState generate_world(gf::Random* random);
 
 }

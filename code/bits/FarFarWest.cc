@@ -13,6 +13,7 @@ namespace ffw {
 
     constexpr gf::ConsoleColorStyle DateStyle = { gf::Yellow, gf::Transparent };
     constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
+    constexpr gf::ConsoleColorStyle KeyStyle = { gf::Capri, gf::Transparent };
 
     gf::ConsoleRichStyle compute_rich_style()
     {
@@ -21,6 +22,7 @@ namespace ffw {
       style.set_default_style(DefaultStyle);
       style.set_style("character", CharacterStyle);
       style.set_style("date", DateStyle);
+      style.set_style("key", KeyStyle);
 
       return style;
     }

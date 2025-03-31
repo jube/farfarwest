@@ -81,7 +81,7 @@ namespace ffw {
     auto state = m_game->state();
     const gf::Vec2I hero_position = state->hero.position;
     const gf::RectI view = gf::RectI::from_center_size(hero_position, GameBoxSize);
-    state->map.base.blit_to(console, view, GameBoxPosition);
+    state->map.primary.blit_to(console, view, GameBoxPosition);
 
     gf::ConsoleStyle hero_style;
     hero_style.color.background = gf::Transparent;

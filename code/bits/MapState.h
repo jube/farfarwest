@@ -7,13 +7,13 @@
 namespace ffw {
 
   struct MapState {
-    gf::Console base;
+    gf::Console primary;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.base;
+    return ar | state.primary;
   }
 
 }
