@@ -280,11 +280,11 @@ namespace ffw {
             break;
           case Block::Cactus:
             character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, random);
-            foreground_color = gf::darker(gf::Green, 0.3);
+            foreground_color = gf::darker(gf::Green, 0.3f);
             break;
           case Block::Tree:
             character = generate_character({ gf::ConsoleChar::TopHalfIntegral, gf::ConsoleChar::YenSign }, random);
-            foreground_color = gf::darker(gf::Green, 0.7);
+            foreground_color = gf::darker(gf::Green, 0.7f);
             break;
           case Block::Cliff:
             {
@@ -335,7 +335,7 @@ namespace ffw {
             break;
           case Decoration::Herb:
             character = generate_character({ u',', u'`', u'.', u'\'', gf::ConsoleChar::SquareRoot }, random);
-            foreground_color = gf::darker(PrairieColor, 0.3);
+            foreground_color = gf::darker(PrairieColor, 0.3f);
             break;
         }
 
