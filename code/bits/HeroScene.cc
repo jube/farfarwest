@@ -30,7 +30,7 @@ namespace ffw {
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=key>Ammunitions:</>");
     ++position.y;
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "○○○•••");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "•••○○○");
   }
 
 }

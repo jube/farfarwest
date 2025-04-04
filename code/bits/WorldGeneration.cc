@@ -283,7 +283,7 @@ namespace ffw {
             foreground_color = gf::darker(gf::Green, 0.3f);
             break;
           case Block::Tree:
-            character = generate_character({ gf::ConsoleChar::TopHalfIntegral, gf::ConsoleChar::YenSign }, random);
+            character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, random);
             foreground_color = gf::darker(gf::Green, 0.7f);
             break;
           case Block::Cliff:
