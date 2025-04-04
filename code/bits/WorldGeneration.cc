@@ -1,4 +1,6 @@
 #include "WorldGeneration.h"
+#include "MapState.h"
+#include "gf2/core/GridMap.h"
 
 #include <cstdint>
 
@@ -10,6 +12,8 @@
 #include <gf2/core/Noises.h>
 #include <gf2/core/ProcGen.h>
 #include <gf2/core/Vec2.h>
+
+#include "Settings.h"
 
 namespace ffw {
 
@@ -27,9 +31,6 @@ namespace ffw {
 
     constexpr bool Debug = true;
 
-    constexpr int32_t WorldBasicSize = 4096;
-    constexpr gf::Vec2I WorldSize = { WorldBasicSize, WorldBasicSize };
-
     constexpr double WorldNoiseScale = WorldBasicSize / 256.0;
 
     constexpr double AltitudeThreshold = 0.55;
@@ -43,9 +44,9 @@ namespace ffw {
 
     constexpr float ColorLighterBound = 0.03f;
 
-    constexpr double PrairieHerbProbability = 0.1;
-    constexpr double DesertCactusProbability = 0.01;
-    constexpr double ForestTreeProbability = 0.2;
+    constexpr double PrairieHerbProbability = 0.2;
+    constexpr double DesertCactusProbability = 0.02;
+    constexpr double ForestTreeProbability = 0.25;
 
     constexpr float MoutainThreshold       = 0.4f;
     constexpr int MoutainSurvivalThreshold = 6;
@@ -63,14 +64,14 @@ namespace ffw {
       Moutain,
     };
 
-    enum class Block {
+    enum class Block : uint8_t {
       None,
       Cactus,
       Cliff,
       Tree,
     };
 
-    enum Decoration {
+    enum Decoration : uint8_t {
       None,
       Herb,
     };
@@ -251,6 +252,8 @@ namespace ffw {
 
 
     struct WorldNetwork {
+      // cities
+
       // rails
 
       // roads
@@ -266,9 +269,10 @@ namespace ffw {
     }
 
 
-    gf::Console generate_primary_map(const WorldOutline& outline, gf::Random* random)
+    MapState generate_map(const WorldOutline& outline, gf::Random* random)
     {
-      gf::Console primary_map(WorldSize);
+      gf::Console outside_ground(WorldSize);
+      gf::GridMap outside_grid = gf::GridMap::make_orthogonal(WorldSize);
 
       for (auto position : outline.cells.position_range()) {
         const WorldCell& region = outline.cells(position);
@@ -339,10 +343,18 @@ namespace ffw {
             break;
         }
 
-        primary_map.put_character(position, character, foreground_color, region.color);
+        outside_ground.put_character(position, character, foreground_color, region.color);
+
+        if (region.block != Block::None) {
+          outside_grid.set_walkable(position, false);
+          outside_grid.set_transparent(position, false);
+        }
       }
 
-      return primary_map;
+      MapState state = {};
+      state.outside_ground = std::move(outside_ground);
+      state.outside_grid = std::move(outside_grid);
+      return state;
     }
 
   }
@@ -362,7 +374,7 @@ namespace ffw {
     WorldState state = {};
     state.current_date = Date::generate_random(random);
 
-    state.map.primary = generate_primary_map(outline, random);
+    state.map = generate_map(outline, random);
 
     state.hero.position = WorldSize / 2;
 

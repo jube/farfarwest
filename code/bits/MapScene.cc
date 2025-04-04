@@ -6,6 +6,9 @@
 namespace ffw {
 
   namespace {
+
+    constexpr int32_t ViewRelaxation = 10;
+
     using namespace gf::literals;
 
     struct MoveAction {
@@ -73,11 +76,17 @@ namespace ffw {
 
   void MapScene::update([[maybe_unused]] gf::Time time)
   {
+    auto* state = m_game->state();
     m_orientation = gf::clamp(m_orientation, -1, +1);
-    m_game->state()->hero.position += m_orientation;
 
-    if (m_orientation != gf::vec(0, 0)) {
-      m_game->state()->current_date += 15;
+    const gf::Vec2I new_hero_position = state->hero.position + m_orientation;
+
+    if (state->map.outside_grid.walkable(new_hero_position)) {
+      state->hero.position = new_hero_position;
+
+      if (m_orientation != gf::vec(0, 0)) {
+        m_game->state()->current_date += 15;
+      }
     }
 
     m_orientation = { 0,  0 };
@@ -85,10 +94,13 @@ namespace ffw {
 
   void MapScene::render(gf::Console& console)
   {
-    auto state = m_game->state();
+    const auto* state = m_game->state();
     const gf::Vec2I hero_position = state->hero.position;
-    const gf::RectI view = gf::RectI::from_center_size(hero_position, GameBoxSize);
-    state->map.primary.blit_to(console, view, GameBoxPosition);
+
+    m_view_center = gf::clamp(m_view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
+
+    const gf::RectI view = gf::RectI::from_center_size(m_view_center, GameBoxSize);
+    state->map.outside_ground.blit_to(console, view, GameBoxPosition);
 
     gf::ConsoleStyle hero_style;
     hero_style.color.background = gf::Transparent;

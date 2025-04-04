@@ -5,6 +5,8 @@
 #include <gf2/core/ActionSettings.h>
 #include <gf2/core/ConsoleScene.h>
 
+#include "Settings.h"
+
 namespace ffw {
   class FarFarWest;
 
@@ -23,6 +25,8 @@ namespace ffw {
     FarFarWest* m_game = nullptr;
     gf::ActionGroup m_action_group;
     gf::Vec2I m_orientation = { 0, 0 };
+
+    gf::Vec2I m_view_center = WorldSize / 2;
   };
 
 }

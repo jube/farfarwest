@@ -6,6 +6,9 @@
 
 namespace ffw {
 
+  constexpr int32_t WorldBasicSize = 4096;
+  constexpr gf::Vec2I WorldSize = { WorldBasicSize, WorldBasicSize };
+
   constexpr gf::Vec2I ConsoleSize = { 96, 54 };
   // constexpr gf::Vec2I ConsoleSize = { 80, 45 };
 
