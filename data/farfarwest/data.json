@@ -1,5 +1,6 @@
 {
   "actors": [
-    { "label": "Hero", "picture": "@", "color": "#9d6d45" }
+    { "label": "Hero", "picture": "@", "color": "#000000" },
+    { "label": "Cow", "picture": "c", "color": "#783F21" }
   ]
 }

@@ -79,6 +79,11 @@ namespace ffw {
 
         MapDetail& detail = cell.detail;
         detail.state = random->compute_uniform_float(1.0f);
+
+        while (detail.state == 1.0f) {
+          detail.state = random->compute_uniform_float(1.0f);
+        }
+
         assert(0.0f <= detail.state && detail.state < 1.0f);
 
         /*
@@ -253,6 +258,11 @@ namespace ffw {
     hero.data = "Hero";
     hero.position = WorldSize / 2;
     state.actors.push_back(hero);
+
+    ActorState cow = {};
+    cow.data = "Cow";
+    cow.position = hero.position + gf::dirx(10);
+    state.actors.push_back(cow);
 
     state.log.messages.push_back({ state.current_date, "Hello <style=character>John</>!" });
 
