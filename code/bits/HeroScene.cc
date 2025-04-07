@@ -17,9 +17,19 @@ namespace ffw {
   void HeroScene::render(gf::Console& console)
   {
     auto* state = m_game->state();
-    console.print(CharacterBoxPosition, gf::ConsoleAlignment::Left, m_game->style(), "<style=date>{}</>", state->current_date.to_string());
+    gf::Vec2I position = CharacterBoxPosition;
 
-    auto position = CharacterBox.position_at(gf::Orientation::SouthWest) - gf::diry(4);
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=date>{}</>", state->current_date.to_string());
+    ++position.y;
+
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=cash>$100</>     | <style=debt>$10034</>");
+    ++position.y;
+
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "HP: 42/100");
+    ++position.y;
+
+
+    position = CharacterBox.position_at(gf::Orientation::SouthWest) - gf::diry(4);
 
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=key>Weapon:</>");
     ++position.y;
