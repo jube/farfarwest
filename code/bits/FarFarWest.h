@@ -13,7 +13,7 @@
 #include "MapScene.h"
 #include "MessageLogScene.h"
 #include "TitleScene.h"
-#include "WorldState.h"
+#include "WorldModel.h"
 
 namespace ffw {
 
@@ -28,7 +28,7 @@ namespace ffw {
 
     WorldState* state()
     {
-      return &m_state;
+      return &m_model.state;
     }
 
     const gf::ConsoleRichStyle& style() const
@@ -52,7 +52,7 @@ namespace ffw {
 
   private:
     gf::Random* m_random = nullptr;
-    WorldState m_state;
+    WorldModel m_model;
     std::future<void> m_async_generation;
     bool m_async_generation_finished = false;
 
