@@ -38,7 +38,7 @@ namespace ffw {
     return fmt::format("{:%a %d %b, %T}", tm);
   }
 
-  Date& Date::operator+=(uint16_t duration_in_seconds)
+  void Date::add_seconds(uint16_t duration_in_seconds)
   {
     seconds += duration_in_seconds;
 
@@ -68,8 +68,6 @@ namespace ffw {
 
       hours -= HoursInDay;
     }
-
-    return *this;
   }
 
   Date Date::generate_random(gf::Random* random)

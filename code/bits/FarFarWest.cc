@@ -53,6 +53,7 @@ namespace ffw {
     m_async_generation_finished = false;
     m_async_generation = std::async(std::launch::async, [&]() {
       m_model.state = generate_world(m_random);
+      m_model.runtime.bind(m_model.data, m_model.state);
     });
   }
 

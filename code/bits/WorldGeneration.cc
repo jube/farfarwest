@@ -1,12 +1,10 @@
 #include "WorldGeneration.h"
 #include "MapState.h"
-#include "gf2/core/GridMap.h"
 
 #include <cstdint>
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
-#include <gf2/core/ConsoleChar.h>
 #include <gf2/core/Heightmap.h>
 #include <gf2/core/Log.h>
 #include <gf2/core/Noises.h>
@@ -57,42 +55,10 @@ namespace ffw {
      * Outline
      */
 
-    enum class WorldRegion : uint8_t {
-      Prairie,
-      Desert,
-      Forest,
-      Moutain,
-    };
-
-    enum class Block : uint8_t {
-      None,
-      Cactus,
-      Cliff,
-      Tree,
-    };
-
-    enum Decoration : uint8_t {
-      None,
-      Herb,
-    };
-
-    struct WorldCell {
-      double altitude;
-      double moisture;
-      WorldRegion type = WorldRegion::Prairie;
-      gf::Color color;
-      Block block = Block::None;
-      Decoration decoration = Decoration::None;
-    };
-
-    struct WorldOutline {
-      gf::Array2D<WorldCell> cells;
-    };
-
-    WorldOutline generate_outline(gf::Random* random)
+    MapState generate_outline(gf::Random* random)
     {
-      WorldOutline outline;
-      outline.cells = { WorldSize };
+      MapState state = {};
+      state.cells = { WorldSize };
 
       gf::PerlinNoise2D altitude_noise(*random, WorldNoiseScale);
       gf::Heightmap altitude_heightmap(WorldSize);
@@ -104,10 +70,16 @@ namespace ffw {
       moisture_heightmap.add_noise(&moisture_noise);
       moisture_heightmap.normalize();
 
-      for (const gf::Vec2I position : outline.cells.position_range()) {
-        WorldCell& region = outline.cells(position);
-        region.altitude = altitude_heightmap.value(position);
-        region.moisture = moisture_heightmap.value(position);
+      for (const gf::Vec2I position : state.cells.position_range()) {
+        MapCell& cell = state.cells(position);
+
+        MapTrait& trait = cell.trait;
+        trait.altitude = altitude_heightmap.value(position);
+        trait.moisture = moisture_heightmap.value(position);
+
+        MapDetail& detail = cell.detail;
+        detail.state = random->compute_uniform_float(1.0f);
+        assert(0.0f <= detail.state && detail.state < 1.0f);
 
         /*
          *          1 +---------+--------+
@@ -119,56 +91,56 @@ namespace ffw {
          *            moisture
          */
 
-        if (region.altitude < AltitudeThreshold) {
-          if (region.moisture < MoistureLoThreshold) {
-            region.type = WorldRegion::Desert;
-            region.color = DesertColor;
+        if (trait.altitude < AltitudeThreshold) {
+          if (trait.moisture < MoistureLoThreshold) {
+            trait.region = MapRegion::Desert;
+            trait.background = DesertColor;
 
-            if (random->compute_bernoulli(DesertCactusProbability * region.moisture / MoistureLoThreshold)) {
-              region.block = Block::Cactus;
+            if (random->compute_bernoulli(DesertCactusProbability * trait.moisture / MoistureLoThreshold)) {
+              detail.block = MapBlock::Cactus;
             }
           } else {
-            region.type = WorldRegion::Prairie;
-            region.color = PrairieColor;
+            trait.region = MapRegion::Prairie;
+            trait.background = PrairieColor;
 
-            if (random->compute_bernoulli(PrairieHerbProbability * region.moisture)) {
-              region.decoration = Decoration::Herb;
+            if (random->compute_bernoulli(PrairieHerbProbability * trait.moisture)) {
+              detail.decoration = MapDecoration::Herb;
             }
           }
         } else {
-          if (region.moisture < MoistureHiThreshold) {
-            region.type = WorldRegion::Moutain;
-            region.color = MountainColor;
+          if (trait.moisture < MoistureHiThreshold) {
+            trait.region = MapRegion::Moutain;
+            trait.background = MountainColor;
 
             // cliffs are put later
           } else {
-            region.type = WorldRegion::Forest;
-            region.color = ForestColor;
+            trait.region = MapRegion::Forest;
+            trait.background = ForestColor;
 
-            if (random->compute_bernoulli(ForestTreeProbability * region.moisture)) {
-              region.block = Block::Tree;
+            if (random->compute_bernoulli(ForestTreeProbability * trait.moisture)) {
+              detail.block = MapBlock::Tree;
             }
           }
         }
 
-        region.color = gf::lighter(region.color, random->compute_uniform_float(0.0f, ColorLighterBound));
+        trait.background = gf::lighter(trait.background, random->compute_uniform_float(0.0f, ColorLighterBound));
       }
 
       if constexpr (Debug) {
         gf::Image image(WorldSize);
 
         for (const gf::Vec2I position : image.position_range()) {
-          const WorldCell& region = outline.cells(position);
-          image.put_pixel(position, region.color);
+          const MapCell& cell = state.cells(position);
+          image.put_pixel(position, cell.trait.background);
         }
 
         image.save_to_file("00_outline.png");
       }
 
-      return outline;
+      return state;
     }
 
-    void generate_mountains(WorldOutline& outline, gf::Random* random)
+    void generate_mountains(MapState& state, gf::Random* random)
     {
       enum Type : uint8_t {
         Ground,
@@ -177,8 +149,8 @@ namespace ffw {
 
       gf::Array2D<Type> map(WorldSize, Ground);
 
-      for (const gf::Vec2I position : outline.cells.position_range()) {
-        if (outline.cells(position).type == WorldRegion::Moutain) {
+      for (const gf::Vec2I position : state.cells.position_range()) {
+        if (state.cells(position).trait.region == MapRegion::Moutain) {
           if (random->compute_bernoulli(MoutainThreshold)) {
             map(position) = Cliff;
           }
@@ -189,7 +161,7 @@ namespace ffw {
 
       for (int i = 0; i < MoutainIterations; ++i) {
         for (const gf::Vec2I position : map.position_range()) {
-          if (outline.cells(position).type != WorldRegion::Moutain) {
+          if (state.cells(position).trait.region != MapRegion::Moutain) {
             continue;
           }
 
@@ -220,7 +192,7 @@ namespace ffw {
       // check for isolated Ground
 
       for (const gf::Vec2I position : map.position_range()) {
-        if (outline.cells(position).type != WorldRegion::Moutain) {
+        if (state.cells(position).trait.region != MapRegion::Moutain) {
           continue;
         }
 
@@ -244,7 +216,7 @@ namespace ffw {
 
       for (const gf::Vec2I position : map.position_range()) {
         if (map(position) == Cliff) {
-          outline.cells(position).block = Block::Cliff;
+          state.cells(position).detail.block = MapBlock::Cliff;
         }
       }
     }
@@ -260,124 +232,24 @@ namespace ffw {
 
     };
 
-    char16_t generate_character(std::initializer_list<char16_t> list, gf::Random* random)
-    {
-      assert(list.size() > 0);
-      const std::size_t index = random->compute_uniform_integer(std::size_t(0), list.size() - 1);
-      assert(index < list.size());
-      return std::data(list)[index];
-    }
-
-
-    MapState generate_map(const WorldOutline& outline, gf::Random* random)
-    {
-      gf::Console outside_ground(WorldSize);
-      gf::GridMap outside_grid = gf::GridMap::make_orthogonal(WorldSize);
-
-      for (auto position : outline.cells.position_range()) {
-        const WorldCell& region = outline.cells(position);
-        gf::Color foreground_color = gf::Transparent;
-        char16_t character = u' ';
-
-        switch (region.block) {
-          case Block::None:
-            break;
-          case Block::Cactus:
-            character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, random);
-            foreground_color = gf::darker(gf::Green, 0.3f);
-            break;
-          case Block::Tree:
-            character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, random);
-            foreground_color = gf::darker(gf::Green, 0.7f);
-            break;
-          case Block::Cliff:
-            {
-              uint8_t neighbor_bits = 0b0000;
-              uint8_t direction_bit = 0b0001;
-
-              for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
-                const gf::Vec2I target = position + gf::displacement(orientation);
-
-                if (!outline.cells.valid(target) || outline.cells(target).block == Block::Cliff) {
-                  neighbor_bits |= direction_bit;
-                }
-
-                direction_bit <<= 1;
-              }
-
-              // clang-format off
-              constexpr char16_t BlockCharacters[] = {
-                                                      // WSEN
-                gf::ConsoleChar::FullBlock,           // 0000
-                gf::ConsoleChar::UpperHalfBlock,      // 0001
-                gf::ConsoleChar::RightHalfBlock,      // 0010
-                gf::ConsoleChar::FullBlock,           // 0011 // gf::ConsoleChar::QuadrantUpperRight
-                gf::ConsoleChar::LowerHalfBlock,      // 0100
-                gf::ConsoleChar::FullBlock,           // 0101
-                gf::ConsoleChar::FullBlock,           // 0110 // gf::ConsoleChar::QuadrantLowerRight
-                gf::ConsoleChar::FullBlock,           // 0111
-                gf::ConsoleChar::LeftHalfBlock,       // 1000
-                gf::ConsoleChar::FullBlock,           // 1001 // gf::ConsoleChar::QuadrantUpperLeft
-                gf::ConsoleChar::FullBlock,           // 1010
-                gf::ConsoleChar::FullBlock,           // 1011
-                gf::ConsoleChar::FullBlock,           // 1100 // gf::ConsoleChar::QuadrantLowerLeft
-                gf::ConsoleChar::FullBlock,           // 1101
-                gf::ConsoleChar::FullBlock,           // 1110
-                gf::ConsoleChar::FullBlock,           // 1111
-              };
-              // clang-format on
-
-              assert(neighbor_bits < std::size(BlockCharacters));
-              character = BlockCharacters[neighbor_bits];
-              foreground_color = gf::darker(MountainColor, 0.5f);
-            }
-            break;
-        }
-
-        switch (region.decoration) {
-          case Decoration::None:
-            break;
-          case Decoration::Herb:
-            character = generate_character({ u',', u'`', u'.', u'\'', gf::ConsoleChar::SquareRoot }, random);
-            foreground_color = gf::darker(PrairieColor, 0.3f);
-            break;
-        }
-
-        outside_ground.put_character(position, character, foreground_color, region.color);
-
-        if (region.block != Block::None) {
-          outside_grid.set_walkable(position, false);
-          outside_grid.set_transparent(position, false);
-        }
-      }
-
-      MapState state = {};
-      state.outside_ground = std::move(outside_ground);
-      state.outside_grid = std::move(outside_grid);
-      return state;
-    }
-
   }
 
   WorldState generate_world(gf::Random* random)
   {
     gf::Clock clock;
 
-    gf::Log::info("Generating outline...");
-    auto outline = generate_outline(random);
-    gf::Log::info("Elapsed time: {:g}s", clock.elapsed_time().as_seconds());
-
-    gf::Log::info("Generating moutains...");
-    generate_mountains(outline, random);
-    gf::Log::info("Elapsed time: {:g}s", clock.elapsed_time().as_seconds());
-
     WorldState state = {};
     state.current_date = Date::generate_random(random);
+    gf::Log::info("Generating outline...");
+    state.map = generate_outline(random);
+    gf::Log::info("Elapsed time: {:g}s", clock.elapsed_time().as_seconds());
+    gf::Log::info("Generating moutains...");
+    generate_mountains(state.map, random);
+    gf::Log::info("Elapsed time: {:g}s", clock.elapsed_time().as_seconds());
 
-    state.map = generate_map(outline, random);
+    // state.map = generate_map(outline, random);
 
     state.hero.position = WorldSize / 2;
-
 
     state.log.messages.push_back({ state.current_date, "Hello <style=character>John</>!" });
 

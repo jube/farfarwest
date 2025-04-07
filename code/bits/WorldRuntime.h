@@ -4,9 +4,14 @@
 #include "MapRuntime.h"
 
 namespace ffw {
+  struct WorldData;
+  struct WorldState;
 
   struct WorldRuntime {
+
     MapRuntime map;
+
+    void bind(const WorldData& data, const WorldState& state);
   };
 
 }

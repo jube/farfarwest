@@ -5,11 +5,13 @@
 #include <gf2/core/GridMap.h>
 
 namespace ffw {
+  struct MapState;
 
   struct MapRuntime {
-    gf::Console ground_console;
-    gf::GridMap ground_grid;
+    gf::Console outside_ground;
+    gf::GridMap outside_grid;
 
+    void bind(const MapState& state);
   };
 
 }

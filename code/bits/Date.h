@@ -44,8 +44,7 @@ namespace ffw {
     uint16_t seconds;
 
     std::string to_string() const;
-
-    Date& operator+=(uint16_t duration_in_seconds);
+    void add_seconds(uint16_t duration_in_seconds);
 
     static Date generate_random(gf::Random* random);
   };
@@ -53,7 +52,7 @@ namespace ffw {
   inline Date operator+(const Date& date, uint16_t duration_in_seconds)
   {
     Date future(date);
-    future += duration_in_seconds;
+    future.add_seconds(duration_in_seconds);
     return future;
   }
 

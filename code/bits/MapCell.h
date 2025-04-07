@@ -15,6 +15,7 @@ namespace ffw {
     Moutain,
   };
 
+  // constant once generated
   struct MapTrait {
     double altitude;
     double moisture;
@@ -28,16 +29,40 @@ namespace ffw {
     return ar | trait.altitude | trait.moisture | trait.background | trait.region;
   }
 
+  enum class MapBlock : uint8_t {
+    None,
+    Cactus,
+    Cliff,
+    Tree,
+  };
+
+  enum MapDecoration : uint8_t {
+    None,
+    Herb,
+  };
+
+  // may evolve during the game
+  struct MapDetail {
+    MapBlock block;
+    MapDecoration decoration;
+    float state;
+  };
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<MapDetail, Archive>& detail)
+  {
+    return ar | detail.block | detail.decoration | detail.state;
+  }
 
   struct MapCell {
     MapTrait trait;
-
+    MapDetail detail;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapCell, Archive>& cell)
   {
-    return ar | cell.trait;
+    return ar | cell.trait | cell.detail;
   }
 
 }

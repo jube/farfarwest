@@ -22,7 +22,6 @@ namespace ffw {
     MapState map;
     HeroState hero;
 
-
     MessageLogState log;
 
     void load_from_file(const std::filesystem::path& filename);

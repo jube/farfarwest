@@ -31,6 +31,11 @@ namespace ffw {
       return &m_model.state;
     }
 
+    WorldRuntime* runtime()
+    {
+      return &m_model.runtime;
+    }
+
     const gf::ConsoleRichStyle& style() const
     {
       return m_rich_style;
