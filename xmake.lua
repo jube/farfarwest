@@ -3,7 +3,7 @@ set_version("0.1.0")
 
 add_repositories("gf-repo https://github.com/GamedevFramework/xmake-repo")
 
-add_requires("gamedevframework2")
+add_requires("gamedevframework2", "nlohmann_json")
 
 add_rules("mode.debug", "mode.releasedbg", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "$(buildir)"})
@@ -27,4 +27,4 @@ target("farfarwest")
     add_files("code/farfarwest.cc")
     add_files("code/bits/*.cc")
     add_includedirs("$(buildir)/config")
-    add_packages("gamedevframework2")
+    add_packages("gamedevframework2", "nlohmann_json")

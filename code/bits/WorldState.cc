@@ -6,6 +6,8 @@
 #include <gf2/core/SerializationOps.h>
 #include <gf2/core/SerializationUtilities.h>
 
+#include "WorldData.h"
+
 namespace ffw {
 
   void WorldState::load_from_file(const std::filesystem::path& filename)
@@ -25,5 +27,13 @@ namespace ffw {
 
     ar | *this;
   }
+
+  void WorldState::bind(const WorldData& data)
+  {
+    for (ActorState& actor : actors) {
+      actor.data.bind_from(data.actors);
+    }
+  }
+
 
 }

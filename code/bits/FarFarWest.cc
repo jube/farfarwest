@@ -33,7 +33,7 @@ namespace ffw {
 
   }
 
-  FarFarWest::FarFarWest(gf::Random* random)
+  FarFarWest::FarFarWest(gf::Random* random, const std::filesystem::path& datafile)
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
@@ -42,6 +42,7 @@ namespace ffw {
   , hero(this)
   , map(this)
   , m_random(random)
+  , m_datafile(datafile)
   , m_rich_style(compute_rich_style())
   {
     push_scene(&title);
@@ -51,8 +52,11 @@ namespace ffw {
   void FarFarWest::start_world_generation()
   {
     m_async_generation_finished = false;
+
     m_async_generation = std::async(std::launch::async, [&]() {
+      m_model.data.load_from_file(m_datafile);
       m_model.state = generate_world(m_random);
+      m_model.state.bind(m_model.data);
       m_model.runtime.bind(m_model.data, m_model.state);
     });
   }

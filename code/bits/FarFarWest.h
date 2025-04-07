@@ -1,6 +1,7 @@
 #ifndef FFW_FAR_FAR_WEST_H
 #define FFW_FAR_FAR_WEST_H
 
+#include <filesystem>
 #include <future>
 
 #include <gf2/core/ConsoleSceneManager.h>
@@ -19,7 +20,7 @@ namespace ffw {
 
   class FarFarWest : public gf::ConsoleSceneManager {
   public:
-    FarFarWest(gf::Random* random);
+    FarFarWest(gf::Random* random, const std::filesystem::path& datafile);
 
     gf::Random* random()
     {
@@ -57,6 +58,7 @@ namespace ffw {
 
   private:
     gf::Random* m_random = nullptr;
+    std::filesystem::path m_datafile;
     WorldModel m_model;
     std::future<void> m_async_generation;
     bool m_async_generation_finished = false;

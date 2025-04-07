@@ -80,10 +80,10 @@ namespace ffw {
     auto* runtime = m_game->runtime();
     m_orientation = gf::clamp(m_orientation, -1, +1);
 
-    const gf::Vec2I new_hero_position = state->hero.position + m_orientation;
+    const gf::Vec2I new_hero_position = state->hero().position + m_orientation;
 
     if (runtime->map.outside_grid.walkable(new_hero_position)) {
-      state->hero.position = new_hero_position;
+      state->hero().position = new_hero_position;
 
       if (m_orientation != gf::vec(0, 0)) {
         m_game->state()->current_date.add_seconds(5);
@@ -97,7 +97,7 @@ namespace ffw {
   {
     const auto* state = m_game->state();
     const auto* runtime = m_game->runtime();
-    const gf::Vec2I hero_position = state->hero.position;
+    const gf::Vec2I hero_position = state->hero().position;
 
     m_view_center = gf::clamp(m_view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
 
@@ -109,7 +109,7 @@ namespace ffw {
     hero_style.color.foreground = gf::Black;
     hero_style.effect = gf::ConsoleEffect::none();
 
-    console.put_character(state->hero.position - view.position(), '@', hero_style);
+    console.put_character(state->hero().position - view.position(), '@', hero_style);
   }
 
 }

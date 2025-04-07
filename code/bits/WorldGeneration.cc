@@ -249,7 +249,10 @@ namespace ffw {
 
     // state.map = generate_map(outline, random);
 
-    state.hero.position = WorldSize / 2;
+    ActorState hero = {};
+    hero.data = "Hero";
+    hero.position = WorldSize / 2;
+    state.actors.push_back(hero);
 
     state.log.messages.push_back({ state.current_date, "Hello <style=character>John</>!" });
 
