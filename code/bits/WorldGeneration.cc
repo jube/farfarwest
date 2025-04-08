@@ -11,6 +11,7 @@
 #include <gf2/core/ProcGen.h>
 #include <gf2/core/Vec2.h>
 
+#include "Names.h"
 #include "Settings.h"
 
 namespace ffw {
@@ -264,7 +265,9 @@ namespace ffw {
     cow.position = hero.position + gf::dirx(10);
     state.actors.push_back(cow);
 
-    state.log.messages.push_back({ state.current_date, "Hello <style=character>John</>!" });
+    const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);
+
+    state.log.messages.push_back({ state.current_date, fmt::format("Hello <style=character>{}</>!", name) });
 
     return state;
   }

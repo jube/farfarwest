@@ -13,7 +13,7 @@ namespace ffw {
     {
       assert(list.size() > 0);
       assert(0.0f <= state && state < 1.0f);
-      const std::size_t index = state * list.size();
+      const std::size_t index = static_cast<std::size_t>(state * list.size());
       assert(index < list.size());
       return std::data(list)[index];
     }
