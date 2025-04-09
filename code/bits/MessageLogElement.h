@@ -2,14 +2,14 @@
 #define FFW_MESSAGE_LOG_SCENE_H
 
 #include <gf2/core/Time.h>
-#include <gf2/core/ConsoleScene.h>
+#include <gf2/core/ConsoleElement.h>
 
 namespace ffw {
   class FarFarWest;
 
-  class MessageLogScene : public gf::ConsoleScene {
+  class MessageLogElement : public gf::ConsoleElement {
   public:
-    MessageLogScene(FarFarWest* game);
+    MessageLogElement(FarFarWest* game);
 
     void update(gf::Time time) override;
     void render(gf::Console& console) override;

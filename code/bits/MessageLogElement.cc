@@ -1,20 +1,20 @@
-#include "MessageLogScene.h"
+#include "MessageLogElement.h"
 
 #include "FarFarWest.h"
 #include "Settings.h"
 
 namespace ffw {
 
-  MessageLogScene::MessageLogScene(FarFarWest* game)
+  MessageLogElement::MessageLogElement(FarFarWest* game)
   : m_game(game)
   {
   }
 
-  void MessageLogScene::update([[maybe_unused]] gf::Time time)
+  void MessageLogElement::update([[maybe_unused]] gf::Time time)
   {
   }
 
-  void MessageLogScene::render(gf::Console& console)
+  void MessageLogElement::render(gf::Console& console)
   {
     auto* state = m_game->state();
     auto& last = state->log.messages.back();

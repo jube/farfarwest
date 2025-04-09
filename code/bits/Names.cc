@@ -106,7 +106,7 @@ namespace ffw {
     assert(surname_index < std::size(Surnames));
 
     std::string name;
-    name += MaleNames[first_name_index];
+    name += FemaleNames[first_name_index];
     name += ' ';
     name += Surnames[surname_index];
 

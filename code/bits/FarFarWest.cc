@@ -11,11 +11,12 @@ namespace ffw {
 
     constexpr gf::ConsoleStyle DefaultStyle = { {  gf::White, gf::Transparent }, gf::ConsoleEffect::none() };
 
-    constexpr gf::ConsoleColorStyle DateStyle = { gf::Yellow, gf::Transparent };
+    constexpr gf::ConsoleColorStyle DateStyle = { gf::Amber, gf::Transparent };
     constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
     constexpr gf::ConsoleColorStyle KeyStyle = { gf::Capri, gf::Transparent };
-    constexpr gf::ConsoleColorStyle CashStyle = { gf::Green, gf::Transparent };
-    constexpr gf::ConsoleColorStyle DebtStyle = { gf::Red, gf::Transparent };
+    constexpr gf::ConsoleColorStyle CashStyle = { gf::Erin, gf::Transparent };
+    constexpr gf::ConsoleColorStyle DebtStyle = { gf::Vermilion, gf::Transparent };
+    constexpr gf::ConsoleColorStyle StatStyle = { gf::Azure, gf::Transparent };
 
     gf::ConsoleRichStyle compute_rich_style()
     {
@@ -27,6 +28,7 @@ namespace ffw {
       style.set_style("key", KeyStyle);
       style.set_style("cash", CashStyle);
       style.set_style("debt", DebtStyle);
+      style.set_style("stat", StatStyle);
 
       return style;
     }
@@ -38,9 +40,8 @@ namespace ffw {
   , title(this)
   , kickoff(this)
   , generation(this)
-  , message_log(this)
-  , hero(this)
-  , map(this)
+  , primary(this)
+  , control(this)
   , m_random(random)
   , m_datafile(datafile)
   , m_rich_style(compute_rich_style())
@@ -74,9 +75,8 @@ namespace ffw {
   void FarFarWest::start_world()
   {
     pop_all_scenes();
-    push_scene(&message_log);
-    push_scene(&hero);
-    push_scene(&map);
+    push_scene(&primary);
+    push_scene(&control);
   }
 
 }

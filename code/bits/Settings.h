@@ -20,8 +20,8 @@ namespace ffw {
   constexpr gf::Vec2I MessageBoxSize = { 76, 7 };
   constexpr gf::RectI MessageBox = gf::RectI::from_position_size(MessageBoxPosition, MessageBoxSize);
 
-  constexpr gf::Vec2I CharacterBoxPosition = { 76, 0 };
-  constexpr gf::Vec2I CharacterBoxSize = { 20, 27 };
+  constexpr gf::Vec2I CharacterBoxPosition = { 76, 1 };
+  constexpr gf::Vec2I CharacterBoxSize = { 20, 26 };
   constexpr gf::RectI CharacterBox = gf::RectI::from_position_size(CharacterBoxPosition, CharacterBoxSize);
 
   constexpr gf::Vec2I ContextualBoxPosition = { 76, 27 };

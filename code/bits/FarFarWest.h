@@ -8,11 +8,10 @@
 #include <gf2/core/ConsoleStyle.h>
 #include <gf2/core/Random.h>
 
+#include "ControlScene.h"
 #include "GenerationScene.h"
-#include "HeroScene.h"
 #include "KickoffScene.h"
-#include "MapScene.h"
-#include "MessageLogScene.h"
+#include "PrimaryScene.h"
 #include "TitleScene.h"
 #include "WorldModel.h"
 
@@ -25,6 +24,11 @@ namespace ffw {
     gf::Random* random()
     {
       return m_random;
+    }
+
+    WorldModel* model()
+    {
+      return &m_model;
     }
 
     WorldState* state()
@@ -51,9 +55,8 @@ namespace ffw {
     KickoffScene kickoff;
     GenerationScene generation;
 
-    MessageLogScene message_log;
-    HeroScene hero;
-    MapScene map;
+    PrimaryScene primary;
+    ControlScene control;
 
 
   private:

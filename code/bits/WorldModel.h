@@ -16,6 +16,10 @@ namespace ffw {
 
     void update(gf::Time time) override;
 
+
+    bool is_walkable(gf::Vec2I position) const;
+
+    void move_actor(ActorState& actor, gf::Vec2I position);
   };
 
 }

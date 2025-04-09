@@ -1,15 +1,10 @@
-#include "MapScene.h"
+#include "ControlScene.h"
 
-#include "ActorState.h"
 #include "FarFarWest.h"
-#include "Settings.h"
 
 namespace ffw {
 
   namespace {
-
-    constexpr int32_t ViewRelaxation = 10;
-
     using namespace gf::literals;
 
     struct MoveAction {
@@ -33,18 +28,18 @@ namespace ffw {
 
   }
 
-  MapScene::MapScene(FarFarWest* game)
+  ControlScene::ControlScene(FarFarWest* game)
   : m_game(game)
   , m_action_group(compute_settings())
   {
   }
 
-  void MapScene::process_event(const gf::Event& event)
+  void ControlScene::process_event(const gf::Event& event)
   {
     m_action_group.process_event(event);
   }
 
-  gf::ActionGroupSettings MapScene::compute_settings()
+  gf::ActionGroupSettings ControlScene::compute_settings()
   {
     using namespace gf::literals;
     gf::ActionGroupSettings settings;
@@ -62,63 +57,18 @@ namespace ffw {
     return settings;
   }
 
-  void MapScene::handle_actions()
+  void ControlScene::handle_actions()
   {
     using namespace gf::literals;
 
     for (auto move_action : MoveActions) {
       if (m_action_group.active(move_action.id)) {
-        m_orientation += gf::displacement(move_action.orientation);
+        m_game->runtime()->orientation += gf::displacement(move_action.orientation);
       }
     }
 
     m_action_group.reset();
   }
 
-  void MapScene::update([[maybe_unused]] gf::Time time)
-  {
-    auto* state = m_game->state();
-    auto* runtime = m_game->runtime();
-    m_orientation = gf::clamp(m_orientation, -1, +1);
-
-    const gf::Vec2I new_hero_position = state->hero().position + m_orientation;
-
-    if (runtime->map.outside_grid.walkable(new_hero_position)) {
-      state->hero().position = new_hero_position;
-
-      if (m_orientation != gf::vec(0, 0)) {
-        m_game->state()->current_date.add_seconds(5);
-      }
-    }
-
-    m_orientation = { 0,  0 };
-  }
-
-  void MapScene::render(gf::Console& console)
-  {
-    const auto* state = m_game->state();
-    const auto* runtime = m_game->runtime();
-
-    const gf::Vec2I hero_position = state->hero().position;
-
-    m_view_center = gf::clamp(m_view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
-
-    const gf::RectI view = gf::RectI::from_center_size(m_view_center, GameBoxSize);
-    runtime->map.outside_ground.blit_to(console, view, GameBoxPosition);
-
-    gf::ConsoleStyle style;
-    style.color.background = gf::Transparent;
-    style.effect = gf::ConsoleEffect::none();
-
-    for (const ActorState& actor : state->actors) {
-      if (!view.contains(actor.position)) {
-        continue;
-      }
-
-      style.color.foreground = actor.data->color;
-      console.put_character(actor.position - view.position(), actor.data->picture, style);
-    }
-
-  }
 
 }

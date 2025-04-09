@@ -2,8 +2,8 @@
 
 #include <gf2/core/ConsoleChar.h>
 
-#include "MapState.h"
 #include "Settings.h"
+#include "WorldState.h"
 
 namespace ffw {
 
@@ -20,13 +20,14 @@ namespace ffw {
 
   }
 
-  void MapRuntime::bind(const MapState& state)
+  void MapRuntime::bind(const WorldState& state)
   {
     outside_ground = gf::Console(WorldSize);
     outside_grid = gf::GridMap::make_orthogonal(WorldSize);
+    outside_reverse = gf::Array2D<ReverseMapCell>(WorldSize);
 
-    for (auto position : state.cells.position_range()) {
-      const MapCell& cell = state.cells(position);
+    for (auto position : state.map.cells.position_range()) {
+      const MapCell& cell = state.map.cells(position);
 
       gf::Color background_color = cell.trait.background;
       gf::Color foreground_color = gf::Transparent;
@@ -51,7 +52,7 @@ namespace ffw {
             for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
               const gf::Vec2I target = position + gf::displacement(orientation);
 
-              if (!state.cells.valid(target) || state.cells(target).detail.block == MapBlock::Cliff) {
+              if (!state.map.cells.valid(target) || state.map.cells(target).detail.block == MapBlock::Cliff) {
                 neighbor_bits |= direction_bit;
               }
 
@@ -103,6 +104,11 @@ namespace ffw {
         outside_grid.set_transparent(position, false);
       }
     }
+
+    for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
+      outside_reverse(actor.position).actor_index = index;
+    }
+
   }
 
 }
