@@ -63,7 +63,7 @@ namespace ffw {
 
     for (auto move_action : MoveActions) {
       if (m_action_group.active(move_action.id)) {
-        m_game->runtime()->orientation += gf::displacement(move_action.orientation);
+        m_game->runtime()->hero.orientation += gf::displacement(move_action.orientation);
       }
     }
 

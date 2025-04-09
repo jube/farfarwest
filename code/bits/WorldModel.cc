@@ -6,17 +6,17 @@ namespace ffw {
 
   void WorldModel::update([[maybe_unused]] gf::Time time)
   {
-    if (runtime.orientation != gf::vec(0, 0)) {
-      runtime.orientation = gf::clamp(runtime.orientation, -1, +1);
+    if (runtime.hero.orientation != gf::vec(0, 0)) {
+      runtime.hero.orientation = gf::clamp(runtime.hero.orientation, -1, +1);
 
-      const gf::Vec2I new_hero_position = state.hero().position + runtime.orientation;
+      const gf::Vec2I new_hero_position = state.hero().position + runtime.hero.orientation;
 
       if (is_walkable(new_hero_position)) {
         move_actor(state.hero(), new_hero_position);
         state.current_date.add_seconds(15);
       }
 
-      runtime.orientation = { 0, 0 };
+      runtime.hero.orientation = { 0, 0 };
     }
 
   }
