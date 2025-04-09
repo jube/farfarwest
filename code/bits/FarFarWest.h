@@ -1,6 +1,8 @@
 #ifndef FFW_FAR_FAR_WEST_H
 #define FFW_FAR_FAR_WEST_H
 
+#include <cstdint>
+
 #include <filesystem>
 #include <future>
 
@@ -17,9 +19,14 @@
 
 namespace ffw {
 
+  enum class AdventureChoice : uint8_t {
+    New,
+    Saved,
+  };
+
   class FarFarWest : public gf::ConsoleSceneManager {
   public:
-    FarFarWest(gf::Random* random, const std::filesystem::path& datafile);
+    FarFarWest(gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile);
 
     gf::Random* random()
     {
@@ -46,10 +53,13 @@ namespace ffw {
       return m_rich_style;
     }
 
-    void start_world_generation();
+    void start_world_generation(AdventureChoice choice);
     bool world_generation_finished();
 
     void start_world();
+
+    bool has_save() const;
+    void save();
 
     TitleScene title;
     KickoffScene kickoff;
@@ -62,6 +72,7 @@ namespace ffw {
   private:
     gf::Random* m_random = nullptr;
     std::filesystem::path m_datafile;
+    std::filesystem::path m_savefile;
     WorldModel m_model;
     std::future<void> m_async_generation;
     bool m_async_generation_finished = false;

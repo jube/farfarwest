@@ -1,5 +1,6 @@
 #include "FarFarWest.h"
 
+#include <filesystem>
 #include <gf2/core/Log.h>
 
 #include "WorldGeneration.h"
@@ -41,7 +42,7 @@ namespace ffw {
 
   }
 
-  FarFarWest::FarFarWest(gf::Random* random, const std::filesystem::path& datafile)
+  FarFarWest::FarFarWest(gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile)
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
@@ -50,6 +51,7 @@ namespace ffw {
   , control(this)
   , m_random(random)
   , m_datafile(datafile)
+  , m_savefile(savefile)
   , m_model(random)
   , m_rich_style(compute_rich_style())
   {
@@ -57,13 +59,21 @@ namespace ffw {
     push_scene(&kickoff);
   }
 
-  void FarFarWest::start_world_generation()
+  void FarFarWest::start_world_generation(AdventureChoice choice)
   {
     m_async_generation_finished = false;
 
-    m_async_generation = std::async(std::launch::async, [&]() {
+    m_async_generation = std::async(std::launch::async, [&,choice]() {
       m_model.data.load_from_file(m_datafile);
-      m_model.state = generate_world(m_random);
+
+      if (choice == AdventureChoice::New) {
+        m_model.state = generate_world(m_random);
+      } else {
+        assert(has_save());
+        m_model.state.load_from_file(m_savefile);
+        std::filesystem::remove(m_savefile);
+      }
+
       m_model.state.bind(m_model.data);
       m_model.runtime.bind(m_model.data, m_model.state);
     });
@@ -85,5 +95,16 @@ namespace ffw {
     push_scene(&primary);
     push_scene(&control);
   }
+
+  bool FarFarWest::has_save() const
+  {
+    return std::filesystem::is_regular_file(m_savefile);
+  }
+
+  void FarFarWest::save()
+  {
+    m_model.state.save_to_file(m_savefile);
+  }
+
 
 }

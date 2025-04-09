@@ -48,7 +48,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<WorldState, Archive>& state)
   {
-    return ar | state.map | state.actors | state.log;
+    return ar | state.current_date | state.map | state.actors | state.scheduler | state.log;
   }
 
 }

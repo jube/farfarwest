@@ -1,13 +1,16 @@
 #include "FarFarWestScene.h"
 
+#include <gf2/graphics/GamePaths.h>
+
 #include "FarFarWestSystem.h"
+#include "gf2/core/Event.h"
 
 namespace ffw {
 
   FarFarWestScene::FarFarWestScene(FarFarWestSystem* game, const FarFarWestResources& resources)
   : m_game(game)
   , m_action_group(compute_settings())
-  , m_console_scene_manager(game->random(), game->resource_manager()->search("data.json"))
+  , m_console_scene_manager(game->random(), game->resource_manager()->search("data.json"), gf::user_data_path("jube", "farfarwest") / "save.dat")
   , m_console_entity(resources.console_resource, game->resource_manager())
   {
     auto bounds = m_console_scene_manager.console().size() * 64;
@@ -32,6 +35,10 @@ namespace ffw {
   {
     m_action_group.process_event(event);
     m_console_scene_manager.process_event(event);
+
+    if (event.type() == gf::EventType::Quit) {
+      // m_console_scene_manager.save();
+    }
   }
 
   void FarFarWestScene::do_handle_actions()

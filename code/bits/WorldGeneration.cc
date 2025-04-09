@@ -80,11 +80,6 @@ namespace ffw {
 
         MapDetail& detail = cell.detail;
         detail.state = random->compute_uniform_float(1.0f);
-
-        while (detail.state == 1.0f) {
-          detail.state = random->compute_uniform_float(1.0f);
-        }
-
         assert(0.0f <= detail.state && detail.state < 1.0f);
 
         /*

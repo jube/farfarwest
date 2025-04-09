@@ -46,10 +46,14 @@ namespace ffw {
     } else if (m_action_group.active("choose"_id)) {
       switch (m_choice) {
         case StartNewGameChoice:
-          m_game->start_world_generation();
+          m_game->start_world_generation(AdventureChoice::New);
           m_game->replace_scene(&m_game->generation);
           break;
         case ContinueGameChoice:
+          if (m_game->has_save()) {
+            m_game->start_world_generation(AdventureChoice::Saved);
+            m_game->replace_scene(&m_game->generation);
+          }
           break;
         case QuitChoice:
           m_game->pop_all_scenes();
@@ -83,7 +87,7 @@ namespace ffw {
     style.color.foreground = gf::White;
     console.print({ 35, 35 }, gf::ConsoleAlignment::Left, style, "Start a new adventure");
 
-    if (m_has_saved_game) {
+    if (m_game->has_save()) {
       style.color.foreground = gf::White;
     } else {
       style.color.foreground = gf::Gray;
