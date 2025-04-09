@@ -12,6 +12,7 @@
 #include "Date.h"
 #include "MapState.h"
 #include "MessageLogState.h"
+#include "SchedulerState.h"
 
 namespace ffw {
   struct WorldData;
@@ -23,6 +24,8 @@ namespace ffw {
 
     MapState map;
     std::vector<ActorState> actors;
+
+    SchedulerState scheduler;
 
     MessageLogState log;
 

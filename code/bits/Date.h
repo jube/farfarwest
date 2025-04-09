@@ -57,6 +57,7 @@ namespace ffw {
   }
 
   bool operator<(const Date& lhs, const Date& rhs);
+  bool operator==(const Date& lhs, const Date& rhs);
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<Date, Archive>& date)

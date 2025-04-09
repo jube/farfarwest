@@ -92,8 +92,8 @@ namespace ffw {
         case MapDecoration::None:
           break;
         case MapDecoration::Herb:
-          character = generate_character({ u'.', u',', u'`', u'\'', gf::ConsoleChar::SquareRoot }, cell.detail.state);
-          foreground_color = gf::darker(background_color, 0.3f);
+          character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, cell.detail.state);
+          foreground_color = gf::darker(background_color, 0.1f);
           break;
       }
 

@@ -59,6 +59,11 @@ namespace ffw {
 
   void ControlScene::handle_actions()
   {
+    if (!m_game->state()->scheduler.is_hero_turn()) {
+      m_action_group.reset();
+      return;
+    }
+
     using namespace gf::literals;
 
     for (auto move_action : MoveActions) {

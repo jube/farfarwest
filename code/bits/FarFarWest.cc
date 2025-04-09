@@ -9,7 +9,9 @@ namespace ffw {
 
   namespace {
 
-    constexpr gf::ConsoleStyle DefaultStyle = { {  gf::White, gf::Transparent }, gf::ConsoleEffect::none() };
+    constexpr gf::ConsoleStyle DefaultStyle = { {  gf::White, gf::Transparent }, gf::ConsoleEffect::set() };
+
+    constexpr gf::ConsoleColorStyle Gf = { gf::Orange, gf::Azure };
 
     constexpr gf::ConsoleColorStyle DateStyle = { gf::Amber, gf::Transparent };
     constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
@@ -18,11 +20,15 @@ namespace ffw {
     constexpr gf::ConsoleColorStyle DebtStyle = { gf::Vermilion, gf::Transparent };
     constexpr gf::ConsoleColorStyle StatStyle = { gf::Azure, gf::Transparent };
 
+
     gf::ConsoleRichStyle compute_rich_style()
     {
       gf::ConsoleRichStyle style;
 
       style.set_default_style(DefaultStyle);
+
+      style.set_style("gf", Gf);
+
       style.set_style("character", CharacterStyle);
       style.set_style("date", DateStyle);
       style.set_style("key", KeyStyle);
@@ -44,6 +50,7 @@ namespace ffw {
   , control(this)
   , m_random(random)
   , m_datafile(datafile)
+  , m_model(random)
   , m_rich_style(compute_rich_style())
   {
     push_scene(&title);

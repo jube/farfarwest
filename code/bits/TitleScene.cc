@@ -16,19 +16,25 @@ namespace ffw {
 
     constexpr gf::Color TitleColor = gf::Amber;
 
-    constexpr std::string_view Title[] = {
-      "######  ###   #####     ######  ###   #####     ### ### ### ######  ###  #######",
-      "######  ###   #####     ######  ###   #####     ### ### ### ######  ###  #######",
-      " #   # #   #   #   #     #   # #   #   #   #     #   #   #   #   # #   # #  #  #",
-      " #     #   #   #   #     #     #   #   #   #     #   #   #   #     #        #   ",
-      " #     #   #   #   #     #     #   #   #   #     #   #   #   #     #        #   ",
-      " ###   #####   ####      ###   #####   ####       # # # #    ###    ###     #   ",
-      " ###   #####   ####      ###   #####   ####       # # # #    ###       #    #   ",
-      " #     #   #   #   #     #     #   #   #   #      # # # #    #         #    #   ",
-      " #     #   #   #   #     #     #   #   #   #       #   #     #         #    #   ",
-      " #     #   #   #   #     #     #   #   #   #       #   #     #   # #   #    #   ",
-      "###   ### ### ### ###   ###   ### ### ### ###     ### ###   ######  ###    ###  ",
-      "###   ### ### ### ###   ###   ### ### ### ###     ### ###   ######  ###    ###  ",
+    constexpr std::u16string_view Title[] = {
+      u" ██████  ███   █████     ██████  ███   █████     ███ ███ ███ ██████  ███  ███████",
+      u" ██████  ███   █████     ██████  ███   █████     ███ ███ ███ ██████  ███  ███████",
+      u"  █   █ █   █   █   █     █   █ █   █   █   █     █   █   █   █   █ █   █ █  █  █",
+      u"  █     █   █   █   █     █     █   █   █   █     █   █   █   █     █        █   ",
+      u"  █     █   █   █   █     █     █   █   █   █     █   █   █   █     █        █   ",
+      u"  ███   █████   ████      ███   █████   ████       █ █ █ █    ███    ███     █   ",
+      u"  ███   █████   ████      ███   █████   ████       █ █ █ █    ███       █    █   ",
+      u"  █     █   █   █   █     █     █   █   █   █      █ █ █ █    █         █    █   ",
+      u"  █     █   █   █   █     █     █   █   █   █       █   █     █         █    █   ",
+      u"  █     █   █   █   █     █     █   █   █   █       █   █     █   █ █   █    █   ",
+      u" ███   ███ ███ ███ ███   ███   ███ ███ ███ ███     ███ ███   ██████  ███    ███  ",
+      u" ███   ███ ███ ███ ███   ███   ███ ███ ███ ███     ███ ███   ██████  ███    ███  ",
+      u"                                                                                ",
+      u"─┬─ ┬           ┬                                   ┬         ┬       ┬         │ ",
+      u" │  │   ·       │                                   │         │   ·   │         │ ",
+      u" │  ├─┐ ┬ ┌─┐   │ ┌─┐ ┌─┐ ┌─┐   ┬ ┬ ┌─┐ ┌─┐   ┌─┐   ├─┐ ┌─┐ ┌─┤   ┬ ┌─┤ ┌─┐ ┌─┐ │ ",
+      u" │  │ │ │ └─┐   │ │ │ ┌─┤ │ │   │││ ┌─┤ └─┐   ┌─┤   │ │ ┌─┤ │ │   │ │ │ ├─┘ ┌─┤   ",
+      u" ┴  ┴ ┴ ┴ └─┘   ┴ └─┘ └─┘ ┴ ┴   ┴┴┴ └─┘ └─┘   └─┘   └─┘ └─┘ └─┘   ┴ └─┘ └─┘ └─┘ · ",
     };
 
     constexpr gf::Vec2I Size = gf::vec(Title[0].size(), std::size(Title));
@@ -40,7 +46,7 @@ namespace ffw {
   , m_title(Size)
   {
     for (const gf::Vec2I position : gf::position_range(Size)) {
-      const char16_t c = Title[position.y][position.x] == '#' ? gf::ConsoleChar::FullBlock : u' ';
+      const char16_t c = Title[position.y][position.x];
       m_title.put_character(position, c, TitleColor, gf::Transparent);
     }
   }
@@ -51,11 +57,17 @@ namespace ffw {
     const gf::Vec2I title_position = { padding.w / 2, padding.h / 2 - padding.h / 6 };
     m_title.blit_to(console, gf::RectI::from_size(m_title.size()), title_position);
 
-    gf::ConsoleStyle style;
-    style.color.foreground = gf::Amber;
+    // gf::ConsoleStyle style;
+    // style.color.foreground = gf::Amber;
+    //
+    // const gf::Vec2I subtitle_position = { console.size().w / 2, title_position.y + Size.y + 2 };
+    // console.print(subtitle_position, gf::ConsoleAlignment::Center, style, "This mortgage was not a good idea. Find the money or run!");
 
-    const gf::Vec2I subtitle_position = { console.size().w / 2, title_position.y + Size.y + 2 };
-    console.print(subtitle_position, gf::ConsoleAlignment::Center, style, "This mortgage was not a good idea. Find the money or run!");
+    gf::ConsoleStyle style;
+    style.color.foreground = gf::White;
+
+    const gf::Vec2I subtitle_position = { console.size().w / 2, console.size().h - 2 };
+    console.print(subtitle_position, gf::ConsoleAlignment::Center, m_game->style(), "copyright (c) 2025 ─ made with <style=gf>gf2</>");
   }
 
 }
