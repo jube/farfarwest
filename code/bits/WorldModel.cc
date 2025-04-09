@@ -8,6 +8,12 @@ namespace ffw {
 
     constexpr gf::Time Cooldown = gf::milliseconds(100);
 
+    constexpr int32_t IdleDistance = 100;
+    constexpr uint16_t IdleTime = 100;
+
+    constexpr uint16_t WalkTime = 15;
+    constexpr uint16_t GrazeTime = 100;
+
 
     gf::Orientation random_orientation(gf::Random* random) {
       constexpr gf::Orientation Orientations[] = {
@@ -46,7 +52,7 @@ namespace ffw {
       return;
     }
 
-    state.current_date = state.scheduler.queue.top().date;
+    update_date();
 
     while (state.current_date == state.scheduler.queue.top().date) {
       if (state.scheduler.is_hero_turn()) {
@@ -59,6 +65,14 @@ namespace ffw {
 
       const Task& current_task = state.scheduler.queue.top();
       ActorState& current_actor = state.actors[current_task.index];
+
+      const int32_t distance_to_hero = gf::chebyshev_distance(current_actor.position, state.hero().position);
+
+      if (distance_to_hero > IdleDistance) {
+        update_current_actor_in_queue(distance_to_hero - IdleDistance + IdleTime);
+        update_date();
+        continue; // do not cooldown in this case
+      }
 
       using namespace gf::literals;
 
@@ -73,7 +87,7 @@ namespace ffw {
           break;
       }
 
-      break;
+      // break;
     }
 
     m_phase = Phase::Cooldown;
@@ -118,6 +132,11 @@ namespace ffw {
     std::swap(old_reverse_cell.actor_index, new_reverse_cell.actor_index);
   }
 
+  void WorldModel::update_date()
+  {
+    state.current_date = state.scheduler.queue.top().date;
+  }
+
   void WorldModel::update_current_actor_in_queue(uint16_t seconds)
   {
     Task task = state.scheduler.queue.top();
@@ -136,7 +155,7 @@ namespace ffw {
 
       if (is_walkable(new_hero_position)) {
         move_actor(state.hero(), new_hero_position);
-        update_current_actor_in_queue(15);
+        update_current_actor_in_queue(WalkTime);
         return true;
       }
     }
@@ -155,7 +174,7 @@ namespace ffw {
     }
 
     move_actor(cow, new_position);
-    update_current_actor_in_queue(100);
+    update_current_actor_in_queue(GrazeTime);
   }
 
 }
