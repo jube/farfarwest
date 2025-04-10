@@ -1,6 +1,8 @@
 #include "FarFarWest.h"
 
 #include <filesystem>
+
+#include <gf2/core/Clock.h>
 #include <gf2/core/Log.h>
 
 #include "WorldGeneration.h"
@@ -49,6 +51,7 @@ namespace ffw {
   , primary(this)
   , control(this)
   , quit(this)
+  , save(this)
   , m_random(random)
   , m_datafile(datafile)
   , m_savefile(savefile)
@@ -70,8 +73,10 @@ namespace ffw {
         m_model.state = generate_world(m_random);
       } else {
         assert(has_save());
+        gf::Clock clock;
         m_model.state.load_from_file(m_savefile);
         std::filesystem::remove(m_savefile);
+        gf::Log::info("Game loaded in {:g}s", clock.elapsed_time().as_seconds());
       }
 
       m_model.bind();
@@ -105,7 +110,9 @@ namespace ffw {
     m_async_save_finished = false;
 
     m_async_save = std::async(std::launch::async, [&]() {
+      gf::Clock clock;
       m_model.state.save_to_file(m_savefile);
+      gf::Log::info("Game saved in {:g}s", clock.elapsed_time().as_seconds());
     });
   }
 

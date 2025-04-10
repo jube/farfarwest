@@ -39,7 +39,8 @@ namespace ffw {
     } else if (m_action_group.active("choose"_id)) {
       switch (m_choice) {
         case SaveAndQuitChoice:
-          // TODO
+          m_game->create_save();
+          m_game->replace_scene(&m_game->save);
           break;
         case QuitChoice:
           m_game->pop_all_scenes();
