@@ -27,9 +27,9 @@ namespace ffw {
     });
   }
 
-  void WorldRuntime::bind([[maybe_unused]] const WorldData& data, const WorldState& state)
+  void WorldRuntime::bind([[maybe_unused]] const WorldData& data, const WorldState& state, gf::Random* random)
   {
-    map.bind(state);
+    map.bind(state, random);
     sort_actors_by_distance(state.actors);
   }
 

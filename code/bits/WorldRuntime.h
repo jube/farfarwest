@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include <gf2/core/Random.h>
+
 #include "HeroRuntime.h"
 #include "MapRuntime.h"
 
@@ -19,7 +21,7 @@ namespace ffw {
 
     void sort_actors_by_distance(const std::vector<ActorState>& actors);
 
-    void bind(const WorldData& data, const WorldState& state);
+    void bind(const WorldData& data, const WorldState& state, gf::Random* random);
   };
 
 }

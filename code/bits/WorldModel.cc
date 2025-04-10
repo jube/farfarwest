@@ -39,6 +39,12 @@ namespace ffw {
   {
   }
 
+  void WorldModel::bind()
+  {
+    state.bind(data);
+    runtime.bind(data, state, m_random);
+  }
+
   void WorldModel::update(gf::Time time)
   {
     if (m_phase == Phase::Cooldown) {
@@ -99,7 +105,7 @@ namespace ffw {
       return false;
     }
 
-    return state.map.cells(position).trait.region == MapRegion::Prairie;
+    return state.map.cells(position).region == MapRegion::Prairie;
   }
 
   bool WorldModel::is_walkable(gf::Vec2I position) const

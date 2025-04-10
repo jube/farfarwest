@@ -18,6 +18,8 @@ namespace ffw {
     WorldState state;
     WorldRuntime runtime;
 
+    void bind();
+
     void update(gf::Time time) override;
 
     bool is_prairie(gf::Vec2I position) const;

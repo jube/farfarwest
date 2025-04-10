@@ -2,6 +2,7 @@
 
 #include <gf2/core/ConsoleChar.h>
 
+#include "MapCell.h"
 #include "Settings.h"
 #include "WorldState.h"
 
@@ -9,18 +10,24 @@ namespace ffw {
 
   namespace {
 
-    char16_t generate_character(std::initializer_list<char16_t> list, float state)
+    constexpr gf::Color PrairieColor = 0xC4D6B0;
+    constexpr gf::Color DesertColor = 0xC2B280;
+    constexpr gf::Color ForestColor = 0x4A6A4D;
+    constexpr gf::Color MountainColor = 0x8B5A2B;
+
+    constexpr float ColorLighterBound = 0.03f;
+
+    char16_t generate_character(std::initializer_list<char16_t> list, gf::Random* random)
     {
       assert(list.size() > 0);
-      assert(0.0f <= state && state < 1.0f);
-      const std::size_t index = static_cast<std::size_t>(state * list.size());
+      const std::size_t index = random->compute_uniform_integer(list.size());
       assert(index < list.size());
       return std::data(list)[index];
     }
 
   }
 
-  void MapRuntime::bind(const WorldState& state)
+  void MapRuntime::bind(const WorldState& state, gf::Random* random)
   {
     outside_ground = gf::Console(WorldSize);
     outside_grid = gf::GridMap::make_orthogonal(WorldSize);
@@ -29,19 +36,37 @@ namespace ffw {
     for (auto position : state.map.cells.position_range()) {
       const MapCell& cell = state.map.cells(position);
 
-      gf::Color background_color = cell.trait.background;
+      gf::Color background_color = gf::White;
+
+      switch (cell.region) {
+        case MapRegion::Prairie:
+          background_color = PrairieColor;
+          break;
+        case MapRegion::Desert:
+          background_color = DesertColor;
+          break;
+        case MapRegion::Forest:
+          background_color = ForestColor;
+          break;
+        case MapRegion::Moutain:
+          background_color = MountainColor;
+          break;
+      }
+
+      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
+
       gf::Color foreground_color = gf::Transparent;
       char16_t character = u' ';
 
-      switch (cell.detail.block) {
+      switch (cell.block) {
         case MapBlock::None:
           break;
         case MapBlock::Cactus:
-          character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, cell.detail.state);
+          character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, random);
           foreground_color = gf::darker(gf::Green, 0.3f);
           break;
         case MapBlock::Tree:
-          character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, cell.detail.state);
+          character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, random);
           foreground_color = gf::darker(gf::Green, 0.7f);
           break;
         case MapBlock::Cliff:
@@ -52,7 +77,7 @@ namespace ffw {
             for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
               const gf::Vec2I target = position + gf::displacement(orientation);
 
-              if (!state.map.cells.valid(target) || state.map.cells(target).detail.block == MapBlock::Cliff) {
+              if (!state.map.cells.valid(target) || state.map.cells(target).block == MapBlock::Cliff) {
                 neighbor_bits |= direction_bit;
               }
 
@@ -88,18 +113,18 @@ namespace ffw {
           break;
       }
 
-      switch (cell.detail.decoration) {
+      switch (cell.decoration) {
         case MapDecoration::None:
           break;
         case MapDecoration::Herb:
-          character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, cell.detail.state);
+          character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
           foreground_color = gf::darker(background_color, 0.1f);
           break;
       }
 
       outside_ground.put_character(position, character, foreground_color, background_color);
 
-      if (cell.detail.block != MapBlock::None) {
+      if (cell.block != MapBlock::None) {
         outside_grid.set_walkable(position, false);
         outside_grid.set_transparent(position, false);
       }

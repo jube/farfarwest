@@ -73,8 +73,7 @@ namespace ffw {
         std::filesystem::remove(m_savefile);
       }
 
-      m_model.state.bind(m_model.data);
-      m_model.runtime.bind(m_model.data, m_model.state);
+      m_model.bind();
     });
   }
 
