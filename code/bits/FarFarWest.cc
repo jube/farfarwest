@@ -45,7 +45,7 @@ namespace ffw {
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
-  , generation(this)
+  , creation(this)
   , primary(this)
   , control(this)
   , quit(this)
@@ -59,11 +59,11 @@ namespace ffw {
     push_scene(&kickoff);
   }
 
-  void FarFarWest::start_world_generation(AdventureChoice choice)
+  void FarFarWest::create_world(AdventureChoice choice)
   {
-    m_async_generation_finished = false;
+    m_async_world_finished = false;
 
-    m_async_generation = std::async(std::launch::async, [&,choice]() {
+    m_async_world = std::async(std::launch::async, [&,choice]() {
       m_model.data.load_from_file(m_datafile);
 
       if (choice == AdventureChoice::New) {
@@ -78,14 +78,14 @@ namespace ffw {
     });
   }
 
-  bool FarFarWest::world_generation_finished()
+  bool FarFarWest::world_creation_finished()
   {
-    if (m_async_generation.valid() && m_async_generation.wait_for(std::chrono::seconds::zero()) == std::future_status::ready) {
-      m_async_generation.get();
-      m_async_generation_finished = true;
+    if (m_async_world.valid() && m_async_world.wait_for(std::chrono::seconds::zero()) == std::future_status::ready) {
+      m_async_world.get();
+      m_async_world_finished = true;
     }
 
-    return m_async_generation_finished;
+    return m_async_world_finished;
   }
 
   void FarFarWest::start_world()
@@ -100,10 +100,23 @@ namespace ffw {
     return std::filesystem::is_regular_file(m_savefile);
   }
 
-  void FarFarWest::save()
+  void FarFarWest::create_save()
   {
-    m_model.state.save_to_file(m_savefile);
+    m_async_save_finished = false;
+
+    m_async_save = std::async(std::launch::async, [&]() {
+      m_model.state.save_to_file(m_savefile);
+    });
   }
 
+  bool FarFarWest::save_creation_finished()
+  {
+    if (m_async_save.valid() && m_async_save.wait_for(std::chrono::seconds::zero()) == std::future_status::ready) {
+      m_async_save.get();
+      m_async_save_finished = true;
+    }
+
+    return m_async_save_finished;
+  }
 
 }

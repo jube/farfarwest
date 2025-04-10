@@ -46,13 +46,13 @@ namespace ffw {
     } else if (m_action_group.active("choose"_id)) {
       switch (m_choice) {
         case StartNewGameChoice:
-          m_game->start_world_generation(AdventureChoice::New);
-          m_game->replace_scene(&m_game->generation);
+          m_game->create_world(AdventureChoice::New);
+          m_game->replace_scene(&m_game->creation);
           break;
         case ContinueGameChoice:
           if (m_game->has_save()) {
-            m_game->start_world_generation(AdventureChoice::Saved);
-            m_game->replace_scene(&m_game->generation);
+            m_game->create_world(AdventureChoice::Saved);
+            m_game->replace_scene(&m_game->creation);
           }
           break;
         case QuitChoice:

@@ -1,12 +1,11 @@
 #include "QuitScene.h"
 
+#include "Colors.h"
 #include "FarFarWest.h"
 
 namespace ffw {
 
   namespace {
-
-    constexpr gf::Color RpgBlue = { 0.015625f, 0.03125f, 0.515625f };
 
     constexpr int ChoiceCount = 3;
     constexpr int SaveAndQuitChoice = 0;

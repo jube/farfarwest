@@ -3,13 +3,14 @@
 
 #include <gf2/core/Time.h>
 #include <gf2/core/ConsoleScene.h>
+#include <gf2/core/Console.h>
 
 namespace ffw {
   class FarFarWest;
 
-  class GenerationScene : public gf::ConsoleScene {
+  class CreationScene : public gf::ConsoleScene {
   public:
-    GenerationScene(FarFarWest* game);
+    CreationScene(FarFarWest* game);
 
     void update(gf::Time time) override;
     void render(gf::Console& console) override;
@@ -17,6 +18,7 @@ namespace ffw {
   private:
     FarFarWest* m_game = nullptr;
     gf::Time m_time;
+    gf::Console m_console;
   };
 
 }
