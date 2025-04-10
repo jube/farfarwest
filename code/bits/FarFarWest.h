@@ -14,6 +14,7 @@
 #include "GenerationScene.h"
 #include "KickoffScene.h"
 #include "PrimaryScene.h"
+#include "QuitScene.h"
 #include "TitleScene.h"
 #include "WorldModel.h"
 
@@ -67,7 +68,7 @@ namespace ffw {
 
     PrimaryScene primary;
     ControlScene control;
-
+    QuitScene quit;
 
   private:
     gf::Random* m_random = nullptr;

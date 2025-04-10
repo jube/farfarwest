@@ -48,6 +48,7 @@ namespace ffw {
   , generation(this)
   , primary(this)
   , control(this)
+  , quit(this)
   , m_random(random)
   , m_datafile(datafile)
   , m_savefile(savefile)

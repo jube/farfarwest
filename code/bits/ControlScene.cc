@@ -54,6 +54,8 @@ namespace ffw {
       settings.actions.emplace(move_action.id, std::move(action));
     }
 
+    settings.actions.emplace("escape"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Escape));
+
     return settings;
   }
 
@@ -70,6 +72,10 @@ namespace ffw {
       if (m_action_group.active(move_action.id)) {
         m_game->runtime()->hero.orientation += gf::displacement(move_action.orientation);
       }
+    }
+
+    if (m_action_group.active("escape"_id)) {
+      m_game->replace_scene(&m_game->quit);
     }
 
     m_action_group.reset();
