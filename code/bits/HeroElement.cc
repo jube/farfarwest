@@ -44,13 +44,13 @@ namespace ffw {
 
     position = CharacterBox.position_at(gf::Orientation::SouthWest) - gf::diry(5) + gf::dirx(1);
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=key>Weapon:</>");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=item>Weapon:</>");
     ++position.y;
 
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "Winchester");
     ++position.y;
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=key>Ammunitions:</>");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=item>Ammunitions:</>");
     ++position.y;
 
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "•••○○○");

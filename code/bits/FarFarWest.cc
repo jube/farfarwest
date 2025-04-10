@@ -16,11 +16,10 @@ namespace ffw {
 
     constexpr gf::ConsoleColorStyle DateStyle = { gf::Amber, gf::Transparent };
     constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
-    constexpr gf::ConsoleColorStyle KeyStyle = { gf::Capri, gf::Transparent };
+    constexpr gf::ConsoleColorStyle ItemStyle = { gf::Capri, gf::Transparent };
     constexpr gf::ConsoleColorStyle CashStyle = { gf::Erin, gf::Transparent };
     constexpr gf::ConsoleColorStyle DebtStyle = { gf::Vermilion, gf::Transparent };
     constexpr gf::ConsoleColorStyle StatStyle = { gf::Azure, gf::Transparent };
-
 
     gf::ConsoleRichStyle compute_rich_style()
     {
@@ -32,7 +31,7 @@ namespace ffw {
 
       style.set_style("character", CharacterStyle);
       style.set_style("date", DateStyle);
-      style.set_style("key", KeyStyle);
+      style.set_style("item", ItemStyle);
       style.set_style("cash", CashStyle);
       style.set_style("debt", DebtStyle);
       style.set_style("stat", StatStyle);
