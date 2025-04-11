@@ -1,7 +1,11 @@
 #include "WorldGeneration.h"
+#include "Colors.h"
+#include "MapCell.h"
 #include "MapState.h"
 
 #include <cstdint>
+
+#include <queue>
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
@@ -28,7 +32,7 @@ namespace ffw {
      *
      */
 
-    constexpr bool Debug = false;
+    constexpr bool Debug = true;
 
     constexpr double WorldNoiseScale = WorldBasicSize / 256.0;
 
@@ -44,6 +48,8 @@ namespace ffw {
     constexpr int MoutainSurvivalThreshold = 6;
     constexpr int MoutainBirthThreshold    = 8;
     constexpr int MoutainIterations        = 7;
+
+    constexpr std::size_t RegionMinimumSize = 400;
 
     struct RawCell {
       double altitude;
@@ -125,8 +131,6 @@ namespace ffw {
             }
           }
         }
-
-        // trait.background = gf::lighter(trait.background, random->compute_uniform_float(0.0f, ColorLighterBound));
       }
 
       if constexpr (Debug) {
@@ -134,7 +138,24 @@ namespace ffw {
 
         for (const gf::Vec2I position : image.position_range()) {
           const MapCell& cell = state.cells(position);
-          // image.put_pixel(position, cell.trait.background);
+          gf::Color color = gf::Transparent;
+
+          switch (cell.region) {
+            case MapRegion::Prairie:
+              color = PrairieColor;
+              break;
+            case MapRegion::Desert:
+              color = DesertColor;
+              break;
+            case MapRegion::Forest:
+              color = ForestColor;
+              break;
+            case MapRegion::Moutain:
+              color = MountainColor;
+              break;
+          }
+
+          image.put_pixel(position, color);
         }
 
         image.save_to_file("00_outline.png");
@@ -222,8 +243,147 @@ namespace ffw {
           state.cells(position).block = MapBlock::Cliff;
         }
       }
+
+      if constexpr (Debug) {
+        gf::Image image(WorldSize);
+
+        for (const gf::Vec2I position : image.position_range()) {
+          const MapCell& cell = state.cells(position);
+          gf::Color color = gf::Transparent;
+
+          switch (cell.region) {
+            case MapRegion::Prairie:
+              color = PrairieColor;
+              break;
+            case MapRegion::Desert:
+              color = cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
+              break;
+            case MapRegion::Forest:
+              color = cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
+              break;
+            case MapRegion::Moutain:
+              color = cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
+              break;
+          }
+
+          image.put_pixel(position, color);
+        }
+
+        image.save_to_file("01_blocks.png");
+      }
+
     }
 
+    struct WorldRegion {
+      std::vector<gf::Vec2I> points;
+      gf::RectI bounds;
+    };
+
+    struct WorldRegions {
+      std::vector<WorldRegion> prairie_regions;
+      std::vector<WorldRegion> desert_regions;
+      std::vector<WorldRegion> forest_regions;
+      std::vector<WorldRegion> mountain_regions;
+
+      std::vector<WorldRegion>& operator()(MapRegion region)
+      {
+        switch (region) {
+          case MapRegion::Prairie:
+            return prairie_regions;
+          case MapRegion::Desert:
+            return desert_regions;
+          case MapRegion::Forest:
+            return forest_regions;
+          case MapRegion::Moutain:
+            return mountain_regions;
+        }
+
+        assert(false);
+        return prairie_regions;
+      }
+    };
+
+    WorldRegions compute_regions(const MapState& state)
+    {
+      enum class Status : uint8_t {
+        New,
+        Visited,
+      };
+
+      gf::Array2D<Status> status(WorldSize, Status::New);
+
+      WorldRegions regions = {};
+
+      for (const gf::Vec2I position : state.cells.position_range()) {
+        if (status(position) == Status::Visited) {
+          continue;
+        }
+
+        const MapRegion region_type = state.cells(position).region;
+
+        std::queue<gf::Vec2I> queue;
+        queue.emplace(position);
+        status(position) = Status::Visited;
+
+        WorldRegion region;
+
+        while (!queue.empty()) {
+          const gf::Vec2I current = queue.front();
+          queue.pop();
+          assert(status(current) == Status::Visited);
+          region.points.push_back(current);
+
+          for (const gf::Vec2I neighbor : state.cells.compute_4_neighbors_range(current)) {
+            if (status(neighbor) == Status::Visited) {
+              continue;
+            }
+
+            if (state.cells(neighbor).region != region_type) {
+              continue;
+            }
+
+            status(neighbor) = Status::Visited;
+            queue.push(neighbor);
+          }
+        }
+
+        if (region.points.size() > RegionMinimumSize) {
+          regions(region_type).push_back(std::move(region));
+        }
+      }
+
+      // compute extents
+
+      auto compute_extent = [](std::vector<WorldRegion>& regions, std::string_view name) {
+
+        for (WorldRegion& region : regions) {
+          gf::RectI bounds = gf::RectI::from_center_size(region.points.front(), { 1, 1 });
+
+          for (gf::Vec2I point : region.points) {
+            bounds.extend_to(point);
+          }
+
+          region.bounds = bounds;
+        }
+
+        std::sort(regions.begin(), regions.end(), [](const WorldRegion& lhs, const WorldRegion& rhs) {
+          return lhs.points.size() > rhs.points.size();
+        });
+
+        gf::Log::info("\t{} ({})", name, regions.size());
+
+        for (WorldRegion& region : regions) {
+          gf::Log::info("\t\t- Size: {}, Extent: {}x{}, Density: {:g}", region.points.size(), region.bounds.extent.w, region.bounds.extent.h, double(region.points.size()) / double(region.bounds.extent.w * region.bounds.extent.h));
+        }
+      };
+
+      compute_extent(regions.prairie_regions, "Prairie");
+      compute_extent(regions.desert_regions, "Desert");
+      compute_extent(regions.forest_regions, "Forest");
+      compute_extent(regions.mountain_regions, "Moutain");
+
+      return regions;
+    }
 
 
     struct WorldNetwork {
@@ -247,6 +407,7 @@ namespace ffw {
     RawWorld raw = generate_raw(random);
     gf::Log::info("- raw ({:g}s)", clock.elapsed_time().as_seconds());
     state.map = generate_outline(raw, random);
+    compute_regions(state.map);
     gf::Log::info("- outline ({:g}s)", clock.elapsed_time().as_seconds());
     generate_mountains(state.map, random);
     gf::Log::info("- moutains ({:g}s)", clock.elapsed_time().as_seconds());

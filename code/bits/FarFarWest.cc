@@ -70,13 +70,18 @@ namespace ffw {
       m_model.data.load_from_file(m_datafile);
 
       if (choice == AdventureChoice::New) {
+        if (has_save()) {
+          // remove previous savefile
+          std::filesystem::remove(m_savefile);
+        }
+
         m_model.state = generate_world(m_random);
       } else {
         assert(has_save());
         gf::Clock clock;
         m_model.state.load_from_file(m_savefile);
-        std::filesystem::remove(m_savefile);
         gf::Log::info("Game loaded in {:g}s", clock.elapsed_time().as_seconds());
+        std::filesystem::remove(m_savefile);
       }
 
       m_model.bind();

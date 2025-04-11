@@ -2,6 +2,7 @@
 
 #include <gf2/core/ConsoleChar.h>
 
+#include "Colors.h"
 #include "MapCell.h"
 #include "Settings.h"
 #include "WorldState.h"
@@ -9,11 +10,6 @@
 namespace ffw {
 
   namespace {
-
-    constexpr gf::Color PrairieColor = 0xC4D6B0;
-    constexpr gf::Color DesertColor = 0xC2B280;
-    constexpr gf::Color ForestColor = 0x4A6A4D;
-    constexpr gf::Color MountainColor = 0x8B5A2B;
 
     constexpr float ColorLighterBound = 0.03f;
 
