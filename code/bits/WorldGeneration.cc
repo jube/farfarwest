@@ -9,6 +9,7 @@
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
+#include <gf2/core/Easing.h>
 #include <gf2/core/Heightmap.h>
 #include <gf2/core/Log.h>
 #include <gf2/core/Noises.h>
@@ -21,20 +22,12 @@
 namespace ffw {
 
   namespace {
-    /*
-     * - world outline
-     *   - regions
-     *   - color
-     *   - natural scenery
-     * - rail network
-     *   - stations
-     * - characters and creatures
-     *
-     */
 
     constexpr bool Debug = true;
 
     constexpr double WorldNoiseScale = WorldBasicSize / 256.0;
+
+    constexpr int32_t WorldPaddingSize = 150;
 
     constexpr double AltitudeThreshold = 0.55;
     constexpr double MoistureLoThreshold = 0.45;
@@ -49,7 +42,30 @@ namespace ffw {
     constexpr int MoutainBirthThreshold    = 8;
     constexpr int MoutainIterations        = 7;
 
+    constexpr std::size_t TownsCount = 5;
+    constexpr int32_t TownRadius = 40;
+    constexpr int32_t TownMinDistanceFromOther = 1500;
+    constexpr std::size_t FarmsCount = TownsCount * 5;
+    constexpr int32_t FarmRadius = 10;
+    constexpr int32_t FarmMinDistanceFromOther = 200;
+
     constexpr std::size_t RegionMinimumSize = 400;
+
+    bool is_on_side(gf::Vec2I position)
+    {
+      return position.x == 0 || position.x == WorldBasicSize - 1 || position.y == 0 || position.y == WorldBasicSize - 1;
+    }
+
+
+    /*
+     * Step 1. Generate a raw map.
+     *
+     * The raw map is just the combination of two Perlin noises. One for
+     * altitude and one for moisture.
+     *
+     * The values are used many times in the process but are not kept in the
+     * final state of the game.
+     */
 
     struct RawCell {
       double altitude;
@@ -57,10 +73,6 @@ namespace ffw {
     };
 
     using RawWorld = gf::Array2D<RawCell>;
-
-    /*
-     * Outline
-     */
 
     RawWorld generate_raw(gf::Random* random)
     {
@@ -80,10 +92,36 @@ namespace ffw {
         RawCell& cell = raw(position);
         cell.altitude = altitude_heightmap.value(position);
         cell.moisture = moisture_heightmap.value(position);
+
+        double factor = 1.0;
+
+        if (position.x < WorldPaddingSize) {
+          factor *= double(position.x) / double (WorldPaddingSize);
+        } else if (position.x >= WorldSize.x - WorldPaddingSize) {
+          factor *= double(WorldSize.x - position.x - 1) / double (WorldPaddingSize);
+        }
+
+        if (position.y < WorldPaddingSize) {
+          factor *= double(position.y) / double (WorldPaddingSize);
+        } else if (position.y >= WorldSize.y - WorldPaddingSize) {
+          factor *= double(WorldSize.y - 1 - position.y) / double (WorldPaddingSize);
+        }
+
+        cell.altitude = 1.0 - (1.0 - cell.altitude) * gf::ease_out_cubic(factor);
       }
 
       return raw;
     }
+
+    /*
+     * Step 1. Generate an outline
+     *
+     * The outline fix the biomes of the map thanks to altitude and moisture
+     * values. The constraint is that there must be no desert next to a forest.
+     *
+     * In this step, simple blocks and decorations are added: trees, cactuses,
+     * herbs.
+     */
 
     MapState generate_outline(const RawWorld& raw, gf::Random* random)
     {
@@ -126,7 +164,7 @@ namespace ffw {
           } else {
             cell.region = MapRegion::Forest;
 
-            if (random->compute_bernoulli(ForestTreeProbability * raw_cell.moisture)) {
+            if (is_on_side(position) || random->compute_bernoulli(ForestTreeProbability * raw_cell.moisture)) {
               cell.block = MapBlock::Tree;
             }
           }
@@ -163,6 +201,13 @@ namespace ffw {
 
       return state;
     }
+
+    /*
+     * Step 2. Generate the moutains
+     *
+     * The moutains are generated from a cellular automaton. Once it's done,
+     * all the blocks are in place.
+     */
 
     void generate_mountains(MapState& state, gf::Random* random)
     {
@@ -241,6 +286,8 @@ namespace ffw {
       for (const gf::Vec2I position : map.position_range()) {
         if (map(position) == Cliff) {
           state.cells(position).block = MapBlock::Cliff;
+        } else if (state.cells(position).region == MapRegion::Moutain && is_on_side(position)) {
+          state.cells(position).block = MapBlock::Cliff;
         }
       }
 
@@ -273,6 +320,183 @@ namespace ffw {
       }
 
     }
+
+
+    /*
+     * Step 3. Generate towns and farms.
+     *
+     */
+
+    struct WorldPlaces {
+      std::array<gf::Vec2I, TownsCount> towns;
+      std::array<gf::Vec2I, FarmsCount> farms;
+
+      int32_t min_distance_between_towns() const
+      {
+        int32_t min_distance = std::numeric_limits<int32_t>::max();
+
+        for (std::size_t i = 0; i < TownsCount; ++i) {
+          for (std::size_t j = i + 1; j < TownsCount; ++j) {
+            int32_t distance = gf::manhattan_distance(towns[i], towns[j]);
+            min_distance = std::min(min_distance, distance);
+          }
+        }
+
+        return min_distance;
+      }
+
+      int32_t min_distance_between_towns_and_farms() const
+      {
+        int32_t min_distance = std::numeric_limits<int32_t>::max();
+
+        for (std::size_t i = 0; i < FarmsCount; ++i) {
+          for (std::size_t j = i + 1; j < FarmsCount; ++j) {
+            int32_t distance = gf::manhattan_distance(farms[i], farms[j]);
+            min_distance = std::min(min_distance, distance);
+          }
+
+          for (std::size_t j = 0; j < TownsCount; ++j) {
+            int32_t distance = gf::manhattan_distance(farms[i], towns[j]);
+            min_distance = std::min(min_distance, distance);
+          }
+        }
+
+        return min_distance;
+      }
+
+    };
+
+    bool can_have_place(const MapState& state, gf::Vec2I position, int32_t radius)
+    {
+      assert(state.cells.valid(position));
+
+      if (state.cells(position).region != MapRegion::Prairie) {
+        return false;
+      }
+
+      for (const gf::Vec2I neighbor : state.cells.square_range(position, radius)) {
+        if (!state.cells.valid(neighbor) || state.cells(neighbor).region != MapRegion::Prairie) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    WorldPlaces generate_places(const MapState& state, gf::Random* random)
+    {
+      WorldPlaces places = {};
+
+      // first generate towns
+
+      int town_rounds = 0;
+
+      for (;;) {
+        int tries = 0;
+
+        for (gf::Vec2I& town_position : places.towns) {
+          do {
+            town_position = random->compute_position(gf::RectI::from_size(WorldSize));
+            ++tries;
+          } while (!can_have_place(state, town_position, TownRadius));
+        }
+
+        const int32_t min_distance = places.min_distance_between_towns();
+        gf::Log::info("Found potential towns after {} tries with min distance {}", tries, min_distance);
+
+        ++town_rounds;
+
+        if (min_distance > TownMinDistanceFromOther) {
+          break;
+        }
+      }
+
+      gf::Log::info("Towns generated after {} rounds", town_rounds);
+
+      // second generate farms
+
+      int farm_rounds = 0;
+
+      for (;;) {
+        int tries = 0;
+
+        for (gf::Vec2I& farm_position : places.farms) {
+          do {
+            farm_position = random->compute_position(gf::RectI::from_size(WorldSize));
+            ++tries;
+          } while (!can_have_place(state, farm_position, FarmRadius));
+        }
+
+        const int32_t min_distance = places.min_distance_between_towns_and_farms();
+        gf::Log::info("Found potential farms after {} tries with min distance {}", tries, min_distance);
+
+        ++farm_rounds;
+
+        if (min_distance > FarmMinDistanceFromOther) {
+          break;
+        }
+      }
+
+      gf::Log::info("Farms generated after {} rounds", farm_rounds);
+
+      if constexpr (Debug) {
+        gf::Image image(WorldSize);
+
+        for (const gf::Vec2I position : image.position_range()) {
+          const MapCell& cell = state.cells(position);
+          gf::Color color = gf::Transparent;
+
+          switch (cell.region) {
+            case MapRegion::Prairie:
+              color = PrairieColor;
+              break;
+            case MapRegion::Desert:
+              color = cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
+              break;
+            case MapRegion::Forest:
+              color = cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
+              break;
+            case MapRegion::Moutain:
+              color = cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
+              break;
+          }
+
+          image.put_pixel(position, color);
+        }
+
+        for (const gf::Vec2I town : places.towns) {
+          const gf::RectI town_space = gf::RectI::from_center_size(town, { TownRadius, TownRadius });
+
+          for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+            image.put_pixel(position, gf::Azure);
+          }
+        }
+
+        for (const gf::Vec2I farm : places.farms) {
+          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { FarmRadius, FarmRadius });
+
+          for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+            image.put_pixel(position, gf::Azure);
+          }
+        }
+
+        image.save_to_file("02_places.png");
+      }
+
+      return places;
+    }
+
+    /*
+     * Step 4. Generate railway
+     */
+
+
+    /*
+     * Step X. Compute the regions.
+     *
+     * Thanks to the biomes, contiguous regions are defined they will be used
+     * in the following steps.
+     */
 
     struct WorldRegion {
       std::vector<gf::Vec2I> points;
@@ -352,9 +576,9 @@ namespace ffw {
         }
       }
 
-      // compute extents
+      // compute bounds
 
-      auto compute_extent = [](std::vector<WorldRegion>& regions, std::string_view name) {
+      auto compute_bounds = [](std::vector<WorldRegion>& regions, std::string_view name) {
 
         for (WorldRegion& region : regions) {
           gf::RectI bounds = gf::RectI::from_center_size(region.points.front(), { 1, 1 });
@@ -377,10 +601,10 @@ namespace ffw {
         }
       };
 
-      compute_extent(regions.prairie_regions, "Prairie");
-      compute_extent(regions.desert_regions, "Desert");
-      compute_extent(regions.forest_regions, "Forest");
-      compute_extent(regions.mountain_regions, "Moutain");
+      compute_bounds(regions.prairie_regions, "Prairie");
+      compute_bounds(regions.desert_regions, "Desert");
+      compute_bounds(regions.forest_regions, "Forest");
+      compute_bounds(regions.mountain_regions, "Moutain");
 
       return regions;
     }
@@ -407,10 +631,16 @@ namespace ffw {
     RawWorld raw = generate_raw(random);
     gf::Log::info("- raw ({:g}s)", clock.elapsed_time().as_seconds());
     state.map = generate_outline(raw, random);
-    compute_regions(state.map);
     gf::Log::info("- outline ({:g}s)", clock.elapsed_time().as_seconds());
     generate_mountains(state.map, random);
     gf::Log::info("- moutains ({:g}s)", clock.elapsed_time().as_seconds());
+
+    [[maybe_unused]] auto places = generate_places(state.map, random);
+    gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
+
+    [[maybe_unused]] auto regions = compute_regions(state.map);
+    gf::Log::info("- regions ({:g}s)", clock.elapsed_time().as_seconds());
+
 
     // state.map = generate_map(outline, random);
 
