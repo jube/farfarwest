@@ -10,6 +10,7 @@
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
 #include <gf2/core/Easing.h>
+#include <gf2/core/GridMap.h>
 #include <gf2/core/Heightmap.h>
 #include <gf2/core/Log.h>
 #include <gf2/core/Noises.h>
@@ -49,6 +50,8 @@ namespace ffw {
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmMinDistanceFromOther = 200;
 
+    constexpr float SlopeFactor = 225.0f;
+
     constexpr std::size_t RegionMinimumSize = 400;
 
     bool is_on_side(gf::Vec2I position)
@@ -56,7 +59,38 @@ namespace ffw {
       return position.x == 0 || position.x == WorldBasicSize - 1 || position.y == 0 || position.y == WorldBasicSize - 1;
     }
 
+    enum class ImageType : uint8_t {
+      Basic,
+      Blocks,
+    };
 
+    gf::Image compute_basic_image(const MapState& state, ImageType type = ImageType::Basic) {
+      gf::Image image(WorldSize);
+
+      for (const gf::Vec2I position : image.position_range()) {
+        const MapCell& cell = state.cells(position);
+        gf::Color color = gf::Transparent;
+
+        switch (cell.region) {
+          case MapRegion::Prairie:
+            color = PrairieColor;
+            break;
+          case MapRegion::Desert:
+            color = type == ImageType::Basic || cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
+            break;
+          case MapRegion::Forest:
+            color = type == ImageType::Basic || cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
+            break;
+          case MapRegion::Moutain:
+            color = type == ImageType::Basic || cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
+            break;
+        }
+
+        image.put_pixel(position, color);
+      }
+
+      return image;
+    }
     /*
      * Step 1. Generate a raw map.
      *
@@ -78,12 +112,12 @@ namespace ffw {
     {
       RawWorld raw(WorldSize);
 
-      gf::PerlinNoise2D altitude_noise(*random, WorldNoiseScale);
+      gf::PerlinNoise2D altitude_noise(random, WorldNoiseScale);
       gf::Heightmap altitude_heightmap(WorldSize);
       altitude_heightmap.add_noise(&altitude_noise);
       altitude_heightmap.normalize();
 
-      gf::PerlinNoise2D moisture_noise(*random, WorldNoiseScale);
+      gf::PerlinNoise2D moisture_noise(random, WorldNoiseScale);
       gf::Heightmap moisture_heightmap(WorldSize);
       moisture_heightmap.add_noise(&moisture_noise);
       moisture_heightmap.normalize();
@@ -172,30 +206,7 @@ namespace ffw {
       }
 
       if constexpr (Debug) {
-        gf::Image image(WorldSize);
-
-        for (const gf::Vec2I position : image.position_range()) {
-          const MapCell& cell = state.cells(position);
-          gf::Color color = gf::Transparent;
-
-          switch (cell.region) {
-            case MapRegion::Prairie:
-              color = PrairieColor;
-              break;
-            case MapRegion::Desert:
-              color = DesertColor;
-              break;
-            case MapRegion::Forest:
-              color = ForestColor;
-              break;
-            case MapRegion::Moutain:
-              color = MountainColor;
-              break;
-          }
-
-          image.put_pixel(position, color);
-        }
-
+        gf::Image image = compute_basic_image(state);
         image.save_to_file("00_outline.png");
       }
 
@@ -292,30 +303,7 @@ namespace ffw {
       }
 
       if constexpr (Debug) {
-        gf::Image image(WorldSize);
-
-        for (const gf::Vec2I position : image.position_range()) {
-          const MapCell& cell = state.cells(position);
-          gf::Color color = gf::Transparent;
-
-          switch (cell.region) {
-            case MapRegion::Prairie:
-              color = PrairieColor;
-              break;
-            case MapRegion::Desert:
-              color = cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
-              break;
-            case MapRegion::Forest:
-              color = cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
-              break;
-            case MapRegion::Moutain:
-              color = cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
-              break;
-          }
-
-          image.put_pixel(position, color);
-        }
-
+        gf::Image image = compute_basic_image(state, ImageType::Blocks);
         image.save_to_file("01_blocks.png");
       }
 
@@ -392,7 +380,7 @@ namespace ffw {
       int town_rounds = 0;
 
       for (;;) {
-        int tries = 0;
+        [[maybe_unused]] int tries = 0;
 
         for (gf::Vec2I& town_position : places.towns) {
           do {
@@ -402,7 +390,7 @@ namespace ffw {
         }
 
         const int32_t min_distance = places.min_distance_between_towns();
-        gf::Log::info("Found potential towns after {} tries with min distance {}", tries, min_distance);
+        // gf::Log::info("Found potential towns after {} tries with min distance {}", tries, min_distance);
 
         ++town_rounds;
 
@@ -418,7 +406,7 @@ namespace ffw {
       int farm_rounds = 0;
 
       for (;;) {
-        int tries = 0;
+        [[maybe_unused]] int tries = 0;
 
         for (gf::Vec2I& farm_position : places.farms) {
           do {
@@ -428,7 +416,7 @@ namespace ffw {
         }
 
         const int32_t min_distance = places.min_distance_between_towns_and_farms();
-        gf::Log::info("Found potential farms after {} tries with min distance {}", tries, min_distance);
+        // gf::Log::info("Found potential farms after {} tries with min distance {}", tries, min_distance);
 
         ++farm_rounds;
 
@@ -440,32 +428,10 @@ namespace ffw {
       gf::Log::info("Farms generated after {} rounds", farm_rounds);
 
       if constexpr (Debug) {
-        gf::Image image(WorldSize);
-
-        for (const gf::Vec2I position : image.position_range()) {
-          const MapCell& cell = state.cells(position);
-          gf::Color color = gf::Transparent;
-
-          switch (cell.region) {
-            case MapRegion::Prairie:
-              color = PrairieColor;
-              break;
-            case MapRegion::Desert:
-              color = cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
-              break;
-            case MapRegion::Forest:
-              color = cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
-              break;
-            case MapRegion::Moutain:
-              color = cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
-              break;
-          }
-
-          image.put_pixel(position, color);
-        }
+        gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
         for (const gf::Vec2I town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(town, { TownRadius, TownRadius });
+          const gf::RectI town_space = gf::RectI::from_center_size(town, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
 
           for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
             image.put_pixel(position, gf::Azure);
@@ -473,7 +439,7 @@ namespace ffw {
         }
 
         for (const gf::Vec2I farm : places.farms) {
-          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { FarmRadius, FarmRadius });
+          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 });
 
           for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
             image.put_pixel(position, gf::Azure);
@@ -489,6 +455,70 @@ namespace ffw {
     /*
      * Step 4. Generate railway
      */
+
+    struct WorldNetwork {
+      // rails
+
+      // roads
+
+    };
+
+    WorldNetwork generate_network(const MapState& state, const RawWorld& raw, const WorldPlaces& places)
+    {
+      // initialize the grid
+
+      gf::GridMap grid = gf::GridMap::make_orthogonal(WorldSize);
+
+      for (const gf::Vec2I position : state.cells.position_range()) {
+        const MapCell& cell  = state.cells(position);
+
+        if (cell.block == MapBlock::Cliff) {
+          for (const gf::Vec2I neighbor : state.cells.compute_8_neighbors_range(position)) {
+            grid.set_walkable(neighbor, false);
+          }
+        }
+      }
+
+      std::vector<std::vector<gf::Vec2I>> paths;
+
+      std::vector<std::size_t> ordered_towns(places.towns.size());
+      std::iota(ordered_towns.begin(), ordered_towns.end(), 0);
+      std::sort(ordered_towns.begin(), ordered_towns.end(), [&](std::size_t lhs, std::size_t rhs) {
+        const gf::Vec2F center = WorldSize / 2;
+        return gf::angle(places.towns[lhs] - center) < gf::angle(places.towns[rhs] - center);
+      });
+
+      for (std::size_t i = 0; i < ordered_towns.size(); ++i) {
+        const std::size_t j = (i + 1) % ordered_towns.size();
+        auto path = grid.compute_route(places.towns[ordered_towns[i]], places.towns[ordered_towns[j]], [&](gf::Vec2I position, gf::Vec2I neighbor) {
+          const float distance = gf::euclidean_distance<float>(position, neighbor);
+          const float slope = std::abs(raw(position).altitude - raw(neighbor).altitude) / distance;
+
+          return distance * (1 + SlopeFactor * gf::square(slope));
+        });
+
+        assert(!path.empty());
+        gf::Log::info("Points between {} and {}: {}", ordered_towns[i], ordered_towns[j], path.size());
+
+        paths.push_back(std::move(path));
+      }
+
+      if constexpr (Debug) {
+        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+
+        for (auto& path : paths) {
+          for (const gf::Vec2I position : path) {
+            image.put_pixel(position, gf::Black);
+          }
+        }
+
+        image.save_to_file("03_railways.png");
+      }
+
+      WorldNetwork network = {};
+      return network;
+    }
+
 
 
     /*
@@ -576,7 +606,7 @@ namespace ffw {
         }
       }
 
-      // compute bounds
+      // compute region bounds
 
       auto compute_bounds = [](std::vector<WorldRegion>& regions, std::string_view name) {
 
@@ -596,9 +626,9 @@ namespace ffw {
 
         gf::Log::info("\t{} ({})", name, regions.size());
 
-        for (WorldRegion& region : regions) {
-          gf::Log::info("\t\t- Size: {}, Extent: {}x{}, Density: {:g}", region.points.size(), region.bounds.extent.w, region.bounds.extent.h, double(region.points.size()) / double(region.bounds.extent.w * region.bounds.extent.h));
-        }
+        // for (WorldRegion& region : regions) {
+        //   gf::Log::info("\t\t- Size: {}, Extent: {}x{}, Density: {:g}", region.points.size(), region.bounds.extent.w, region.bounds.extent.h, double(region.points.size()) / double(region.bounds.extent.w * region.bounds.extent.h));
+        // }
       };
 
       compute_bounds(regions.prairie_regions, "Prairie");
@@ -609,15 +639,6 @@ namespace ffw {
       return regions;
     }
 
-
-    struct WorldNetwork {
-      // cities
-
-      // rails
-
-      // roads
-
-    };
 
   }
 
@@ -637,6 +658,10 @@ namespace ffw {
 
     [[maybe_unused]] auto places = generate_places(state.map, random);
     gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
+
+    generate_network(state.map, raw, places);
+    gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
+
 
     [[maybe_unused]] auto regions = compute_regions(state.map);
     gf::Log::info("- regions ({:g}s)", clock.elapsed_time().as_seconds());
