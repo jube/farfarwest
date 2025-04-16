@@ -9,6 +9,7 @@
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
+#include <gf2/core/Direction.h>
 #include <gf2/core/Easing.h>
 #include <gf2/core/GridMap.h>
 #include <gf2/core/Heightmap.h>
@@ -50,9 +51,22 @@ namespace ffw {
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmMinDistanceFromOther = 200;
 
+    constexpr int32_t RailSpacing = 2;
+
     constexpr float SlopeFactor = 225.0f;
 
     constexpr std::size_t RegionMinimumSize = 400;
+
+    constexpr gf::Vec2I EightNeighbors[] = {
+      // clang-format off
+      { -1, -1 }, {  0, -1 }, { +1, -1 },
+      { -1,  0 },             { +1,  0 },
+      { -1, +1 }, {  0, +1 }, { +1, +1 },
+      // clang-format on
+    };
+
+
+
 
     bool is_on_side(gf::Vec2I position)
     {
@@ -350,8 +364,14 @@ namespace ffw {
      *
      */
 
+    struct Town {
+      gf::Vec2I center;
+      gf::Vec2I rail_arrival;
+      gf::Vec2I rail_departure;
+    };
+
     struct WorldPlaces {
-      std::array<gf::Vec2I, TownsCount> towns;
+      std::array<Town, TownsCount> towns;
       std::array<gf::Vec2I, FarmsCount> farms;
 
       int32_t min_distance_between_towns() const
@@ -360,7 +380,7 @@ namespace ffw {
 
         for (std::size_t i = 0; i < TownsCount; ++i) {
           for (std::size_t j = i + 1; j < TownsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(towns[i], towns[j]);
+            int32_t distance = gf::manhattan_distance(towns[i].center, towns[j].center);
             min_distance = std::min(min_distance, distance);
           }
         }
@@ -379,7 +399,7 @@ namespace ffw {
           }
 
           for (std::size_t j = 0; j < TownsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(farms[i], towns[j]);
+            int32_t distance = gf::manhattan_distance(farms[i], towns[j].center);
             min_distance = std::min(min_distance, distance);
           }
         }
@@ -417,11 +437,11 @@ namespace ffw {
       for (;;) {
         [[maybe_unused]] int tries = 0;
 
-        for (gf::Vec2I& town_position : places.towns) {
+        for (Town& town : places.towns) {
           do {
-            town_position = random->compute_position(gf::RectI::from_size(WorldSize));
+            town.center = random->compute_position(gf::RectI::from_size(WorldSize));
             ++tries;
-          } while (!can_have_place(state, town_position, TownRadius));
+          } while (!can_have_place(state, town.center, TownRadius + RailSpacing));
         }
 
         const int32_t min_distance = places.min_distance_between_towns();
@@ -435,6 +455,40 @@ namespace ffw {
       }
 
       gf::Log::info("Towns generated after {} rounds", town_rounds);
+
+      // compute rail arrival/departure
+
+      for (Town& town : places.towns) {
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+        const gf::Direction direction = gf::direction(gf::angle<float>(WorldCenter - town.center));
+
+        auto put_at = [&](gf::Orientation orientation) {
+          return town_space.position_at(orientation) + RailSpacing * gf::displacement(orientation);
+        };
+
+        switch (direction) {
+          case gf::Direction::Up:
+            town.rail_arrival = put_at(gf::Orientation::NorthEast);
+            town.rail_departure = put_at(gf::Orientation::NorthWest);
+            break;
+          case gf::Direction::Right:
+            town.rail_arrival = put_at(gf::Orientation::SouthEast);
+            town.rail_departure = put_at(gf::Orientation::NorthEast);
+            break;
+          case gf::Direction::Down:
+            town.rail_arrival = put_at(gf::Orientation::SouthWest);
+            town.rail_departure = put_at(gf::Orientation::SouthEast);
+            break;
+          case gf::Direction::Left:
+            town.rail_arrival = put_at(gf::Orientation::NorthWest);
+            town.rail_departure = put_at(gf::Orientation::SouthWest);
+            break;
+          case gf::Direction::Center:
+            assert(false);
+            break;
+        }
+
+      }
 
       // second generate farms
 
@@ -465,8 +519,8 @@ namespace ffw {
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
-        for (const gf::Vec2I town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(town, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+        for (const Town& town : places.towns) {
+          const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
 
           for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
             image.put_pixel(position, gf::Azure);
@@ -491,14 +545,7 @@ namespace ffw {
      * Step 4. Generate railway
      */
 
-    struct WorldNetwork {
-      // rails
-
-      // roads
-
-    };
-
-    WorldNetwork generate_network(const MapState& state, const RawWorld& raw, const WorldPlaces& places)
+    NetworkState generate_network(MapState& state, const RawWorld& raw, const WorldPlaces& places)
     {
       // initialize the grid
 
@@ -514,23 +561,64 @@ namespace ffw {
         }
       }
 
+      for (const Town& town : places.towns) {
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+
+        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+          grid.set_walkable(position, false);
+        }
+
+        const gf::Vec2I step = gf::sign(town.rail_departure - town.rail_arrival);
+
+        for (gf::Vec2I position = town.rail_arrival + step; position != town.rail_departure; position += step) {
+          grid.set_walkable(position, false);
+        }
+      }
+
+      for (const gf::Vec2I farm : places.farms) {
+        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 }).grow_by(1);
+
+        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+          grid.set_walkable(position, false);
+        }
+      }
+
       std::vector<std::vector<gf::Vec2I>> paths;
 
       std::vector<std::size_t> ordered_towns(places.towns.size());
       std::iota(ordered_towns.begin(), ordered_towns.end(), 0);
       std::sort(ordered_towns.begin(), ordered_towns.end(), [&](std::size_t lhs, std::size_t rhs) {
-        const gf::Vec2F center = WorldSize / 2;
-        return gf::angle(places.towns[lhs] - center) < gf::angle(places.towns[rhs] - center);
+        return gf::angle<float>(places.towns[lhs].center - WorldCenter) < gf::angle<float>(places.towns[rhs].center - WorldCenter);
       });
 
       for (std::size_t i = 0; i < ordered_towns.size(); ++i) {
+        // path for the station
+
+        std::vector<gf::Vec2I> station;
+        const gf::Vec2I step = gf::sign(places.towns[ordered_towns[i]].rail_departure - places.towns[ordered_towns[i]].rail_arrival);
+
+        for (gf::Vec2I position = places.towns[ordered_towns[i]].rail_arrival + step; position != places.towns[ordered_towns[i]].rail_departure; position += step) {
+          station.push_back(position);
+        }
+
+        paths.push_back(std::move(station));
+
+        // path to the next town
+
         const std::size_t j = (i + 1) % ordered_towns.size();
-        auto path = grid.compute_route(places.towns[ordered_towns[i]], places.towns[ordered_towns[j]], [&](gf::Vec2I position, gf::Vec2I neighbor) {
+        auto path = grid.compute_route(places.towns[ordered_towns[i]].rail_departure, places.towns[ordered_towns[j]].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
           const float distance = gf::euclidean_distance<float>(position, neighbor);
           const float slope = std::abs(raw(position).altitude - raw(neighbor).altitude) / distance;
-
           return distance * (1 + SlopeFactor * gf::square(slope));
         });
+
+        for (const gf::Vec2I point : path) {
+          grid.set_walkable(point, false);
+
+          for (const gf::Vec2I relative_neighbor : EightNeighbors) {
+            grid.set_walkable(point + relative_neighbor, false);
+          }
+        }
 
         assert(!path.empty());
         gf::Log::info("Points between {} and {}: {}", ordered_towns[i], ordered_towns[j], path.size());
@@ -538,19 +626,40 @@ namespace ffw {
         paths.push_back(std::move(path));
       }
 
+      NetworkState network = {};
+
+      for (const std::vector<gf::Vec2I>& path : paths) {
+        for (const gf::Vec2I position : path) {
+          assert(network.railway.empty() || gf::manhattan_distance(network.railway.back(), position) == 1);
+          network.railway.push_back(position);
+        }
+      }
+
+      assert(gf::manhattan_distance(network.railway.back(), network.railway.front()) == 1);
+
+      for (const Town& town : places.towns) {
+        network.stations.push_back((town.rail_arrival + town.rail_departure) / 2);
+      }
+
+      for (const gf::Vec2I position : network.railway) {
+        state.cells(position).decoration = MapDecoration::Rail;
+
+        for (const gf::Vec2I relative_neighbor : EightNeighbors) {
+          state.cells(position + relative_neighbor).block = MapBlock::None;
+        }
+
+      }
+
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
-        for (auto& path : paths) {
-          for (const gf::Vec2I position : path) {
-            image.put_pixel(position, gf::Black);
-          }
+        for (const gf::Vec2I position : network.railway) {
+          image.put_pixel(position, gf::Black);
         }
 
         image.save_to_file("03_railways.png");
       }
 
-      WorldNetwork network = {};
       return network;
     }
 
@@ -694,9 +803,8 @@ namespace ffw {
     [[maybe_unused]] auto places = generate_places(state.map, random);
     gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
 
-    generate_network(state.map, raw, places);
+    state.map.network = generate_network(state.map, raw, places);
     gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
-
 
     [[maybe_unused]] auto regions = compute_regions(state.map);
     gf::Log::info("- regions ({:g}s)", clock.elapsed_time().as_seconds());

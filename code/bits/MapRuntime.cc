@@ -1,5 +1,6 @@
 #include "MapRuntime.h"
 
+#include <cstdint>
 #include <gf2/core/ConsoleChar.h>
 
 #include "Colors.h"
@@ -19,6 +20,25 @@ namespace ffw {
       const std::size_t index = random->compute_uniform_integer(list.size());
       assert(index < list.size());
       return std::data(list)[index];
+    }
+
+    template<typename T, T MapCell::* Field>
+    uint8_t compute_neighbor_bits(const MapState& state, gf::Vec2I position, T type)
+    {
+      uint8_t neighbor_bits = 0b0000;
+      uint8_t direction_bit = 0b0001;
+
+      for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
+        const gf::Vec2I target = position + gf::displacement(orientation);
+
+        if (!state.cells.valid(target) || state.cells(target).*Field == type) {
+          neighbor_bits |= direction_bit;
+        }
+
+        direction_bit <<= 1;
+      }
+
+      return neighbor_bits;
     }
 
   }
@@ -67,18 +87,7 @@ namespace ffw {
           break;
         case MapBlock::Cliff:
           {
-            uint8_t neighbor_bits = 0b0000;
-            uint8_t direction_bit = 0b0001;
-
-            for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
-              const gf::Vec2I target = position + gf::displacement(orientation);
-
-              if (!state.map.cells.valid(target) || state.map.cells(target).block == MapBlock::Cliff) {
-                neighbor_bits |= direction_bit;
-              }
-
-              direction_bit <<= 1;
-            }
+            const uint8_t neighbor_bits = compute_neighbor_bits<MapBlock, &MapCell::block>(state.map, position, MapBlock::Cliff);
 
             // clang-format off
             constexpr char16_t BlockCharacters[] = {
@@ -115,6 +124,36 @@ namespace ffw {
         case MapDecoration::Herb:
           character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
           foreground_color = gf::darker(background_color, 0.1f);
+          break;
+        case MapDecoration::Rail:
+          {
+            const uint8_t neighbor_bits = compute_neighbor_bits<MapDecoration, &MapCell::decoration>(state.map, position, MapDecoration::Rail);
+
+            constexpr char16_t RailCharacters[] = {
+                                                    // WSEN
+              u' ',                                 // 0000
+              u' ',                                 // 0001
+              u' ',                                 // 0010
+              u'╚',                                 // 0011
+              u' ',                                 // 0100
+              u'╫',                                 // 0101
+              u'╔',                                 // 0110
+              u'╫',                                 // 0111
+              u' ',                                 // 1000
+              u'╝',                                 // 1001
+              u'╪',                                 // 1010
+              u'╪',                                 // 1011
+              u'╗',                                 // 1100
+              u'╫',                                 // 1101
+              u'╪',                                 // 1110
+              u' ',                                 // 1111
+            };
+
+            assert(neighbor_bits < std::size(RailCharacters));
+            character = RailCharacters[neighbor_bits];
+            assert(character != u' ');
+            foreground_color = gf::Gray;
+          }
           break;
       }
 

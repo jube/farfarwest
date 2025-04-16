@@ -25,6 +25,7 @@ namespace ffw {
   enum MapDecoration : uint8_t {
     None,
     Herb,
+    Rail,
   };
 
   struct MapCell {
