@@ -239,6 +239,31 @@ namespace ffw {
 
       gf::Array2D<Type> next(WorldSize);
 
+      /*
+       * +-+-+-+-+-+
+       * | | |X| | |
+       * +-+-+-+-+-+
+       * | |X|X|X| |
+       * +-+-+-+-+-+
+       * |X|X|P|X|X|
+       * +-+-+-+-+-+
+       * | |X|X|X| |
+       * +-+-+-+-+-+
+       * | | |X| | |
+       * +-+-+-+-+-+
+       */
+
+
+      static constexpr gf::Vec2I TwelveNeighbors[] = {
+        // clang-format off
+                                {  0, -2 },
+                    { -1, -1 }, {  0, -1 }, { +1, -1 },
+        { -2,  0 }, { -1,  0 },             { +1,  0 }, { +2, 0 },
+                    { -1, +1 }, {  0, +1 }, { +1, +1 },
+                                {  0, +2 },
+        // clang-format on
+      };
+
       for (int i = 0; i < MoutainIterations; ++i) {
         for (const gf::Vec2I position : map.position_range()) {
           if (state.cells(position).region != MapRegion::Moutain) {
@@ -247,8 +272,12 @@ namespace ffw {
 
           int count = 0;
 
-          for (const gf::Vec2I neighbor : map.compute_12_neighbors_range(position)) {
-            count += map(neighbor) == Ground ? 1 : 0;;
+          for (const gf::Vec2I relative_neighbor : TwelveNeighbors) {
+            const gf::Vec2I neighbor = position + relative_neighbor;
+
+            if (map.valid(neighbor)) {
+              count += map(neighbor) == Ground ? 1 : 0;
+            }
           }
 
           if (map(position) == Ground) {
@@ -271,6 +300,10 @@ namespace ffw {
 
       // check for isolated Ground
 
+      constexpr gf::Vec2I FourNeighbors[] = {
+        { 0, -1 }, { -1, 0 }, { +1, 0 }, { 0, +1 }
+      };
+
       for (const gf::Vec2I position : map.position_range()) {
         if (state.cells(position).region != MapRegion::Moutain) {
           continue;
@@ -279,7 +312,9 @@ namespace ffw {
         if (map(position) == Ground) {
           bool isolated = true;
 
-          for (gf::Vec2I neighbor : map.compute_4_neighbors_range(position)) {
+          for (const gf::Vec2I relative_neighbor : FourNeighbors) {
+            const gf::Vec2I neighbor = position + relative_neighbor;
+
             if (map.valid(neighbor) && map(neighbor) == Ground) {
               isolated = false;
               break;
