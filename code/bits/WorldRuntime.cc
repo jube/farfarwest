@@ -18,12 +18,12 @@ namespace ffw {
       std::iota(actors_by_distance.begin(), actors_by_distance.end(), 0);
     }
 
-    const ActorState& hero = actors.front();
+    const ActorState& hero_actor = actors.front();
 
     std::sort(actors_by_distance.begin(), actors_by_distance.end(), [&](std::size_t lhs, std::size_t rhs) {
       assert(lhs < actors.size());
       assert(rhs < actors.size());
-      return gf::manhattan_distance(actors[lhs].position, hero.position) < gf::manhattan_distance(actors[rhs].position, hero.position);
+      return gf::manhattan_distance(actors[lhs].position, hero_actor.position) < gf::manhattan_distance(actors[rhs].position, hero_actor.position);
     });
   }
 
