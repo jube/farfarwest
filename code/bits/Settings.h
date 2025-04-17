@@ -14,19 +14,19 @@ namespace ffw {
   // constexpr gf::Vec2I ConsoleSize = { 80, 45 };
 
   constexpr gf::Vec2I GameBoxPosition = { 0, 0 };
-  constexpr gf::Vec2I GameBoxSize = { 76, 47 };
+  constexpr gf::Vec2I GameBoxSize = { 72, 47 };
   constexpr gf::RectI GameBox = gf::RectI::from_position_size(GameBoxPosition, GameBoxSize);
 
   constexpr gf::Vec2I MessageBoxPosition = { 0, 47 };
-  constexpr gf::Vec2I MessageBoxSize = { 76, 7 };
+  constexpr gf::Vec2I MessageBoxSize = { 72, 7 };
   constexpr gf::RectI MessageBox = gf::RectI::from_position_size(MessageBoxPosition, MessageBoxSize);
 
-  constexpr gf::Vec2I CharacterBoxPosition = { 76, 1 };
-  constexpr gf::Vec2I CharacterBoxSize = { 20, 26 };
+  constexpr gf::Vec2I CharacterBoxPosition = { 72, 1 };
+  constexpr gf::Vec2I CharacterBoxSize = { 24, 26 };
   constexpr gf::RectI CharacterBox = gf::RectI::from_position_size(CharacterBoxPosition, CharacterBoxSize);
 
-  constexpr gf::Vec2I ContextualBoxPosition = { 76, 27 };
-  constexpr gf::Vec2I ContextualBoxSize = { 20, 27 };
+  constexpr gf::Vec2I ContextualBoxPosition = { 72, 27 };
+  constexpr gf::Vec2I ContextualBoxSize = { 24, 27 };
   constexpr gf::RectI ContextualBox = gf::RectI::from_position_size(ContextualBoxPosition, ContextualBoxSize);
 
 }

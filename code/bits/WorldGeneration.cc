@@ -653,12 +653,30 @@ namespace ffw {
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
+        for (const Town& town : places.towns) {
+          const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+
+          for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+            image.put_pixel(position, gf::Azure);
+          }
+        }
+
+        for (const gf::Vec2I farm : places.farms) {
+          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 });
+
+          for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+            image.put_pixel(position, gf::Azure);
+          }
+        }
+
         for (const gf::Vec2I position : network.railway) {
           image.put_pixel(position, gf::Black);
         }
 
         image.save_to_file("03_railways.png");
       }
+
+      gf::Log::info("Railway length: {}", network.railway.size());
 
       return network;
     }
@@ -825,6 +843,7 @@ namespace ffw {
     state.scheduler.queue.push({state.current_date + 1, 1});
 
     const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);
+    gf::Log::info("Name: {}", name);
 
     state.log.messages.push_back({ state.current_date, fmt::format("Hello <style=character>{}</>!", name) });
 

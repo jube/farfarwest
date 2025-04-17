@@ -2,11 +2,15 @@
 
 #include <cassert>
 
+#include <algorithm>
 #include <string_view>
 
 namespace ffw {
 
   namespace {
+    constexpr std::size_t NameLengthMax = 22;
+    constexpr double MiddleNameProbability = 0.2;
+
     // data taken from https://www.census.gov/topics/population/genealogy/data/1990_census/1990_census_namefiles.html
     // only the first 200 entries were kept for each file
 
@@ -83,34 +87,73 @@ namespace ffw {
 
   std::string generate_random_male_name(gf::Random* random)
   {
-    const std::size_t first_name_index = random->compute_uniform_integer(std::size(MaleNames));
-    assert(first_name_index < std::size(MaleNames));
-
-    const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
-    assert(surname_index < std::size(Surnames));
-
     std::string name;
-    name += MaleNames[first_name_index];
-    name += ' ';
-    name += Surnames[surname_index];
+
+    while (name.empty() || name.length() > NameLengthMax) {
+      name.clear();
+
+      const std::size_t first_name_index = random->compute_uniform_integer(std::size(MaleNames));
+      assert(first_name_index < std::size(MaleNames));
+
+      const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
+      assert(surname_index < std::size(Surnames));
+
+      name += MaleNames[first_name_index];
+      name += ' ';
+
+      if (random->compute_bernoulli(MiddleNameProbability)) {
+        name += random->compute_uniform_integer('A', '['); // A .. Z
+        name += ". ";
+      }
+
+      name += Surnames[surname_index];
+    }
 
     return name;
   }
 
   std::string generate_random_female_name(gf::Random* random)
   {
-    const std::size_t first_name_index = random->compute_uniform_integer(std::size(FemaleNames));
-    assert(first_name_index < std::size(FemaleNames));
-
-    const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
-    assert(surname_index < std::size(Surnames));
-
     std::string name;
-    name += FemaleNames[first_name_index];
-    name += ' ';
-    name += Surnames[surname_index];
+
+    while (name.empty() || name.length() > NameLengthMax) {
+      name.clear();
+
+      const std::size_t first_name_index = random->compute_uniform_integer(std::size(FemaleNames));
+      assert(first_name_index < std::size(FemaleNames));
+
+      const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
+      assert(surname_index < std::size(Surnames));
+
+      name += FemaleNames[first_name_index];
+      name += ' ';
+
+      if (random->compute_bernoulli(MiddleNameProbability)) {
+        name += random->compute_uniform_integer('A', '['); // A .. Z
+        name += ". ";
+      }
+
+      name += Surnames[surname_index];
+    }
 
     return name;
   }
+
+  std::size_t compute_max_length(NameType type)
+  {
+    auto compare = [](std::string_view lhs, std::string_view rhs) { return lhs.length() < rhs.length(); };
+
+    switch (type) {
+      case NameType::MaleName:
+        return std::max_element(std::begin(MaleNames), std::end(MaleNames), compare)->length();
+      case NameType::FemaleName:
+        return std::max_element(std::begin(FemaleNames), std::end(FemaleNames), compare)->length();
+      case NameType::Surname:
+        return std::max_element(std::begin(Surnames), std::end(Surnames), compare)->length();
+    }
+
+    return 0;
+  }
+
 
 }
