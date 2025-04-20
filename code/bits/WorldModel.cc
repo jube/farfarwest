@@ -1,4 +1,5 @@
 #include "WorldModel.h"
+#include "SchedulerState.h"
 
 #include <cassert>
 
@@ -62,35 +63,23 @@ namespace ffw {
 
     while (state.current_date == state.scheduler.queue.top().date) {
       if (state.scheduler.is_hero_turn()) {
-        if (!update_hero()) {
+        if (update_hero()) {
+          continue;
+        } else {
           break;
         }
-
-        continue;
       }
 
       const Task& current_task = state.scheduler.queue.top();
-      ActorState& current_actor = state.actors[current_task.index];
 
-      const int32_t distance_to_hero = gf::chebyshev_distance(current_actor.position, state.hero().position);
-
-      if (distance_to_hero > IdleDistance) {
-        update_current_actor_in_queue(distance_to_hero - IdleDistance + IdleTime);
-        update_date();
-        continue; // do not cooldown in this case
-      }
-
-      using namespace gf::literals;
-
-      switch (current_actor.data->label.id) {
-        case "Cow"_id:
-          update_cow(current_actor);
+      if (current_task.type == TaskType::Actor) {
+        if (update_actor(state.actors[current_task.index])) {
+          continue;
+        } else {
           break;
+        }
+      } else if (current_task.type == TaskType::Train) {
 
-        default:
-          update_current_actor_in_queue(10);
-          assert(false);
-          break;
       }
 
       // break;
@@ -98,6 +87,7 @@ namespace ffw {
 
     m_phase = Phase::Cooldown;
   }
+
 
   bool WorldModel::is_prairie(gf::Vec2I position) const
   {
@@ -167,6 +157,32 @@ namespace ffw {
     }
 
     return false;
+  }
+
+  bool WorldModel::update_actor(ActorState& actor)
+  {
+    const int32_t distance_to_hero = gf::chebyshev_distance(actor.position, state.hero().position);
+
+    if (distance_to_hero > IdleDistance) {
+      update_current_actor_in_queue(distance_to_hero - IdleDistance + IdleTime);
+      update_date();
+      return false; // do not cooldown in this case
+    }
+
+    using namespace gf::literals;
+
+    switch (actor.data->label.id) {
+      case "Cow"_id:
+        update_cow(actor);
+        break;
+
+      default:
+        update_current_actor_in_queue(10);
+        assert(false);
+        break;
+    }
+
+    return true;
   }
 
   void WorldModel::update_cow(ActorState& cow)

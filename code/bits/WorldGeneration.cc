@@ -834,13 +834,13 @@ namespace ffw {
     hero.data = "Hero";
     hero.position = WorldSize / 2;
     state.actors.push_back(hero);
-    state.scheduler.queue.push({state.current_date, 0});
+    state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
 
     ActorState cow = {};
     cow.data = "Cow";
     cow.position = hero.position + gf::dirx(10);
     state.actors.push_back(cow);
-    state.scheduler.queue.push({state.current_date + 1, 1});
+    state.scheduler.queue.push({state.current_date + 1, TaskType::Actor, 1});
 
     const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);
     gf::Log::info("Name: {}", name);

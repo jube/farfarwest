@@ -11,12 +11,13 @@ namespace ffw {
   struct NetworkState {
     std::vector<gf::Vec2I> railway;
     std::vector<gf::Vec2I> stations;
+    std::vector<std::size_t> trains;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<NetworkState, Archive>& state)
   {
-    return ar | state.railway | state.stations;
+    return ar | state.railway | state.stations | state.trains;
   }
 
   struct MapState {

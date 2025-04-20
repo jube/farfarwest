@@ -42,6 +42,7 @@ namespace ffw {
     void update_current_actor_in_queue(uint16_t seconds);
     bool update_hero();
 
+    bool update_actor(ActorState& actor);
     void update_cow(ActorState& cow);
   };
 
