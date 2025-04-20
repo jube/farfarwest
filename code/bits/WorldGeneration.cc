@@ -676,7 +676,7 @@ namespace ffw {
       // add the trains: at the beginning, one train arriving in each station
 
       for (const StationState& station : network.stations) {
-        network.trains.push_back({ network.prev_position(station.index) });
+        network.trains.push_back({ network.next_position(station.index) });
       }
 
       for (const gf::Vec2I position : network.railway) {

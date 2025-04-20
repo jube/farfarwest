@@ -1,5 +1,6 @@
 #include "WorldModel.h"
 #include "MapRuntime.h"
+#include "MapState.h"
 #include "SchedulerState.h"
 
 #include <cassert>
@@ -8,7 +9,7 @@ namespace ffw {
 
   namespace {
 
-    constexpr gf::Time Cooldown = gf::milliseconds(100);
+    constexpr gf::Time Cooldown = gf::milliseconds(50);
 
     constexpr int32_t IdleDistance = 100;
     constexpr uint16_t IdleTime = 100;
@@ -63,39 +64,46 @@ namespace ffw {
 
     update_date();
 
+    bool need_cooldown = false;
+
     while (state.current_date == state.scheduler.queue.top().date) {
       if (state.scheduler.is_hero_turn()) {
         if (update_hero()) {
-          continue;
-        } else {
-          break;
+          gf::Log::debug("[SCHEDULER] {}: Update hero", state.current_date.to_string());
+          need_cooldown = true;
         }
+
+        break;
       }
 
       const Task& current_task = state.scheduler.queue.top();
 
       if (current_task.type == TaskType::Actor) {
         assert(current_task.index < state.actors.size());
+        gf::Log::debug("[SCHEDULER] {}: Update actor {}", state.current_date.to_string(), current_task.index);
 
         if (update_actor(state.actors[current_task.index])) {
-          continue;
-        } else {
-          break;
+          need_cooldown = true;
         }
-      } else if (current_task.type == TaskType::Train) {
-        assert(current_task.index < state.map.network.trains.size());
 
-        if (update_train(state.map.network.trains[current_task.index])) {
-          continue;
-        } else {
-          break;
-        }
+        continue;
       }
 
-      // break;
+      if (current_task.type == TaskType::Train) {
+        assert(current_task.index < state.map.network.trains.size());
+        gf::Log::debug("[SCHEDULER] {}: Update train {}", state.current_date.to_string(), current_task.index);
+
+        if (update_train(state.map.network.trains[current_task.index])) {
+          need_cooldown = true;
+        }
+
+        continue;
+      }
     }
 
-    m_phase = Phase::Cooldown;
+    if (need_cooldown) {
+      m_phase = Phase::Cooldown;
+    }
   }
 
 
@@ -150,6 +158,11 @@ namespace ffw {
     Task task = state.scheduler.queue.top();
     state.scheduler.queue.pop();
     task.date.add_seconds(seconds);
+
+    if (task.type != TaskType::Actor || task.index != 0) {
+      gf::Log::debug("\tNext turn: {}", task.date.to_string());
+    }
+
     state.scheduler.queue.push(task);
   }
 
@@ -177,7 +190,6 @@ namespace ffw {
 
     if (distance_to_hero > IdleDistance) {
       update_current_task_in_queue(distance_to_hero - IdleDistance + IdleTime);
-      update_date();
       return false; // do not cooldown in this case
     }
 
@@ -233,11 +245,19 @@ namespace ffw {
     train.index = new_index;
     std::swap(old_reverse_cell.train_index, new_reverse_cell.train_index);
 
-    // TODO: check if the new index is a train station
+    if (auto iterator = std::find_if(state.map.network.stations.begin(), state.map.network.stations.end(), [new_index](const StationState& station) {
+      return station.index == new_index;
+    }); iterator != state.map.network.stations.end()) {
+      update_current_task_in_queue(iterator->stop_time);
+    } else {
+      update_current_task_in_queue(TrainTime);
+    }
 
-    update_current_task_in_queue(TrainTime);
+    const int32_t distance_to_hero = gf::chebyshev_distance(new_position, state.hero().position);
 
-    // TODO: check if the train is far enough, and in this case, do not cooldown
+    if (distance_to_hero > IdleDistance) {
+      return false; // do not cooldown
+    }
 
     return true;
   }
