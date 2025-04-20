@@ -39,11 +39,15 @@ namespace ffw {
     gf::Time m_cooldown;
 
     void update_date();
-    void update_current_actor_in_queue(uint16_t seconds);
+    void update_current_task_in_queue(uint16_t seconds);
     bool update_hero();
 
     bool update_actor(ActorState& actor);
     void update_cow(ActorState& cow);
+
+
+    bool update_train(TrainState& train);
+
   };
 
 }

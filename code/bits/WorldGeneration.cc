@@ -3,6 +3,7 @@
 #include "MapCell.h"
 #include "MapState.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include <queue>
@@ -51,6 +52,7 @@ namespace ffw {
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmMinDistanceFromOther = 200;
 
+    constexpr std::size_t DayTime = 24 * 60 * 60;
     constexpr int32_t RailSpacing = 2;
 
     constexpr float SlopeFactor = 225.0f;
@@ -545,7 +547,7 @@ namespace ffw {
      * Step 4. Generate railway
      */
 
-    NetworkState generate_network(MapState& state, const RawWorld& raw, const WorldPlaces& places)
+    NetworkState generate_network(const RawWorld& raw, MapState& state, const WorldPlaces& places, gf::Random* random)
     {
       // initialize the grid
 
@@ -637,8 +639,44 @@ namespace ffw {
 
       assert(gf::manhattan_distance(network.railway.back(), network.railway.front()) == 1);
 
+      // determine if the train will ride clockwise or counterclockwise
+
+      if (random->compute_bernoulli(0.5)) {
+        std::reverse(network.railway.begin(), network.railway.end());
+      }
+
+      // determine the stop time
+
+      const std::size_t total_travel_time = network.railway.size() * 5; // TODO: constant for train time
+      const std::size_t total_stop_time = DayTime - total_travel_time;
+      const std::size_t stop_time = total_stop_time / places.towns.size();
+      const std::size_t remaining_stop_time = total_stop_time % places.towns.size();
+
+      gf::Log::info("Train stop time: {} ({})", stop_time, stop_time + remaining_stop_time);
+
       for (const Town& town : places.towns) {
-        network.stations.push_back((town.rail_arrival + town.rail_departure) / 2);
+        const gf::Vec2I station = (town.rail_arrival + town.rail_departure) / 2;
+
+        if (auto iterator = std::find(network.railway.begin(), network.railway.end(), station); iterator != network.railway.end()) {
+          uint32_t index = uint32_t(std::distance(network.railway.begin(), iterator));
+
+          if (network.stations.empty()) {
+            assert(stop_time + remaining_stop_time <= std::numeric_limits<uint16_t>::max());
+            network.stations.push_back({ index, uint16_t(stop_time + remaining_stop_time) });
+          } else {
+            assert(stop_time <= std::numeric_limits<uint16_t>::max());
+            network.stations.push_back({ index, uint16_t(stop_time) });
+          }
+
+        } else {
+          assert(false);
+        }
+      }
+
+      // add the trains: at the beginning, one train arriving in each station
+
+      for (const StationState& station : network.stations) {
+        network.trains.push_back({ network.prev_position(station.index) });
       }
 
       for (const gf::Vec2I position : network.railway) {
@@ -802,6 +840,22 @@ namespace ffw {
     }
 
 
+    gf::Vec2I compute_starting_position(const MapState& map)
+    {
+      const gf::Vec2I center = WorldSize / 2;
+
+      auto iterator = std::min_element(map.network.stations.begin(), map.network.stations.end(), [&](const StationState& lhs, const StationState& rhs) {
+        const gf::Vec2I lhs_position = map.network.railway[lhs.index];
+        const gf::Vec2I rhs_position = map.network.railway[rhs.index];
+        return gf::manhattan_distance(center, lhs_position) < gf::manhattan_distance(center, rhs_position);
+      });
+
+      assert(iterator != map.network.stations.end());
+
+      const gf::Vec2I position = map.network.railway[iterator->index];
+      return position + gf::sign(position - center);
+    }
+
   }
 
   WorldState generate_world(gf::Random* random)
@@ -821,7 +875,7 @@ namespace ffw {
     [[maybe_unused]] auto places = generate_places(state.map, random);
     gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
 
-    state.map.network = generate_network(state.map, raw, places);
+    state.map.network = generate_network(raw, state.map, places, random);
     gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
 
     [[maybe_unused]] auto regions = compute_regions(state.map);
@@ -832,7 +886,7 @@ namespace ffw {
 
     ActorState hero = {};
     hero.data = "Hero";
-    hero.position = WorldSize / 2;
+    hero.position = compute_starting_position(state.map);
     state.actors.push_back(hero);
     state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
 
@@ -841,6 +895,10 @@ namespace ffw {
     cow.position = hero.position + gf::dirx(10);
     state.actors.push_back(cow);
     state.scheduler.queue.push({state.current_date + 1, TaskType::Actor, 1});
+
+    for (const auto& [ index, train ] : gf::enumerate(state.map.network.trains)) {
+      state.scheduler.queue.push({state.current_date, TaskType::Train, uint32_t(index) } );
+    }
 
     const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);
     gf::Log::info("Name: {}", name);

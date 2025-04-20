@@ -5,6 +5,7 @@
 
 #include "Colors.h"
 #include "MapCell.h"
+#include "MapState.h"
 #include "Settings.h"
 #include "WorldState.h"
 
@@ -167,6 +168,15 @@ namespace ffw {
 
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
       outside_reverse(actor.position).actor_index = index;
+    }
+
+    for (const auto& [ index, train ] : gf::enumerate(state.map.network.trains)) {
+      for (uint32_t i = 0; i < TrainSize; ++i) {
+        const uint32_t railway_index = state.map.network.next_position(train.index, i);
+        assert(railway_index < state.map.network.railway.size());
+        const gf::Vec2I position = state.map.network.railway[railway_index];
+        outside_reverse(position).train_index = index;
+      }
     }
 
   }

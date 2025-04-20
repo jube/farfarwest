@@ -1,4 +1,5 @@
 #include "WorldModel.h"
+#include "MapRuntime.h"
 #include "SchedulerState.h"
 
 #include <cassert>
@@ -12,6 +13,7 @@ namespace ffw {
     constexpr int32_t IdleDistance = 100;
     constexpr uint16_t IdleTime = 100;
 
+    constexpr uint16_t TrainTime = 5;
     constexpr uint16_t WalkTime = 15;
     constexpr uint16_t GrazeTime = 100;
 
@@ -73,13 +75,21 @@ namespace ffw {
       const Task& current_task = state.scheduler.queue.top();
 
       if (current_task.type == TaskType::Actor) {
+        assert(current_task.index < state.actors.size());
+
         if (update_actor(state.actors[current_task.index])) {
           continue;
         } else {
           break;
         }
       } else if (current_task.type == TaskType::Train) {
+        assert(current_task.index < state.map.network.trains.size());
 
+        if (update_train(state.map.network.trains[current_task.index])) {
+          continue;
+        } else {
+          break;
+        }
       }
 
       // break;
@@ -104,7 +114,9 @@ namespace ffw {
       return false;
     }
 
-    if (runtime.map.outside_reverse(position).actor_index != NoIndex) {
+    const ReverseMapCell& cell = runtime.map.outside_reverse(position);
+
+    if (cell.actor_index != NoIndex || cell.train_index != NoIndex) {
       return false;
     }
 
@@ -133,7 +145,7 @@ namespace ffw {
     state.current_date = state.scheduler.queue.top().date;
   }
 
-  void WorldModel::update_current_actor_in_queue(uint16_t seconds)
+  void WorldModel::update_current_task_in_queue(uint16_t seconds)
   {
     Task task = state.scheduler.queue.top();
     state.scheduler.queue.pop();
@@ -151,7 +163,7 @@ namespace ffw {
 
       if (is_walkable(new_hero_position)) {
         move_actor(state.hero(), new_hero_position);
-        update_current_actor_in_queue(WalkTime);
+        update_current_task_in_queue(WalkTime);
         return true;
       }
     }
@@ -164,7 +176,7 @@ namespace ffw {
     const int32_t distance_to_hero = gf::chebyshev_distance(actor.position, state.hero().position);
 
     if (distance_to_hero > IdleDistance) {
-      update_current_actor_in_queue(distance_to_hero - IdleDistance + IdleTime);
+      update_current_task_in_queue(distance_to_hero - IdleDistance + IdleTime);
       update_date();
       return false; // do not cooldown in this case
     }
@@ -177,7 +189,7 @@ namespace ffw {
         break;
 
       default:
-        update_current_actor_in_queue(10);
+        update_current_task_in_queue(10);
         assert(false);
         break;
     }
@@ -196,7 +208,38 @@ namespace ffw {
     }
 
     move_actor(cow, new_position);
-    update_current_actor_in_queue(GrazeTime);
+    update_current_task_in_queue(GrazeTime);
+  }
+
+  bool WorldModel::update_train(TrainState& train)
+  {
+    const uint32_t new_index = state.map.network.prev_position(train.index);
+    assert(new_index < state.map.network.railway.size());
+    const gf::Vec2I new_position = state.map.network.railway[new_index];
+
+    const uint32_t last_index = state.map.network.next_position(train.index, TrainSize - 1);
+    assert(last_index < state.map.network.railway.size());
+    const gf::Vec2I last_position = state.map.network.railway[last_index];
+
+    assert(runtime.map.outside_reverse.valid(last_position));
+    ReverseMapCell& old_reverse_cell = runtime.map.outside_reverse(last_position);
+    assert(old_reverse_cell.train_index < state.map.network.trains.size());
+    assert(&train == &state.map.network.trains[old_reverse_cell.train_index]);
+
+    assert(runtime.map.outside_reverse.valid(new_position));
+    ReverseMapCell& new_reverse_cell = runtime.map.outside_reverse(new_position);
+    assert(runtime.map.outside_reverse(new_position).train_index == NoIndex);
+
+    train.index = new_index;
+    std::swap(old_reverse_cell.train_index, new_reverse_cell.train_index);
+
+    // TODO: check if the new index is a train station
+
+    update_current_task_in_queue(TrainTime);
+
+    // TODO: check if the train is far enough, and in this case, do not cooldown
+
+    return true;
   }
 
 }

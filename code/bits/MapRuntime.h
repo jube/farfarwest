@@ -17,6 +17,7 @@ namespace ffw {
 
   struct ReverseMapCell {
     uint32_t actor_index = NoIndex;
+    uint32_t train_index = NoIndex;
   };
 
   struct MapRuntime {
