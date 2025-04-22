@@ -22,6 +22,7 @@ namespace ffw {
     character_box_style.color.foreground = gf::Gray;
     console.draw_frame(CharacterBox, character_box_style);
 
+#if 0
     gf::Vec2I position = CharacterBoxPosition;
     --position.y;
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=date>{}</>", state->current_date.to_string());
@@ -54,6 +55,7 @@ namespace ffw {
     ++position.y;
 
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "•••○○○");
+#endif
   }
 
 }

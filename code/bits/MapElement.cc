@@ -22,17 +22,28 @@ namespace ffw {
   {
   }
 
-  void MapElement::render(gf::Console& console)
+  void MapElement::update([[maybe_unused]] gf::Time time)
   {
     const auto* state = m_game->state();
-    const auto* runtime = m_game->runtime();
-
+    auto* runtime = m_game->runtime();
     const gf::Vec2I hero_position = state->hero().position;
+    runtime->view_center = gf::clamp(runtime->view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
+  }
 
-    m_view_center = gf::clamp(m_view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
+  void MapElement::render(gf::Console& console)
+  {
+    // get current view
 
-    const gf::RectI view = gf::RectI::from_center_size(m_view_center, GameBoxSize);
+    const WorldRuntime* runtime = m_game->runtime();
+    const gf::RectI view = runtime->compute_view();
+
+    // display map background
+
     runtime->map.outside_ground.blit_to(console, view, GameBoxPosition);
+
+    // display actors
+
+    const WorldState* state = m_game->state();
 
     gf::ConsoleStyle style;
     style.color.background = gf::Transparent;
@@ -46,6 +57,8 @@ namespace ffw {
       style.color.foreground = actor.data->color;
       console.put_character(actor.position - view.position(), actor.data->picture, style);
     }
+
+    // display trains
 
     for (const TrainState& train : state->map.network.trains) {
       for (uint32_t i = 0; i < TrainSize; ++i) {

@@ -14,15 +14,15 @@ namespace ffw {
   // constexpr gf::Vec2I ConsoleSize = { 80, 45 };
 
   constexpr gf::Vec2I GameBoxPosition = { 0, 0 };
-  constexpr gf::Vec2I GameBoxSize = { 72, 47 };
+  constexpr gf::Vec2I GameBoxSize = { 72, 48 };
   constexpr gf::RectI GameBox = gf::RectI::from_position_size(GameBoxPosition, GameBoxSize);
 
-  constexpr gf::Vec2I MessageBoxPosition = { 0, 47 };
-  constexpr gf::Vec2I MessageBoxSize = { 72, 7 };
+  constexpr gf::Vec2I MessageBoxPosition = { 0, 48 };
+  constexpr gf::Vec2I MessageBoxSize = { 72, 6 };
   constexpr gf::RectI MessageBox = gf::RectI::from_position_size(MessageBoxPosition, MessageBoxSize);
 
-  constexpr gf::Vec2I CharacterBoxPosition = { 72, 1 };
-  constexpr gf::Vec2I CharacterBoxSize = { 24, 26 };
+  constexpr gf::Vec2I CharacterBoxPosition = { 72, 0 };
+  constexpr gf::Vec2I CharacterBoxSize = { 24, 27 };
   constexpr gf::RectI CharacterBox = gf::RectI::from_position_size(CharacterBoxPosition, CharacterBoxSize);
 
   constexpr gf::Vec2I ContextualBoxPosition = { 72, 27 };

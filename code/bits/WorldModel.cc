@@ -168,17 +168,33 @@ namespace ffw {
 
   bool WorldModel::update_hero()
   {
-    if (runtime.hero.orientation != gf::vec(0, 0)) {
-      runtime.hero.orientation = gf::clamp(runtime.hero.orientation, -1, +1);
+    if (!runtime.hero.moves.empty()) {
+      runtime.hero.move(runtime.hero.moves.back() - state.hero().position);
+      runtime.hero.moves.pop_back();
+    }
 
-      const gf::Vec2I new_hero_position = state.hero().position + runtime.hero.orientation;
-      runtime.hero.orientation = { 0, 0 };
+    switch (runtime.hero.action.type()) {
+      case ActionType::None:
+        return false;
 
-      if (is_walkable(new_hero_position)) {
-        move_actor(state.hero(), new_hero_position);
-        update_current_task_in_queue(WalkTime);
-        return true;
-      }
+      case ActionType::Move:
+        {
+          MoveAction move = runtime.hero.action.from<ActionType::Move>();
+          move.orientation = gf::clamp(move.orientation, -1, +1);
+          assert(move.orientation != gf::vec(0, 0));
+
+          const gf::Vec2I new_hero_position = state.hero().position + move.orientation;
+
+          if (is_walkable(new_hero_position)) {
+            move_actor(state.hero(), new_hero_position);
+            update_current_task_in_queue(WalkTime);
+            return true;
+          } else {
+            runtime.hero.moves.clear();
+          }
+        }
+        break;
+
     }
 
     return false;

@@ -1,5 +1,5 @@
-#ifndef FFW_MESSAGE_LOG_SCENE_H
-#define FFW_MESSAGE_LOG_SCENE_H
+#ifndef FFW_MESSAGE_LOG_ELEMENT_H
+#define FFW_MESSAGE_LOG_ELEMENT_H
 
 #include <gf2/core/Time.h>
 #include <gf2/core/ConsoleElement.h>
@@ -20,4 +20,4 @@ namespace ffw {
 
 }
 
-#endif // FFW_MESSAGE_LOG_SCENE_H
+#endif // FFW_MESSAGE_LOG_ELEMENT_H

@@ -10,10 +10,10 @@ namespace ffw {
   FarFarWestScene::FarFarWestScene(FarFarWestSystem* game, const FarFarWestResources& resources)
   : m_game(game)
   , m_action_group(compute_settings())
-  , m_console_scene_manager(game->random(), game->resource_manager()->search("data.json"), gf::user_data_path("jube", "farfarwest") / "save.dat")
+  , m_console_scene_manager(this, game->random(), game->resource_manager()->search("data.json"), gf::user_data_path("jube", "farfarwest") / "save.dat")
   , m_console_entity(resources.console_resource, game->resource_manager())
   {
-    auto bounds = m_console_scene_manager.console().size() * 64;
+    auto bounds = m_console_scene_manager.console().size() * 64;  // TODO: magic constant
     set_clear_color(gf::Black);
     set_world_size(bounds);
     set_world_center(bounds / 2);

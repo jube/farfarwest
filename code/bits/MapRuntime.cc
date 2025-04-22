@@ -42,6 +42,20 @@ namespace ffw {
       return neighbor_bits;
     }
 
+    constexpr std::u16string_view Saloon[] = {
+      u"╔═══════╦═╗",
+      u"║       ║ ║",
+      u"╟─────┤ ╨ ║",
+      u"║  · ·    ║",
+      u"║ ·     · ║",
+      u"║·•·   ·•·║",
+      u"║ ·     · ║",
+      u"║  ·   ·  ║",
+      u"║ ·•· ·•· ║",
+      u"║  ·   ·  ║",
+      u"╚════─════╝",
+    };
+
   }
 
   void MapRuntime::bind(const WorldState& state, gf::Random* random)

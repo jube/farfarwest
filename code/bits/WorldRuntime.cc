@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "Settings.h"
 #include "WorldState.h"
 
 namespace ffw {
@@ -27,8 +28,14 @@ namespace ffw {
     });
   }
 
+  gf::RectI WorldRuntime::compute_view() const
+  {
+    return gf::RectI::from_center_size(view_center, GameBoxSize);
+  }
+
   void WorldRuntime::bind([[maybe_unused]] const WorldData& data, const WorldState& state, gf::Random* random)
   {
+    view_center = state.hero().position;
     map.bind(state, random);
     sort_actors_by_distance(state.actors);
   }

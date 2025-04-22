@@ -1,16 +1,15 @@
-#ifndef FFW_MAP_SCENE_H
-#define FFW_MAP_SCENE_H
+#ifndef FFW_CONTEXTUAL_ELEMENT_H
+#define FFW_CONTEXTUAL_ELEMENT_H
 
+#include <gf2/core/Time.h>
 #include <gf2/core/ConsoleElement.h>
-
-#include "Settings.h"
 
 namespace ffw {
   class FarFarWest;
 
-  class MapElement : public gf::ConsoleElement {
+  class ContextualElement : public gf::ConsoleElement {
   public:
-    MapElement(FarFarWest* game);
+    ContextualElement(FarFarWest* game);
 
     void update(gf::Time time) override;
     void render(gf::Console& console) override;
@@ -21,4 +20,4 @@ namespace ffw {
 
 }
 
-#endif // FFW_MAP_SCENE_H
+#endif // FFW_CONTEXTUAL_ELEMENT_H

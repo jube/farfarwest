@@ -3,6 +3,7 @@
 
 #include <gf2/core/ConsoleScene.h>
 
+#include "ContextualElement.h"
 #include "HeroElement.h"
 #include "MapElement.h"
 #include "MessageLogElement.h"
@@ -20,6 +21,7 @@ namespace ffw {
     MessageLogElement m_message_log_element;
     MapElement m_map_element;
     HeroElement m_hero_element;
+    ContextualElement m_contextual_element;
   };
 
 

@@ -5,8 +5,9 @@
 #include <gf2/core/Clock.h>
 #include <gf2/core/Log.h>
 
-#include "WorldGeneration.h"
+#include "FarFarWestScene.h"
 #include "Settings.h"
+#include "WorldGeneration.h"
 
 namespace ffw {
 
@@ -43,7 +44,7 @@ namespace ffw {
 
   }
 
-  FarFarWest::FarFarWest(gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile)
+  FarFarWest::FarFarWest(FarFarWestScene* enclosing_scene, gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile)
   : gf::ConsoleSceneManager(ConsoleSize)
   , title(this)
   , kickoff(this)
@@ -52,6 +53,7 @@ namespace ffw {
   , control(this)
   , quit(this)
   , save(this)
+  , m_enclosing_scene(enclosing_scene)
   , m_random(random)
   , m_datafile(datafile)
   , m_savefile(savefile)
@@ -129,6 +131,14 @@ namespace ffw {
     }
 
     return m_async_save_finished;
+  }
+
+  gf::Vec2I FarFarWest::point_to(gf::Vec2F mouse)
+  {
+    const gf::Vec2F location = m_enclosing_scene->position_to_world_location(mouse);
+
+    gf::OrthogonalGrid grid(ConsoleSize, { 64, 64 }); // TODO: magic constant
+    return grid.compute_position(location);
   }
 
 }

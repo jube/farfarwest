@@ -20,6 +20,7 @@
 #include "WorldModel.h"
 
 namespace ffw {
+  class FarFarWestScene;
 
   enum class AdventureChoice : uint8_t {
     New,
@@ -28,7 +29,7 @@ namespace ffw {
 
   class FarFarWest : public gf::ConsoleSceneManager {
   public:
-    FarFarWest(gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile);
+    FarFarWest(FarFarWestScene* enclosing_scene, gf::Random* random, const std::filesystem::path& datafile, const std::filesystem::path& savefile);
 
     gf::Random* random()
     {
@@ -64,6 +65,8 @@ namespace ffw {
     void create_save();
     bool save_creation_finished();
 
+    gf::Vec2I point_to(gf::Vec2F mouse);
+
     TitleScene title;
     KickoffScene kickoff;
     CreationScene creation;
@@ -74,6 +77,7 @@ namespace ffw {
     SaveScene save;
 
   private:
+    FarFarWestScene* m_enclosing_scene = nullptr;
     gf::Random* m_random = nullptr;
     std::filesystem::path m_datafile;
 

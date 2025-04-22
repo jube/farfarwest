@@ -18,6 +18,7 @@
 #include <gf2/core/Noises.h>
 #include <gf2/core/ProcGen.h>
 #include <gf2/core/Vec2.h>
+#include <string_view>
 
 #include "Names.h"
 #include "Settings.h"
@@ -718,6 +719,11 @@ namespace ffw {
 
       return network;
     }
+
+
+    /*
+     * Step W. Create towns
+     */
 
 
 
