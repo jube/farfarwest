@@ -90,10 +90,10 @@ namespace ffw {
       }
 
       if (current_task.type == TaskType::Train) {
-        assert(current_task.index < state.map.network.trains.size());
+        assert(current_task.index < state.network.trains.size());
         gf::Log::debug("[SCHEDULER] {}: Update train {}", state.current_date.to_string(), current_task.index);
 
-        if (update_train(state.map.network.trains[current_task.index])) {
+        if (update_train(state.network.trains[current_task.index])) {
           need_cooldown = true;
         }
 
@@ -241,18 +241,18 @@ namespace ffw {
 
   bool WorldModel::update_train(TrainState& train)
   {
-    const uint32_t new_index = state.map.network.prev_position(train.index);
-    assert(new_index < state.map.network.railway.size());
-    const gf::Vec2I new_position = state.map.network.railway[new_index];
+    const uint32_t new_index = state.network.prev_position(train.index);
+    assert(new_index < state.network.railway.size());
+    const gf::Vec2I new_position = state.network.railway[new_index];
 
-    const uint32_t last_index = state.map.network.next_position(train.index, TrainSize - 1);
-    assert(last_index < state.map.network.railway.size());
-    const gf::Vec2I last_position = state.map.network.railway[last_index];
+    const uint32_t last_index = state.network.next_position(train.index, TrainSize - 1);
+    assert(last_index < state.network.railway.size());
+    const gf::Vec2I last_position = state.network.railway[last_index];
 
     assert(runtime.map.outside_reverse.valid(last_position));
     ReverseMapCell& old_reverse_cell = runtime.map.outside_reverse(last_position);
-    assert(old_reverse_cell.train_index < state.map.network.trains.size());
-    assert(&train == &state.map.network.trains[old_reverse_cell.train_index]);
+    assert(old_reverse_cell.train_index < state.network.trains.size());
+    assert(&train == &state.network.trains[old_reverse_cell.train_index]);
 
     assert(runtime.map.outside_reverse.valid(new_position));
     ReverseMapCell& new_reverse_cell = runtime.map.outside_reverse(new_position);
@@ -261,9 +261,9 @@ namespace ffw {
     train.index = new_index;
     std::swap(old_reverse_cell.train_index, new_reverse_cell.train_index);
 
-    if (auto iterator = std::find_if(state.map.network.stations.begin(), state.map.network.stations.end(), [new_index](const StationState& station) {
+    if (auto iterator = std::find_if(state.network.stations.begin(), state.network.stations.end(), [new_index](const StationState& station) {
       return station.index == new_index;
-    }); iterator != state.map.network.stations.end()) {
+    }); iterator != state.network.stations.end()) {
       update_current_task_in_queue(iterator->stop_time);
     } else {
       update_current_task_in_queue(TrainTime);

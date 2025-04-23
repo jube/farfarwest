@@ -10,7 +10,7 @@ namespace ffw {
 
   namespace {
 
-    constexpr int32_t ViewRelaxation = 10;
+    constexpr int32_t ViewRelaxation = 5;
 
     constexpr std::u16string_view Train = u"◘█·██·██";
     static_assert(Train.size() == TrainSize);
@@ -24,8 +24,8 @@ namespace ffw {
 
   void MapElement::update([[maybe_unused]] gf::Time time)
   {
-    const auto* state = m_game->state();
-    auto* runtime = m_game->runtime();
+    const WorldState* state = m_game->state();
+    WorldRuntime* runtime = m_game->runtime();
     const gf::Vec2I hero_position = state->hero().position;
     runtime->view_center = gf::clamp(runtime->view_center, hero_position - ViewRelaxation, hero_position + ViewRelaxation);
   }
@@ -60,11 +60,11 @@ namespace ffw {
 
     // display trains
 
-    for (const TrainState& train : state->map.network.trains) {
+    for (const TrainState& train : state->network.trains) {
       for (uint32_t i = 0; i < TrainSize; ++i) {
-        const uint32_t index = state->map.network.next_position(train.index, i);
-        assert(index < state->map.network.railway.size());
-        const gf::Vec2I position = state->map.network.railway[index];
+        const uint32_t index = state->network.next_position(train.index, i);
+        assert(index < state->network.railway.size());
+        const gf::Vec2I position = state->network.railway[index];
 
         if (!view.contains(position)) {
           continue;

@@ -12,6 +12,7 @@
 #include "Date.h"
 #include "MapState.h"
 #include "MessageLogState.h"
+#include "NetworkState.h"
 #include "SchedulerState.h"
 
 namespace ffw {
@@ -23,6 +24,8 @@ namespace ffw {
     Date current_date;
 
     MapState map;
+    NetworkState network;
+
     std::vector<ActorState> actors;
 
     SchedulerState scheduler;
@@ -48,7 +51,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<WorldState, Archive>& state)
   {
-    return ar | state.current_date | state.map | state.actors | state.scheduler | state.log;
+    return ar | state.current_date | state.map | state.network | state.actors | state.scheduler | state.log;
   }
 
 }

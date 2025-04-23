@@ -3,7 +3,6 @@
 #include "ActorState.h"
 #include "FarFarWest.h"
 #include "MapRuntime.h"
-#include "MapState.h"
 #include "Settings.h"
 #include "WorldRuntime.h"
 #include "WorldState.h"
@@ -187,11 +186,11 @@ namespace ffw {
       m_grid.set_walkable(actor.position, false);
     }
 
-    for (const TrainState& train : state->map.network.trains) {
+    for (const TrainState& train : state->network.trains) {
       for (uint32_t i = 0; i < TrainSize; ++i) {
-        const uint32_t index = state->map.network.next_position(train.index, i);
-        assert(index < state->map.network.railway.size());
-        const gf::Vec2I position = state->map.network.railway[index];
+        const uint32_t index = state->network.next_position(train.index, i);
+        assert(index < state->network.railway.size());
+        const gf::Vec2I position = state->network.railway[index];
         m_grid.set_walkable(position, false);
       }
     }
