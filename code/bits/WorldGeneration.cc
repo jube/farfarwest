@@ -1,7 +1,4 @@
 #include "WorldGeneration.h"
-#include "Colors.h"
-#include "MapCell.h"
-#include "MapState.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -20,6 +17,8 @@
 #include <gf2/core/Vec2.h>
 #include <string_view>
 
+#include "Colors.h"
+#include "MapState.h"
 #include "Names.h"
 #include "Settings.h"
 
@@ -46,8 +45,7 @@ namespace ffw {
     constexpr int MoutainBirthThreshold    = 8;
     constexpr int MoutainIterations        = 7;
 
-    constexpr std::size_t TownsCount = 5;
-    constexpr int32_t TownRadius = 40;
+    constexpr int32_t TownRadius = (TownsBlockSize * BuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
     constexpr int32_t TownMinDistanceFromOther = 1500;
     constexpr std::size_t FarmsCount = TownsCount * 5;
     constexpr int32_t FarmRadius = 10;
@@ -725,39 +723,8 @@ namespace ffw {
      * Step W. Create towns
      */
 
-    enum class Building : uint8_t {
-      Empty,
-      None,
-      // actual buildings
-      Bank,
-      Casino,
-      Church,
-      ClothShop,
-      FoodShop,
-      Hotel,
-      House1,
-      House2,
-      House3,
-      MarshalOffice,
-      Restaurant,
-      Saloon,
-      WeaponShop,
-    };
-
-    struct InnerTown {
-      std::array<std::array<Building, 6>, 6> buildings = {};
-      int horizontal_street = 3; // [1, 5]
-      int vertical_street = 3; // [1, 5]
-    };
-
-    struct WorldTowns {
-      std::array<InnerTown, TownsCount> towns;
-    };
-
-    WorldTowns generate_towns(gf::Random* random)
+    void generate_towns(MapState& map, const WorldPlaces& places, gf::Random* random)
     {
-      WorldTowns towns = {};
-
       std::array<Building, 20> buildings = {
         Building::Bank,
         Building::Casino,
@@ -791,11 +758,13 @@ namespace ffw {
         }
       };
 
-      for (InnerTown& town : towns.towns) {
+      for (auto [ index, town ] : gf::enumerate(map.towns)) {
         std::shuffle(buildings.begin(), buildings.end(), random->engine());
 
-        town.horizontal_street = random->compute_uniform_integer(1, 6);
-        town.vertical_street = random->compute_uniform_integer(1, 6);
+        town.position = places.towns[index].center - TownRadius;
+
+        town.horizontal_street = random->compute_uniform_integer<uint8_t>(1, 6);
+        town.vertical_street = random->compute_uniform_integer<uint8_t>(1, 6);
 
         const int up_building = town.horizontal_street - 1;
         const int down_building = town.horizontal_street;
@@ -817,8 +786,6 @@ namespace ffw {
 
         assert(building_index == buildings.size());
       }
-
-      return towns;
     }
 
     /*
@@ -978,7 +945,7 @@ namespace ffw {
     state.network = generate_network(raw, state.map, places, random);
     gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
 
-    generate_towns(random);
+    generate_towns(state.map, places, random);
     gf::Log::info("- towns ({:g}s)", clock.elapsed_time().as_seconds());
 
     [[maybe_unused]] auto regions = compute_regions(state.map);

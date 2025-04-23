@@ -1,7 +1,9 @@
 #include "MapRuntime.h"
 
 #include <cstdint>
+
 #include <gf2/core/ConsoleChar.h>
+#include <gf2/core/Direction.h>
 
 #include "Colors.h"
 #include "MapCell.h"
@@ -42,7 +44,9 @@ namespace ffw {
       return neighbor_bits;
     }
 
-    constexpr std::u16string_view Saloon[] = {
+    using BuildingPlan = std::array<std::u16string_view, BuildingSize>;
+
+    constexpr BuildingPlan Saloon = {{
       u"╔═══════╦═╗",
       u"║       ║ ║",
       u"╟─────┤ ╨ ║",
@@ -54,7 +58,43 @@ namespace ffw {
       u"║ ·•· ·•· ║",
       u"║  ·   ·  ║",
       u"╚════─════╝",
-    };
+    }};
+
+    constexpr BuildingPlan Template = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+
+    char16_t compute_building_part(const BuildingPlan& building, gf::Vec2I position, gf::Direction entrance)
+    {
+      assert(0 <= position.x && position.x < BuildingSize);
+      assert(0 <= position.y && position.y < BuildingSize);
+
+      switch (entrance) {
+        case gf::Direction::Up:
+          return building[BuildingSize - position.x - 1][BuildingSize - position.y - 1];
+        case gf::Direction::Left:
+          return building[BuildingSize - position.y - 1][position.x];
+        case gf::Direction::Down:
+          return building[position.x][position.y];
+        case gf::Direction::Right:
+          return building[position.y][BuildingSize - position.x - 1];
+        default:
+          break;
+      }
+
+      return building[position.x][position.y];
+    }
 
   }
 
@@ -64,6 +104,13 @@ namespace ffw {
     outside_grid = gf::GridMap::make_orthogonal(WorldSize);
     outside_reverse = gf::Array2D<ReverseMapCell>(WorldSize);
 
+    bind_ground(state, random);
+    bind_towns(state);
+    bind_reverse(state);
+  }
+
+  void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
+  {
     for (auto position : state.map.cells.position_range()) {
       const MapCell& cell = state.map.cells(position);
 
@@ -179,7 +226,37 @@ namespace ffw {
         outside_grid.set_transparent(position, false);
       }
     }
+  }
 
+  void MapRuntime::bind_towns(const WorldState& state)
+  {
+    for (const TownState& town : state.map.towns) {
+      for (int32_t i = 0; i < TownsBlockSize; ++i) {
+        for (int32_t j = 0; j < TownsBlockSize; ++j) {
+          if (town.buildings[i][j] == Building::Empty || town.buildings[i][j] == Building::None) {
+            continue;
+          }
+
+          const gf::Vec2I block_position = { j, i };
+
+          for (int32_t x = 0; x < BuildingSize; ++x) {
+            for (int32_t y = 0; y < BuildingSize; ++y) {
+              const gf::Vec2I position = { x, y };
+              const char16_t part = compute_building_part(Template, { y, x }, gf::Direction::Down);
+
+              const gf::Vec2I map_position = town.position + block_position * (BuildingSize + StreetSize) + position;
+
+              outside_ground.put_character(map_position, part, gf::Gray, gf::White);
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  void MapRuntime::bind_reverse(const WorldState& state)
+  {
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
       outside_reverse(actor.position).actor_index = index;
     }
@@ -192,7 +269,6 @@ namespace ffw {
         outside_reverse(position).train_index = index;
       }
     }
-
   }
 
 }
