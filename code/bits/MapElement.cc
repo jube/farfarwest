@@ -1,10 +1,16 @@
 #include "MapElement.h"
 
+#include <cstdint>
 #include <string_view>
 
+#include <gf2/core/Direction.h>
+
 #include "ActorState.h"
+#include "Characters.h"
 #include "FarFarWest.h"
+#include "NetworkState.h"
 #include "Settings.h"
+#include "Utils.h"
 
 namespace ffw {
 
@@ -12,8 +18,88 @@ namespace ffw {
 
     constexpr int32_t ViewRelaxation = 5;
 
-    constexpr std::u16string_view Train = u"◘█·██·██";
-    static_assert(Train.size() == TrainSize);
+    constexpr int32_t TrainSize = 3;
+    using RailPart = std::array<std::u16string_view, TrainSize>;
+
+    constexpr RailPart LocomotiveFront = {{
+      u" ▄ ",
+      u"▐◘▌",
+      u"▐█▌",
+    }};
+
+    constexpr RailPart LocomotiveBack = {{
+      u"▐█▌",
+      u"███",
+      u"███",
+    }};
+
+    constexpr RailPart Coupler = {{
+      u"▐█▌",
+      u" · ",
+      u"▐█▌",
+    }};
+
+    constexpr RailPart WagonFront = {{
+      u"███",
+      u"███",
+      u"███",
+    }};
+
+    constexpr RailPart WagonBack = {{
+      u"███",
+      u"███",
+      u"███",
+    }};
+
+    constexpr std::string_view Train = "lLCwWCwWCwW";
+    static_assert(Train.length() == TrainLength);
+
+    const RailPart& compute_train_basic_part(char part_character)
+    {
+      switch (part_character) {
+        case 'l':
+          return LocomotiveFront;
+        case 'L':
+          return LocomotiveBack;
+        case 'C':
+          return Coupler;
+        case 'w':
+          return WagonFront;
+        case 'W':
+          return WagonBack;
+      }
+
+      assert(false);
+      return Coupler;
+    }
+
+    char16_t compute_train_part(const RailPart& part, gf::Vec2I position, gf::Direction direction)
+    {
+      assert(0 <= position.x && position.x < TrainSize);
+      assert(0 <= position.y && position.y < TrainSize);
+
+      char16_t picture = part[position.y][position.x];
+
+      switch (direction) {
+        case gf::Direction::Up:
+          picture = part[position.y][position.x];
+          break;
+        case gf::Direction::Right:
+          picture = part[TrainSize - position.x - 1][position.y];
+          break;
+        case gf::Direction::Down:
+          picture = part[TrainSize - position.y - 1][TrainSize - position.x - 1];
+          break;
+        case gf::Direction::Left:
+          picture = part[position.x][TrainSize - position.y - 1];
+          break;
+        default:
+          assert(false);
+          break;
+      }
+
+      return rotate(picture, direction);
+    }
 
   }
 
@@ -45,33 +131,57 @@ namespace ffw {
 
     const WorldState* state = m_game->state();
 
-    gf::ConsoleStyle style;
-    style.color.background = gf::Transparent;
-    style.effect = gf::ConsoleEffect::none();
+    gf::ConsoleStyle actor_style;
+    actor_style.color.background = gf::Transparent;
+    actor_style.effect = gf::ConsoleEffect::none();
 
     for (const ActorState& actor : state->actors) {
       if (!view.contains(actor.position)) {
         continue;
       }
 
-      style.color.foreground = actor.data->color;
-      console.put_character(actor.position - view.position(), actor.data->picture, style);
+      actor_style.color.foreground = actor.data->color;
+      console.put_character(actor.position - view.position(), actor.data->picture, actor_style);
     }
 
     // display trains
 
-    for (const TrainState& train : state->network.trains) {
-      for (uint32_t i = 0; i < TrainSize; ++i) {
-        const uint32_t index = state->network.next_position(train.index, i);
-        assert(index < state->network.railway.size());
-        const gf::Vec2I position = state->network.railway[index];
+    gf::ConsoleStyle train_style;
+    train_style.color.foreground = gf::gray(0.1f);
+    train_style.color.background = gf::Transparent;
+    train_style.effect = gf::ConsoleEffect::none();
 
-        if (!view.contains(position)) {
-          continue;
+    for (const TrainState& train : state->network.trains) {
+      uint32_t offset = 0;
+
+      for (char part_character : Train) {
+        const uint32_t index = runtime->network.next_position(train.railway_index, offset);
+        assert(index < runtime->network.railway.size());
+        const gf::Vec2I position = runtime->network.railway[index];
+
+        const uint32_t next_index = runtime->network.prev_position(index);
+        assert(next_index < runtime->network.railway.size());
+        const gf::Vec2I next_position = runtime->network.railway[next_index];
+
+        assert(gf::manhattan_distance(position, next_position) == 1);
+        const gf::Direction direction = undisplacement(next_position - position);
+
+        const RailPart& part = compute_train_basic_part(part_character);
+
+        for (int32_t i = -1; i <= 1; ++i) {
+          for (int32_t j = -1; j <= 1; ++j) {
+            const gf::Vec2I neighbor = { i, j };
+            const gf::Vec2I neighbor_position = position + neighbor;
+
+            if (!view.contains(neighbor_position)) {
+              continue;
+            }
+
+            console.put_character(neighbor_position - view.position(), compute_train_part(part, neighbor + 1, direction), train_style);
+          }
         }
 
-        style.color.foreground = gf::gray(0.2f);
-        console.put_character(position - view.position(), Train[i], style);
+        offset += 3;
       }
     }
 

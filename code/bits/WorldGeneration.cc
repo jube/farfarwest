@@ -18,6 +18,7 @@
 #include <string_view>
 
 #include "Colors.h"
+#include "MapCell.h"
 #include "MapState.h"
 #include "Names.h"
 #include "Settings.h"
@@ -45,14 +46,22 @@ namespace ffw {
     constexpr int MoutainBirthThreshold    = 8;
     constexpr int MoutainIterations        = 7;
 
+    constexpr int32_t ReducedFactor = 3;
+
     constexpr int32_t TownRadius = (TownsBlockSize * BuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
+    constexpr int32_t TownDiameter = 2 * TownRadius + 1;
+    constexpr int32_t ReducedTownDiameter = TownDiameter / ReducedFactor;
     constexpr int32_t TownMinDistanceFromOther = 1500;
     constexpr std::size_t FarmsCount = TownsCount * 5;
     constexpr int32_t FarmRadius = 10;
+    constexpr int32_t FarmDiameter = 2 * FarmRadius + 1;
+    constexpr int32_t ReducedFarmDiameter = FarmDiameter / ReducedFactor;
     constexpr int32_t FarmMinDistanceFromOther = 200;
 
     constexpr std::size_t DayTime = 24 * 60 * 60;
     constexpr int32_t RailSpacing = 2;
+
+    constexpr int CliffThreshold = 2;
 
     constexpr float SlopeFactor = 225.0f;
 
@@ -67,11 +76,19 @@ namespace ffw {
     };
 
 
-
-
     bool is_on_side(gf::Vec2I position)
     {
       return position.x == 0 || position.x == WorldBasicSize - 1 || position.y == 0 || position.y == WorldBasicSize - 1;
+    }
+
+    constexpr gf::Vec2I to_map(gf::Vec2I position)
+    {
+      return ReducedFactor * position + (ReducedFactor / 2);
+    }
+
+    constexpr gf::Vec2I to_reduced(gf::Vec2I position)
+    {
+      return position / ReducedFactor;
     }
 
     enum class ImageType : uint8_t {
@@ -429,6 +446,8 @@ namespace ffw {
 
     WorldPlaces generate_places(const MapState& state, gf::Random* random)
     {
+      constexpr gf::RectI reduced_world_rectangle = gf::RectI::from_size(WorldSize / ReducedFactor);
+
       WorldPlaces places = {};
 
       // first generate towns
@@ -440,9 +459,9 @@ namespace ffw {
 
         for (OuterTown& town : places.towns) {
           do {
-            town.center = random->compute_position(gf::RectI::from_size(WorldSize));
+            town.center = random->compute_position(reduced_world_rectangle);
             ++tries;
-          } while (!can_have_place(state, town.center, TownRadius + RailSpacing));
+          } while (!can_have_place(state, to_map(town.center), TownRadius + RailSpacing * ReducedFactor));
         }
 
         const int32_t min_distance = places.min_distance_between_towns();
@@ -450,7 +469,7 @@ namespace ffw {
 
         ++town_rounds;
 
-        if (min_distance > TownMinDistanceFromOther) {
+        if (min_distance * ReducedFactor > TownMinDistanceFromOther) {
           break;
         }
       }
@@ -460,8 +479,8 @@ namespace ffw {
       // compute rail arrival/departure
 
       for (OuterTown& town : places.towns) {
-        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
-        const gf::Direction direction = gf::direction(gf::angle<float>(WorldCenter - town.center));
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
+        const gf::Direction direction = gf::direction(gf::angle<float>(WorldCenter - to_map(town.center)));
 
         auto put_at = [&](gf::Orientation orientation) {
           return town_space.position_at(orientation) + RailSpacing * gf::displacement(orientation);
@@ -500,9 +519,9 @@ namespace ffw {
 
         for (gf::Vec2I& farm_position : places.farms) {
           do {
-            farm_position = random->compute_position(gf::RectI::from_size(WorldSize));
+            farm_position = random->compute_position(reduced_world_rectangle);
             ++tries;
-          } while (!can_have_place(state, farm_position, FarmRadius));
+          } while (!can_have_place(state, to_map(farm_position), FarmRadius));
         }
 
         const int32_t min_distance = places.min_distance_between_towns_and_farms();
@@ -510,7 +529,7 @@ namespace ffw {
 
         ++farm_rounds;
 
-        if (min_distance > FarmMinDistanceFromOther) {
+        if (min_distance * ReducedFactor > FarmMinDistanceFromOther) {
           break;
         }
       }
@@ -521,7 +540,7 @@ namespace ffw {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
         for (const OuterTown& town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+          const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
 
           for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
             image.put_pixel(position, gf::Azure);
@@ -529,7 +548,7 @@ namespace ffw {
         }
 
         for (const gf::Vec2I farm : places.farms) {
-          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 });
+          const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
 
           for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
             image.put_pixel(position, gf::Azure);
@@ -550,20 +569,38 @@ namespace ffw {
     {
       // initialize the grid
 
-      gf::GridMap grid = gf::GridMap::make_orthogonal(WorldSize);
+      gf::GridMap grid = gf::GridMap::make_orthogonal(WorldSize / ReducedFactor);
 
-      for (const gf::Vec2I position : state.cells.position_range()) {
-        const MapCell& cell  = state.cells(position);
+      for (const gf::Vec2I position : grid.position_range()) {
+        const gf::Vec2I map_position = to_map(position);
 
-        if (cell.block == MapBlock::Cliff) {
-          for (const gf::Vec2I neighbor : state.cells.compute_8_neighbors_range(position)) {
-            grid.set_walkable(neighbor, false);
+        int cliffs = 0;
+
+        for (const gf::Vec2I neighbor : state.cells.compute_24_neighbors_range(map_position)) {
+          if (state.cells(neighbor).block == MapBlock::Cliff) {
+            ++cliffs;
           }
         }
+
+        grid.set_walkable(position, cliffs <= CliffThreshold);
+      }
+
+      if constexpr (Debug) {
+        gf::Image image(grid.size());
+
+        for (const gf::Vec2I position : image.position_range()) {
+          if (grid.walkable(position)) {
+            image.put_pixel(position, gf::White);
+          } else {
+            image.put_pixel(position, gf::Black);
+          }
+        }
+
+        image.save_to_file("03_railways_alt.png");
       }
 
       for (const OuterTown& town : places.towns) {
-        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
 
         for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
           grid.set_walkable(position, false);
@@ -577,10 +614,10 @@ namespace ffw {
       }
 
       for (const gf::Vec2I farm : places.farms) {
-        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 }).grow_by(1);
+        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { ReducedFarmDiameter, ReducedFarmDiameter }).grow_by(1);
 
         for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
-          grid.set_walkable(position, false);
+          grid.set_walkable(to_reduced(position), false);
         }
       }
 
@@ -589,7 +626,7 @@ namespace ffw {
       std::vector<std::size_t> ordered_towns(places.towns.size());
       std::iota(ordered_towns.begin(), ordered_towns.end(), 0);
       std::sort(ordered_towns.begin(), ordered_towns.end(), [&](std::size_t lhs, std::size_t rhs) {
-        return gf::angle<float>(places.towns[lhs].center - WorldCenter) < gf::angle<float>(places.towns[rhs].center - WorldCenter);
+        return gf::angle<float>(places.towns[lhs].center - to_reduced(WorldCenter)) < gf::angle<float>(places.towns[rhs].center - to_reduced(WorldCenter));
       });
 
       for (std::size_t i = 0; i < ordered_towns.size(); ++i) {
@@ -609,7 +646,7 @@ namespace ffw {
         const std::size_t j = (i + 1) % ordered_towns.size();
         auto path = grid.compute_route(places.towns[ordered_towns[i]].rail_departure, places.towns[ordered_towns[j]].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
           const float distance = gf::euclidean_distance<float>(position, neighbor);
-          const float slope = std::abs(raw(position).altitude - raw(neighbor).altitude) / distance;
+          const float slope = std::abs(raw(to_map(position)).altitude - raw(to_map(neighbor)).altitude) / distance;
           return distance * (1 + SlopeFactor * gf::square(slope));
         });
 
@@ -627,26 +664,36 @@ namespace ffw {
         paths.push_back(std::move(path));
       }
 
-      NetworkState network = {};
+      // construct the whole path
+
+      std::vector<gf::Vec2I> reduced_railway;
 
       for (const std::vector<gf::Vec2I>& path : paths) {
         for (const gf::Vec2I position : path) {
-          assert(network.railway.empty() || gf::manhattan_distance(network.railway.back(), position) == 1);
-          network.railway.push_back(position);
+          assert(reduced_railway.empty() || gf::manhattan_distance(reduced_railway.back(), position) == 1);
+          reduced_railway.push_back(position);
         }
       }
 
-      assert(gf::manhattan_distance(network.railway.back(), network.railway.front()) == 1);
+      assert(gf::manhattan_distance(reduced_railway.back(), reduced_railway.front()) == 1);
 
       // determine if the train will ride clockwise or counterclockwise
 
       if (random->compute_bernoulli(0.5)) {
-        std::reverse(network.railway.begin(), network.railway.end());
+        std::reverse(reduced_railway.begin(), reduced_railway.end());
+      }
+
+      // put back in map
+
+      NetworkState network = {};
+
+      for (const gf::Vec2I position : reduced_railway) {
+        network.railway.push_back(to_map(position));
       }
 
       // determine the stop time
 
-      const std::size_t total_travel_time = network.railway.size() * 5; // TODO: constant for train time
+      const std::size_t total_travel_time = network.railway.size() * ReducedFactor * 5; // TODO: constant for train time
       const std::size_t total_stop_time = DayTime - total_travel_time;
       const std::size_t stop_time = total_stop_time / places.towns.size();
       const std::size_t remaining_stop_time = total_stop_time % places.towns.size();
@@ -654,10 +701,10 @@ namespace ffw {
       gf::Log::info("Train stop time: {} ({})", stop_time, stop_time + remaining_stop_time);
 
       for (const OuterTown& town : places.towns) {
-        const gf::Vec2I station = (town.rail_arrival + town.rail_departure) / 2;
+        const gf::Vec2I station = to_map((town.rail_departure + town.rail_arrival) / 2);
 
         if (auto iterator = std::find(network.railway.begin(), network.railway.end(), station); iterator != network.railway.end()) {
-          uint32_t index = uint32_t(std::distance(network.railway.begin(), iterator));
+          uint32_t index = ReducedFactor * uint32_t(std::distance(network.railway.begin(), iterator));
 
           if (network.stations.empty()) {
             assert(stop_time + remaining_stop_time <= std::numeric_limits<uint16_t>::max());
@@ -675,23 +722,20 @@ namespace ffw {
       // add the trains: at the beginning, one train arriving in each station
 
       for (const StationState& station : network.stations) {
-        network.trains.push_back({ network.next_position(station.index) });
+        network.trains.push_back({ station.index });
       }
 
       for (const gf::Vec2I position : network.railway) {
-        state.cells(position).decoration = MapDecoration::Rail;
-
         for (const gf::Vec2I relative_neighbor : EightNeighbors) {
           state.cells(position + relative_neighbor).block = MapBlock::None;
         }
-
       }
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
 
         for (const OuterTown& town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(town.center, { 2 * TownRadius + 1, 2 * TownRadius + 1 });
+          const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
 
           for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
             image.put_pixel(position, gf::Azure);
@@ -699,12 +743,13 @@ namespace ffw {
         }
 
         for (const gf::Vec2I farm : places.farms) {
-          const gf::RectI farm_space = gf::RectI::from_center_size(farm, { 2 * FarmRadius + 1, 2 * FarmRadius + 1 });
+          const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
 
           for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
             image.put_pixel(position, gf::Azure);
           }
         }
+
 
         for (const gf::Vec2I position : network.railway) {
           image.put_pixel(position, gf::Black);
@@ -713,7 +758,7 @@ namespace ffw {
         image.save_to_file("03_railways.png");
       }
 
-      gf::Log::info("Railway length: {}", network.railway.size());
+      gf::Log::info("Railway length: {}", network.railway.size() * ReducedFactor);
 
       return network;
     }
@@ -761,7 +806,7 @@ namespace ffw {
       for (auto [ index, town ] : gf::enumerate(map.towns)) {
         std::shuffle(buildings.begin(), buildings.end(), random->engine());
 
-        town.position = places.towns[index].center - TownRadius;
+        town.position = to_map(places.towns[index].center) - TownRadius;
 
         town.horizontal_street = random->compute_uniform_integer<uint8_t>(1, 6);
         town.vertical_street = random->compute_uniform_integer<uint8_t>(1, 6);
@@ -912,15 +957,15 @@ namespace ffw {
       const gf::Vec2I center = WorldSize / 2;
 
       auto iterator = std::min_element(network.stations.begin(), network.stations.end(), [&](const StationState& lhs, const StationState& rhs) {
-        const gf::Vec2I lhs_position = network.railway[lhs.index];
-        const gf::Vec2I rhs_position = network.railway[rhs.index];
+        const gf::Vec2I lhs_position = network.railway[lhs.index / ReducedFactor];
+        const gf::Vec2I rhs_position = network.railway[rhs.index / ReducedFactor];
         return gf::manhattan_distance(center, lhs_position) < gf::manhattan_distance(center, rhs_position);
       });
 
       assert(iterator != network.stations.end());
 
-      const gf::Vec2I position = network.railway[iterator->index];
-      return position + gf::sign(position - center);
+      const gf::Vec2I position = network.railway[iterator->index / ReducedFactor];
+      return position + 2 * gf::sign(position - center);
     }
 
   }
@@ -967,7 +1012,9 @@ namespace ffw {
     state.scheduler.queue.push({state.current_date + 1, TaskType::Actor, 1});
 
     for (const auto& [ index, train ] : gf::enumerate(state.network.trains)) {
-      state.scheduler.queue.push({state.current_date, TaskType::Train, uint32_t(index) } );
+      Date date = state.current_date;
+      date.add_seconds(state.network.stations[index].stop_time);
+      state.scheduler.queue.push({ date, TaskType::Train, uint32_t(index) } );
     }
 
     const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);

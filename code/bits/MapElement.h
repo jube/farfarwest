@@ -3,8 +3,6 @@
 
 #include <gf2/core/ConsoleElement.h>
 
-#include "Settings.h"
-
 namespace ffw {
   class FarFarWest;
 

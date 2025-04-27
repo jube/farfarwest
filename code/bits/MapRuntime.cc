@@ -8,7 +8,9 @@
 #include "Colors.h"
 #include "MapCell.h"
 #include "MapState.h"
+#include "NetworkState.h"
 #include "Settings.h"
+#include "Utils.h"
 #include "WorldState.h"
 
 namespace ffw {
@@ -105,6 +107,7 @@ namespace ffw {
     outside_reverse = gf::Array2D<ReverseMapCell>(WorldSize);
 
     bind_ground(state, random);
+    bind_railway(state);
     bind_towns(state);
     bind_reverse(state);
   }
@@ -188,34 +191,6 @@ namespace ffw {
           foreground_color = gf::darker(background_color, 0.1f);
           break;
         case MapDecoration::Rail:
-          {
-            const uint8_t neighbor_bits = compute_neighbor_bits<MapDecoration, &MapCell::decoration>(state.map, position, MapDecoration::Rail);
-
-            constexpr char16_t RailCharacters[] = {
-                                                    // WSEN
-              u' ',                                 // 0000
-              u' ',                                 // 0001
-              u' ',                                 // 0010
-              u'╚',                                 // 0011
-              u' ',                                 // 0100
-              u'╫',                                 // 0101
-              u'╔',                                 // 0110
-              u'╫',                                 // 0111
-              u' ',                                 // 1000
-              u'╝',                                 // 1001
-              u'╪',                                 // 1010
-              u'╪',                                 // 1011
-              u'╗',                                 // 1100
-              u'╫',                                 // 1101
-              u'╪',                                 // 1110
-              u' ',                                 // 1111
-            };
-
-            assert(neighbor_bits < std::size(RailCharacters));
-            character = RailCharacters[neighbor_bits];
-            assert(character != u' ');
-            foreground_color = gf::Gray;
-          }
           break;
       }
 
@@ -224,6 +199,104 @@ namespace ffw {
       if (cell.block != MapBlock::None) {
         outside_grid.set_walkable(position, false);
         outside_grid.set_transparent(position, false);
+      }
+    }
+  }
+
+  using RailPlan = std::array<std::u16string_view, 3>;
+
+  constexpr RailPlan RailNS = {{
+    u"│ │",
+    u"┼─┼",
+    u"│ │",
+  }};
+
+  constexpr RailPlan RailNW = {{
+    u"┘ │",
+    u"  │",
+    u"──┘",
+  }};
+
+  constexpr RailPlan RailNE = {{
+    u"│ └",
+    u"│  ",
+    u"└──",
+  }};
+
+  constexpr RailPlan RailWE = {{
+    u"─┼─",
+    u" │ ",
+    u"─┼─",
+  }};
+
+  constexpr RailPlan RailSW = {{
+    u"──┐",
+    u"  │",
+    u"┐ │",
+  }};
+
+  constexpr RailPlan RailSE = {{
+    u"┌──",
+    u"│  ",
+    u"│ ┌",
+  }};
+
+  uint8_t direction_bit(gf::Direction direction)
+  {
+    assert(direction != gf::Direction::Center);
+    return 1 << static_cast<int8_t>(direction);
+  }
+
+  const RailPlan& compute_rail_plan(gf::Direction direction_before, gf::Direction direction_after)
+  {
+    const uint8_t bits = direction_bit(direction_before) | direction_bit(direction_after);
+
+    switch (bits) {
+      //     WSEN
+      case 0b0011: return RailNE;
+      case 0b0101: return RailNS;
+      case 0b0110: return RailSE;
+      case 0b1001: return RailNW;
+      case 0b1010: return RailWE;
+      case 0b1100: return RailSW;
+      default:
+        assert(false);
+        break;
+    }
+
+    return RailNS;
+  }
+
+
+  void MapRuntime::bind_railway(const WorldState& state)
+  {
+    gf::ConsoleStyle style;
+    style.color.foreground = gf::Black;
+    style.color.background = gf::Transparent;
+    style.effect = gf::ConsoleEffect::none();
+
+    const std::vector<gf::Vec2I> railway = state.network.railway;
+
+    // put railway on the map
+
+    for (const auto [ index, position ] : gf::enumerate(railway)) {
+      const std::size_t index_before = (index + railway.size() - 1) % railway.size();
+      const gf::Vec2I position_before = railway[index_before];
+      const gf::Direction direction_before = undisplacement(gf::sign(position_before - position));
+
+      const std::size_t index_after = (index + 1) % railway.size();
+      const gf::Vec2I position_after = railway[index_after];
+      const gf::Direction direction_after = undisplacement(gf::sign(position_after - position));
+
+      const RailPlan& plan = compute_rail_plan(direction_before, direction_after);
+
+      for (int i = -1; i <= +1; ++i) {
+        for (int j = -1; j <= +1; ++j) {
+          const gf::Vec2I neighbor(i, j);
+          const gf::Vec2I neighbor_position = position + neighbor;
+
+          outside_ground.put_character(neighbor_position, plan[neighbor.y + 1][neighbor.x + 1], style);
+        }
       }
     }
   }
@@ -259,15 +332,6 @@ namespace ffw {
   {
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
       outside_reverse(actor.position).actor_index = index;
-    }
-
-    for (const auto& [ index, train ] : gf::enumerate(state.network.trains)) {
-      for (uint32_t i = 0; i < TrainSize; ++i) {
-        const uint32_t railway_index = state.network.next_position(train.index, i);
-        assert(railway_index < state.network.railway.size());
-        const gf::Vec2I position = state.network.railway[railway_index];
-        outside_reverse(position).train_index = index;
-      }
     }
   }
 

@@ -46,7 +46,7 @@ namespace ffw {
     void update_cow(ActorState& cow);
 
 
-    bool update_train(TrainState& train);
+    bool update_train(TrainState& train, uint32_t train_index);
 
   };
 

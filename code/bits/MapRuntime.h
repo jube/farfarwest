@@ -33,6 +33,7 @@ namespace ffw {
     void bind(const WorldState& state, gf::Random* random);
 
     void bind_ground(const WorldState& state, gf::Random* random);
+    void bind_railway(const WorldState& state);
     void bind_towns(const WorldState& state);
     void bind_reverse(const WorldState& state);
   };

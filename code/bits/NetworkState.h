@@ -10,7 +10,7 @@
 
 namespace ffw {
 
-  constexpr uint32_t TrainSize = 8;
+  constexpr std::size_t TrainLength = 11;
 
   struct StationState {
     uint32_t index;
@@ -24,22 +24,19 @@ namespace ffw {
   }
 
   struct TrainState {
-    uint32_t index;
+    uint32_t railway_index;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<TrainState, Archive>& state)
   {
-    return ar | state.index;
+    return ar | state.railway_index;
   }
 
   struct NetworkState {
     std::vector<gf::Vec2I> railway;
     std::vector<StationState> stations;
     std::vector<TrainState> trains;
-
-    uint32_t next_position(uint32_t current, uint32_t advance = 1) const;
-    uint32_t prev_position(uint32_t current, uint32_t advance = 1) const;
   };
 
   template<typename Archive>

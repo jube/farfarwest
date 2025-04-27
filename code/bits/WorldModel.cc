@@ -1,9 +1,10 @@
 #include "WorldModel.h"
+
+#include <cassert>
+
 #include "MapRuntime.h"
 #include "MapState.h"
 #include "SchedulerState.h"
-
-#include <cassert>
 
 namespace ffw {
 
@@ -18,9 +19,11 @@ namespace ffw {
     constexpr uint16_t WalkTime = 15;
     constexpr uint16_t GrazeTime = 100;
 
+    constexpr int MaxMoveTries = 10;
 
     gf::Orientation random_orientation(gf::Random* random) {
       constexpr gf::Orientation Orientations[] = {
+        gf::Orientation::Center,
         gf::Orientation::North,
         gf::Orientation::NorthEast,
         gf::Orientation::East,
@@ -55,7 +58,7 @@ namespace ffw {
       m_cooldown += time;
 
       if (m_cooldown > Cooldown) {
-        m_cooldown = gf::Time();
+        m_cooldown -= Cooldown;
         m_phase = Phase::Running;
       }
 
@@ -93,7 +96,7 @@ namespace ffw {
         assert(current_task.index < state.network.trains.size());
         gf::Log::debug("[SCHEDULER] {}: Update train {}", state.current_date.to_string(), current_task.index);
 
-        if (update_train(state.network.trains[current_task.index])) {
+        if (update_train(state.network.trains[current_task.index], current_task.index)) {
           need_cooldown = true;
         }
 
@@ -122,9 +125,10 @@ namespace ffw {
       return false;
     }
 
+    assert(runtime.map.outside_reverse.valid(position));
     const ReverseMapCell& cell = runtime.map.outside_reverse(position);
 
-    if (cell.actor_index != NoIndex || cell.train_index != NoIndex) {
+    if (!cell.empty()) {
       return false;
     }
 
@@ -134,6 +138,10 @@ namespace ffw {
   void WorldModel::move_actor(ActorState& actor, gf::Vec2I position)
   {
     assert(gf::chebyshev_distance(actor.position, position) < 2);
+
+    if (actor.position == position) {
+      return;
+    }
 
     assert(runtime.map.outside_reverse.valid(actor.position));
     ReverseMapCell& old_reverse_cell = runtime.map.outside_reverse(actor.position);
@@ -173,6 +181,8 @@ namespace ffw {
       runtime.hero.moves.pop_back();
     }
 
+    bool need_cooldown = false;
+
     switch (runtime.hero.action.type()) {
       case ActionType::None:
         return false;
@@ -188,7 +198,7 @@ namespace ffw {
           if (is_walkable(new_hero_position)) {
             move_actor(state.hero(), new_hero_position);
             update_current_task_in_queue(WalkTime);
-            return true;
+            need_cooldown = true;
           } else {
             runtime.hero.moves.clear();
           }
@@ -197,7 +207,8 @@ namespace ffw {
 
     }
 
-    return false;
+    runtime.hero.action = {};
+    return need_cooldown;
   }
 
   bool WorldModel::update_actor(ActorState& actor)
@@ -230,36 +241,38 @@ namespace ffw {
     gf::Orientation orientation = random_orientation(m_random);
     gf::Vec2I new_position = cow.position + gf::displacement(orientation);
 
-    while (!is_walkable(new_position) || !is_prairie(new_position)) {
+    int tries = 0;
+
+    for (;;) {
+      if (tries == MaxMoveTries) {
+        new_position = cow.position;
+        break;
+      }
+
+      if (is_walkable(new_position) && is_prairie(new_position)) {
+        break;
+      }
+
       orientation = random_orientation(m_random);
       new_position = cow.position + gf::displacement(orientation);
+      ++tries;
     }
 
     move_actor(cow, new_position);
     update_current_task_in_queue(GrazeTime);
   }
 
-  bool WorldModel::update_train(TrainState& train)
+  bool WorldModel::update_train(TrainState& train, uint32_t train_index)
   {
-    const uint32_t new_index = state.network.prev_position(train.index);
-    assert(new_index < state.network.railway.size());
-    const gf::Vec2I new_position = state.network.railway[new_index];
+    runtime.set_reverse_train(train, NoIndex);
 
-    const uint32_t last_index = state.network.next_position(train.index, TrainSize - 1);
-    assert(last_index < state.network.railway.size());
-    const gf::Vec2I last_position = state.network.railway[last_index];
+    const uint32_t new_index = runtime.network.prev_position(train.railway_index);
+    assert(new_index < runtime.network.railway.size());
+    const gf::Vec2I new_position = runtime.network.railway[new_index];
 
-    assert(runtime.map.outside_reverse.valid(last_position));
-    ReverseMapCell& old_reverse_cell = runtime.map.outside_reverse(last_position);
-    assert(old_reverse_cell.train_index < state.network.trains.size());
-    assert(&train == &state.network.trains[old_reverse_cell.train_index]);
+    train.railway_index = new_index;
 
-    assert(runtime.map.outside_reverse.valid(new_position));
-    ReverseMapCell& new_reverse_cell = runtime.map.outside_reverse(new_position);
-    assert(runtime.map.outside_reverse(new_position).train_index == NoIndex);
-
-    train.index = new_index;
-    std::swap(old_reverse_cell.train_index, new_reverse_cell.train_index);
+    runtime.set_reverse_train(train, train_index);
 
     if (auto iterator = std::find_if(state.network.stations.begin(), state.network.stations.end(), [new_index](const StationState& station) {
       return station.index == new_index;

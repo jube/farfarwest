@@ -187,11 +187,24 @@ namespace ffw {
     }
 
     for (const TrainState& train : state->network.trains) {
-      for (uint32_t i = 0; i < TrainSize; ++i) {
-        const uint32_t index = state->network.next_position(train.index, i);
-        assert(index < state->network.railway.size());
-        const gf::Vec2I position = state->network.railway[index];
-        m_grid.set_walkable(position, false);
+      uint32_t offset = 0;
+
+      for (uint32_t i = 0; i < TrainLength; ++i) {
+        const uint32_t index = runtime->network.next_position(train.railway_index, offset);
+        assert(index < runtime->network.railway.size());
+        const gf::Vec2I position = runtime->network.railway[index];
+
+
+        for (int32_t i = -1; i <= 1; ++i) {
+          for (int32_t j = -1; j <= 1; ++j) {
+            const gf::Vec2I neighbor = { i, j };
+            const gf::Vec2I neighbor_position = position + neighbor;
+
+            m_grid.set_walkable(neighbor_position, false);
+          }
+        }
+
+        offset += 3;
       }
     }
 
