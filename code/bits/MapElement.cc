@@ -6,9 +6,9 @@
 #include <gf2/core/Direction.h>
 
 #include "ActorState.h"
-#include "Characters.h"
 #include "FarFarWest.h"
 #include "NetworkState.h"
+#include "Pictures.h"
 #include "Settings.h"
 #include "Utils.h"
 
