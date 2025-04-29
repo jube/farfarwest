@@ -9,6 +9,7 @@
 #include "MapCell.h"
 #include "MapState.h"
 #include "NetworkState.h"
+#include "Pictures.h"
 #include "Settings.h"
 #include "Utils.h"
 #include "WorldState.h"
@@ -46,58 +47,6 @@ namespace ffw {
       return neighbor_bits;
     }
 
-    using BuildingPlan = std::array<std::u16string_view, BuildingSize>;
-
-    constexpr BuildingPlan Saloon = {{
-      u"╔═══════╦═╗",
-      u"║       ║ ║",
-      u"╟─────┤ ╨ ║",
-      u"║  · ·    ║",
-      u"║ ·     · ║",
-      u"║·•·   ·•·║",
-      u"║ ·     · ║",
-      u"║  ·   ·  ║",
-      u"║ ·•· ·•· ║",
-      u"║  ·   ·  ║",
-      u"╚════─════╝",
-    }};
-
-    constexpr BuildingPlan Template = {{
-      u"╔═════════╗",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"╚════─════╝",
-    }};
-
-
-    char16_t compute_building_part(const BuildingPlan& building, gf::Vec2I position, gf::Direction entrance)
-    {
-      assert(0 <= position.x && position.x < BuildingSize);
-      assert(0 <= position.y && position.y < BuildingSize);
-
-      switch (entrance) {
-        case gf::Direction::Up:
-          return building[BuildingSize - position.x - 1][BuildingSize - position.y - 1];
-        case gf::Direction::Left:
-          return building[BuildingSize - position.y - 1][position.x];
-        case gf::Direction::Down:
-          return building[position.x][position.y];
-        case gf::Direction::Right:
-          return building[position.y][BuildingSize - position.x - 1];
-        default:
-          break;
-      }
-
-      return building[position.x][position.y];
-    }
-
   }
 
   void MapRuntime::bind(const WorldState& state, gf::Random* random)
@@ -108,7 +57,7 @@ namespace ffw {
 
     bind_ground(state, random);
     bind_railway(state);
-    bind_towns(state);
+    bind_towns(state, random);
     bind_reverse(state);
   }
 
@@ -203,70 +152,73 @@ namespace ffw {
     }
   }
 
-  using RailPlan = std::array<std::u16string_view, 3>;
+  namespace {
 
-  constexpr RailPlan RailNS = {{
-    u"│ │",
-    u"┼─┼",
-    u"│ │",
-  }};
+    using RailPlan = std::array<std::u16string_view, 3>;
 
-  constexpr RailPlan RailNW = {{
-    u"┘ │",
-    u"  │",
-    u"──┘",
-  }};
+    constexpr RailPlan RailNS = {{
+      u"│ │",
+      u"┼─┼",
+      u"│ │",
+    }};
 
-  constexpr RailPlan RailNE = {{
-    u"│ └",
-    u"│  ",
-    u"└──",
-  }};
+    constexpr RailPlan RailNW = {{
+      u"┘ │",
+      u"  │",
+      u"──┘",
+    }};
 
-  constexpr RailPlan RailWE = {{
-    u"─┼─",
-    u" │ ",
-    u"─┼─",
-  }};
+    constexpr RailPlan RailNE = {{
+      u"│ └",
+      u"│  ",
+      u"└──",
+    }};
 
-  constexpr RailPlan RailSW = {{
-    u"──┐",
-    u"  │",
-    u"┐ │",
-  }};
+    constexpr RailPlan RailWE = {{
+      u"─┼─",
+      u" │ ",
+      u"─┼─",
+    }};
 
-  constexpr RailPlan RailSE = {{
-    u"┌──",
-    u"│  ",
-    u"│ ┌",
-  }};
+    constexpr RailPlan RailSW = {{
+      u"──┐",
+      u"  │",
+      u"┐ │",
+    }};
 
-  uint8_t direction_bit(gf::Direction direction)
-  {
-    assert(direction != gf::Direction::Center);
-    return 1 << static_cast<int8_t>(direction);
-  }
+    constexpr RailPlan RailSE = {{
+      u"┌──",
+      u"│  ",
+      u"│ ┌",
+    }};
 
-  const RailPlan& compute_rail_plan(gf::Direction direction_before, gf::Direction direction_after)
-  {
-    const uint8_t bits = direction_bit(direction_before) | direction_bit(direction_after);
-
-    switch (bits) {
-      //     WSEN
-      case 0b0011: return RailNE;
-      case 0b0101: return RailNS;
-      case 0b0110: return RailSE;
-      case 0b1001: return RailNW;
-      case 0b1010: return RailWE;
-      case 0b1100: return RailSW;
-      default:
-        assert(false);
-        break;
+    uint8_t direction_bit(gf::Direction direction)
+    {
+      assert(direction != gf::Direction::Center);
+      return 1 << static_cast<int8_t>(direction);
     }
 
-    return RailNS;
-  }
+    const RailPlan& compute_rail_plan(gf::Direction direction_before, gf::Direction direction_after)
+    {
+      const uint8_t bits = direction_bit(direction_before) | direction_bit(direction_after);
 
+      switch (bits) {
+        //     WSEN
+        case 0b0011: return RailNE;
+        case 0b0101: return RailNS;
+        case 0b0110: return RailSE;
+        case 0b1001: return RailNW;
+        case 0b1010: return RailWE;
+        case 0b1100: return RailSW;
+        default:
+          assert(false);
+          break;
+      }
+
+      return RailNS;
+    }
+
+  }
 
   void MapRuntime::bind_railway(const WorldState& state)
   {
@@ -301,30 +253,388 @@ namespace ffw {
     }
   }
 
-  void MapRuntime::bind_towns(const WorldState& state)
+  namespace {
+
+    using BuildingPlan = std::array<std::u16string_view, BuildingSize>;
+
+    constexpr BuildingPlan Bank = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"╠════─════╣",
+      u"║         ║",
+      u"║ ─────── ║",
+      u"║    .    ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan Casino = {{
+      u"╔═════════╗",
+      u"║       .≡║",
+      u"║ │. ♥  .≡║",
+      u"║ │.    .≡║",
+      u"║ │. ♣  .≡║",
+      u"║       .≡║",
+      u"║ │. ♦  .≡║",
+      u"║ │.    .≡║",
+      u"║ │. ♠  .≡║",
+      u"║       .≡║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan Church = {{
+      u"╔═─═══════╗",
+      u"║    +    ║",
+      u"║         ║",
+      u"║   ───   ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║+       +║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan ClothShop = {{
+      u"╔════╦════╗",
+      u"║=..=║=..=║",
+      u"║=..=║=..=║",
+      u"║=..=║=..=║",
+      u"║=.     .=║",
+      u"║=.     .=║",
+      u"║=. ─── .=║",
+      u"║=.  .  .=║",
+      u"║=.     .=║",
+      u"║=.     .=║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan FoodShop = {{
+      u"╔═════════╗",
+      u"║▒  === .=║",
+      u"╠═  ... .=║",
+      u"║=. ... .=║",
+      u"║=. === .=║",
+      u"║=. ... .=║",
+      u"║       .=║",
+      u"║  .    .=║",
+      u"║ ──┐   .=║",
+      u"║       .=║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan Hotel = {{
+      u"╔═══╦═╦═══╗",
+      u"║   ║▒║   ║",
+      u"║   ║ ║   ║",
+      u"║   ║ │   ║",
+      u"║   │ ║   ║",
+      u"╠═══╣ ╚═══╣",
+      u"║   ║     ║",
+      u"║   │   │ ║",
+      u"║   ║  .│ ║",
+      u"║   ║   │ ║",
+      u"╚═══╩─══╧═╝",
+    }};
+
+    constexpr BuildingPlan House1 = {{
+      u"╔════╦═╦══╗",
+      u"║    ║ ║  ║",
+      u"║    │ ║  ║",
+      u"╠════╣ │  ║",
+      u"║    │ ║  ║",
+      u"║    ║ ║  ║",
+      u"╠════╝ ╚══╣",
+      u"║         ║",
+      u"║ ──      ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan House2 = {{
+      u"╔═══╦═════╗",
+      u"║   ║     ║",
+      u"║   ║     ║",
+      u"║   ║     ║",
+      u"╠═─═╩─╦═══╣",
+      u"║     ║   ║",
+      u"║     │   ║",
+      u"║ │   ║   ║",
+      u"║ │   ║   ║",
+      u"║   ║ ║   ║",
+      u"╚═══╩─╩═══╝",
+    }};
+
+    constexpr BuildingPlan House3 = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan MarshalOffice = {{
+      u"╔══─══════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╠══─═══╦══╣",
+      u"║      ·  ║",
+      u"║   ── │  ║",
+      u"║ │  . ╠══╣",
+      u"║ │.   ·  ║",
+      u"║      │  ║",
+      u"╚════─═╩══╝",
+    }};
+
+    constexpr BuildingPlan Restaurant = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan Saloon = {{
+      u"╔═══════╦═╗",
+      u"║       ║▒║",
+      u"╟────── ║ ║",
+      u"║  · ·    ║",
+      u"║ ·     · ║",
+      u"║·•·   ·•·║",
+      u"║ ·     · ║",
+      u"║  ·   ·  ║",
+      u"║ ·•· ·•· ║",
+      u"║  ·   ·  ║",
+      u"╚════─════╝",
+    }};
+
+    constexpr BuildingPlan WeaponShop = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+
+    constexpr BuildingPlan Template = {{
+      u"╔═════════╗",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"║         ║",
+      u"╚════─════╝",
+    }};
+
+    const BuildingPlan& compute_building_plan(Building building)
+    {
+      switch (building) {
+        case Building::Bank:
+          return Bank;
+        case Building::Casino:
+          return Casino;
+        case Building::Church:
+          return Church;
+        case Building::ClothShop:
+          return ClothShop;
+        case Building::FoodShop:
+          return FoodShop;
+        case Building::Hotel:
+          return Hotel;
+        case Building::House1:
+          return House1;
+        case Building::House2:
+          return House2;
+        case Building::House3:
+          return House3;
+        case Building::MarshalOffice:
+          return MarshalOffice;
+        case Building::Restaurant:
+          return Restaurant;
+        case Building::Saloon:
+          return Saloon;
+        case Building::WeaponShop:
+          return WeaponShop;
+        default:
+          assert(false);
+          break;
+      }
+
+      return Template;
+    }
+
+
+    char16_t compute_building_part(const BuildingPlan& building, gf::Vec2I position, gf::Direction direction)
+    {
+      assert(0 <= position.x && position.x < BuildingSize);
+      assert(0 <= position.y && position.y < BuildingSize);
+
+      char16_t picture = u'#';
+
+      switch (direction) {
+        case gf::Direction::Up:
+          picture = building[position.y][position.x];
+          break;
+        case gf::Direction::Right:
+          picture = building[BuildingSize - position.x - 1][position.y];
+          break;
+        case gf::Direction::Down:
+          picture = building[BuildingSize - position.y - 1][BuildingSize - position.x - 1];
+          break;
+        case gf::Direction::Left:
+          picture = building[position.x][BuildingSize - position.y - 1];
+          break;
+        default:
+          assert(false);
+          break;
+      }
+
+      return rotate_picture(picture, direction);
+    }
+
+    gf::ConsoleColorStyle building_style(char16_t picture)
+    {
+      const gf::Color building_base = 0xcb9651;
+      const gf::Color building_dark = gf::darker(building_base);
+      const gf::Color building_darker = gf::darker(building_dark);
+
+
+      constexpr std::u16string_view Walls = u"║═╣╩╠╦╚╔╗╝╢╧╟╤╡╨╞╥";
+      constexpr std::u16string_view Tables = u"│─┤┴├┬└┌┐┘•";
+
+      if (std::find(Walls.begin(), Walls.end(), picture) != Walls.end()) {
+        return { building_base, building_darker  };
+      }
+
+      if (std::find(Tables.begin(), Tables.end(), picture) != Tables.end()) {
+        return { building_darker, building_base };
+      }
+
+      return { building_dark, building_base };
+    }
+
+  }
+
+  void MapRuntime::bind_towns(const WorldState& state, gf::Random* random)
   {
     for (const TownState& town : state.map.towns) {
+      // buildings
+
+      const int up_building = town.horizontal_street - 1;
+      const int down_building = town.horizontal_street;
+
+      const int left_building = town.vertical_street - 1;
+      const int right_building = town.vertical_street;
+
       for (int32_t i = 0; i < TownsBlockSize; ++i) {
         for (int32_t j = 0; j < TownsBlockSize; ++j) {
           if (town.buildings[i][j] == Building::Empty || town.buildings[i][j] == Building::None) {
             continue;
           }
 
-          const gf::Vec2I block_position = { j, i };
+          gf::Direction direction = gf::Direction::Center;
+
+          if (j == up_building) {
+            direction = gf::Direction::Up;
+          } else if (j == down_building) {
+            direction = gf::Direction::Down;
+          }
+
+          if (i == left_building) {
+            direction = gf::Direction::Left;
+          } else if (i == right_building) {
+            direction = gf::Direction::Right;
+          }
+
+          assert(direction != gf::Direction::Center);
+
+          const BuildingPlan& plan = compute_building_plan(town.buildings[i][j]);
+
+          const gf::Vec2I block_position = { i, j };
 
           for (int32_t x = 0; x < BuildingSize; ++x) {
             for (int32_t y = 0; y < BuildingSize; ++y) {
               const gf::Vec2I position = { x, y };
-              const char16_t part = compute_building_part(Template, { y, x }, gf::Direction::Down);
+              const char16_t part = compute_building_part(plan, position, direction);
 
               const gf::Vec2I map_position = town.position + block_position * (BuildingSize + StreetSize) + position;
 
-              outside_ground.put_character(map_position, part, gf::Gray, gf::White);
+              gf::ConsoleStyle style;
+              style.color = building_style(part);
+              style.effect = gf::ConsoleEffect::set();
+
+              outside_ground.put_character(map_position, part, style);
             }
           }
         }
       }
-    }
+
+      // streets
+
+      const gf::Color street_color = 0xecbd6b;
+      const gf::ConsoleEffect street_effect = gf::ConsoleEffect::alpha(0.9f);
+
+      const int32_t horizontal_street = town.horizontal_street * (BuildingSize + StreetSize) - 2;
+      const gf::Vec2I horizontal_position = town.position + gf::diry(horizontal_street);
+
+      const int32_t vertical_street = town.vertical_street * (BuildingSize + StreetSize) - 2;
+      const gf::Vec2I vertical_position = town.position + gf::dirx(vertical_street);
+
+      for (int32_t i = 0; i < TownDiameter; ++i) {
+        const gf::Vec2I position = horizontal_position + gf::dirx(i);
+        gf::Color color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+        outside_ground.set_background(position, color, street_effect);
+
+        if (position.x != vertical_position.x) {
+          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          outside_ground.set_background(position + gf::diry(-1), color, street_effect);
+          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          outside_ground.set_background(position + gf::diry(+1), color, street_effect);
+        }
+      }
+
+
+      for (int32_t i = 0; i < TownDiameter; ++i) {
+        const gf::Vec2I position = vertical_position + gf::diry(i);
+        gf::Color color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+        outside_ground.set_background(position, color, street_effect);
+
+        if (position.y != horizontal_position.y) {
+          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          outside_ground.set_background(position + gf::dirx(-1), color, street_effect);
+          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          outside_ground.set_background(position + gf::dirx(+1), color, street_effect);
+        }
+      }
+   }
   }
 
 

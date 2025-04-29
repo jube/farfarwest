@@ -78,7 +78,7 @@ namespace ffw {
       assert(0 <= position.x && position.x < TrainSize);
       assert(0 <= position.y && position.y < TrainSize);
 
-      char16_t picture = part[position.y][position.x];
+      char16_t picture = u'#';
 
       switch (direction) {
         case gf::Direction::Up:
@@ -98,7 +98,7 @@ namespace ffw {
           break;
       }
 
-      return rotate(picture, direction);
+      return rotate_picture(picture, direction);
     }
 
   }

@@ -4,7 +4,7 @@
 
 namespace ffw {
 
-  char16_t rotate(char16_t picture, gf::Direction direction)
+  char16_t rotate_picture(char16_t picture, gf::Direction direction)
   {
     assert(direction != gf::Direction::Center);
     const int8_t index = static_cast<int8_t>(direction);

@@ -48,10 +48,9 @@ namespace ffw {
 
     constexpr int32_t ReducedFactor = 3;
 
-    constexpr int32_t TownRadius = (TownsBlockSize * BuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
-    constexpr int32_t TownDiameter = 2 * TownRadius + 1;
     constexpr int32_t ReducedTownDiameter = TownDiameter / ReducedFactor;
     constexpr int32_t TownMinDistanceFromOther = 1500;
+
     constexpr std::size_t FarmsCount = TownsCount * 5;
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmDiameter = 2 * FarmRadius + 1;

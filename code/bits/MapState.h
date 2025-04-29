@@ -34,6 +34,9 @@ namespace ffw {
   constexpr int32_t BuildingSize = 11;
   constexpr int32_t StreetSize = 3;
 
+  constexpr int32_t TownRadius = (TownsBlockSize * BuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
+  constexpr int32_t TownDiameter = 2 * TownRadius + 1;
+
   struct TownState {
     gf::Vec2I position;
     std::array<std::array<Building, TownsBlockSize>, TownsBlockSize> buildings = {};

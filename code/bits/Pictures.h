@@ -5,7 +5,7 @@
 
 namespace ffw {
 
-  char16_t rotate(char16_t picture, gf::Direction direction);
+  char16_t rotate_picture(char16_t picture, gf::Direction direction);
 
 }
 
