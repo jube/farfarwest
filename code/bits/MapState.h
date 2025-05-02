@@ -42,6 +42,17 @@ namespace ffw {
     std::array<std::array<Building, TownsBlockSize>, TownsBlockSize> buildings = {};
     uint8_t horizontal_street = 1; // [1, TownsBlockSize - 1]
     uint8_t vertical_street = 1; // [1, TownsBlockSize - 1]
+
+    Building& operator()(gf::Vec2I position)
+    {
+      return buildings[position.y][position.x];
+    }
+
+    const Building& operator()(gf::Vec2I position) const
+    {
+      return buildings[position.y][position.x];
+    }
+
   };
 
   template<typename Archive>

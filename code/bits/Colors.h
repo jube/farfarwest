@@ -12,6 +12,8 @@ namespace ffw {
   inline constexpr gf::Color ForestColor = 0x4A6A4D;
   inline constexpr gf::Color MountainColor = 0x8B5A2B;
 
+  inline constexpr gf::Color StreetColor = 0xecbd6b;
+
 }
 
 #endif // FFW_COLORS_H

@@ -4,6 +4,7 @@
 
 #include <gf2/core/ConsoleChar.h>
 #include <gf2/core/Direction.h>
+#include <gf2/core/Easing.h>
 
 #include "Colors.h"
 #include "MapCell.h"
@@ -545,6 +546,25 @@ namespace ffw {
 
   void MapRuntime::bind_towns(const WorldState& state, gf::Random* random)
   {
+    const gf::ConsoleEffect street_effect = gf::ConsoleEffect::alpha(0.9f);
+
+    for (const TownState& town : state.map.towns) {
+      const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
+      const gf::Vec2I town_center = town_space.center();
+
+      for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+        const float distance = gf::chebyshev_distance(position, town_center);
+        const float factor = (TownRadius - distance) / TownRadius;
+        assert(0.0f <= factor && factor <= 1.0f);
+        const float probability = 0.2f * gf::ease_out_quint(factor);
+
+        if (random->compute_bernoulli(probability)) {
+          gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+          outside_ground.set_background(position, color, street_effect);
+        }
+      }
+    }
+
     for (const TownState& town : state.map.towns) {
       // buildings
 
@@ -556,7 +576,9 @@ namespace ffw {
 
       for (int32_t i = 0; i < TownsBlockSize; ++i) {
         for (int32_t j = 0; j < TownsBlockSize; ++j) {
-          if (town.buildings[i][j] == Building::Empty || town.buildings[i][j] == Building::None) {
+          const gf::Vec2I block_position = { i, j };
+
+          if (town(block_position) == Building::Empty || town(block_position) == Building::None) {
             continue;
           }
 
@@ -576,9 +598,7 @@ namespace ffw {
 
           assert(direction != gf::Direction::Center);
 
-          const BuildingPlan& plan = compute_building_plan(town.buildings[i][j]);
-
-          const gf::Vec2I block_position = { i, j };
+          const BuildingPlan& plan = compute_building_plan(town(block_position));
 
           for (int32_t x = 0; x < BuildingSize; ++x) {
             for (int32_t y = 0; y < BuildingSize; ++y) {
@@ -599,9 +619,6 @@ namespace ffw {
 
       // streets
 
-      const gf::Color street_color = 0xecbd6b;
-      const gf::ConsoleEffect street_effect = gf::ConsoleEffect::alpha(0.9f);
-
       const int32_t horizontal_street = town.horizontal_street * (BuildingSize + StreetSize) - 2;
       const gf::Vec2I horizontal_position = town.position + gf::diry(horizontal_street);
 
@@ -610,13 +627,13 @@ namespace ffw {
 
       for (int32_t i = 0; i < TownDiameter; ++i) {
         const gf::Vec2I position = horizontal_position + gf::dirx(i);
-        gf::Color color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
         outside_ground.set_background(position, color, street_effect);
 
         if (position.x != vertical_position.x) {
-          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
           outside_ground.set_background(position + gf::diry(-1), color, street_effect);
-          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
           outside_ground.set_background(position + gf::diry(+1), color, street_effect);
         }
       }
@@ -624,13 +641,13 @@ namespace ffw {
 
       for (int32_t i = 0; i < TownDiameter; ++i) {
         const gf::Vec2I position = vertical_position + gf::diry(i);
-        gf::Color color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
         outside_ground.set_background(position, color, street_effect);
 
         if (position.y != horizontal_position.y) {
-          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
           outside_ground.set_background(position + gf::dirx(-1), color, street_effect);
-          color = gf::lighter(street_color, random->compute_normal_float(0.0f, ColorLighterBound));
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
           outside_ground.set_background(position + gf::dirx(+1), color, street_effect);
         }
       }

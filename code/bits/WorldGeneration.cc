@@ -807,8 +807,8 @@ namespace ffw {
 
         town.position = to_map(places.towns[index].center) - TownRadius;
 
-        town.horizontal_street = random->compute_uniform_integer<uint8_t>(1, 6);
-        town.vertical_street = random->compute_uniform_integer<uint8_t>(1, 6);
+        town.horizontal_street = random->compute_uniform_integer<uint8_t>(2, 5);
+        town.vertical_street = random->compute_uniform_integer<uint8_t>(2, 5);
 
         const int up_building = town.horizontal_street - 1;
         const int down_building = town.horizontal_street;
@@ -818,17 +818,66 @@ namespace ffw {
 
         building_index = 0;
 
-        for (int i = 0; i < 6; ++i) {
-          generate_building(town.buildings[i][up_building]);
-          generate_building(town.buildings[i][down_building]);
+        for (int i = 0; i < TownsBlockSize; ++i) {
+          generate_building(town({ i, up_building }));
+          generate_building(town({ i, down_building }));
         }
 
-        for (int j = 0; j < 6; ++j) {
-          generate_building(town.buildings[left_building][j]);
-          generate_building(town.buildings[right_building][j]);
+        for (int j = 0; j < TownsBlockSize; ++j) {
+          generate_building(town({ left_building, j }));
+          generate_building(town({ right_building, j }));
         }
 
         assert(building_index == buildings.size());
+      }
+
+      // move buildings near the crossing
+
+      auto stack_buildings = [&](TownState& town, gf::Vec2I position, gf::Direction direction)
+      {
+        constexpr gf::RectI blocks = gf::RectI::from_size({ TownsBlockSize, TownsBlockSize });
+        const gf::Vec2I step = gf::displacement(direction);
+
+        gf::Vec2I current = position;
+
+        while (blocks.contains(current)) {
+          assert(town(current) != Building::Empty);
+
+          if (town(current) != Building::None) {
+            std::swap(town(current), town(position));
+            position += step;
+          }
+
+          current += step;
+        }
+      };
+
+      for (TownState& town : map.towns) {
+        const int up_building = town.horizontal_street - 1;
+        const int down_building = town.horizontal_street;
+
+        const int left_building = town.vertical_street - 1;
+        const int right_building = town.vertical_street;
+
+        stack_buildings(town, { left_building, up_building }, gf::Direction::Left);
+        stack_buildings(town, { left_building, up_building }, gf::Direction::Up);
+        stack_buildings(town, { left_building, down_building }, gf::Direction::Left);
+        stack_buildings(town, { left_building, down_building }, gf::Direction::Down);
+        stack_buildings(town, { right_building, up_building }, gf::Direction::Right);
+        stack_buildings(town, { right_building, up_building }, gf::Direction::Up);
+        stack_buildings(town, { right_building, down_building }, gf::Direction::Right);
+        stack_buildings(town, { right_building, down_building }, gf::Direction::Down);
+      }
+
+
+      // remove decorations from towns
+
+      for (const TownState& town : map.towns) {
+        const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
+
+        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+          map.cells(position).decoration = MapDecoration::None;
+        }
       }
     }
 
