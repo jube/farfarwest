@@ -158,39 +158,39 @@ namespace ffw {
     using RailPlan = std::array<std::u16string_view, 3>;
 
     constexpr RailPlan RailNS = {{
-      u"│ │",
       u"┼─┼",
-      u"│ │",
+      u"┼─┼",
+      u"┼─┼",
     }};
 
     constexpr RailPlan RailNW = {{
-      u"┘ │",
-      u"  │",
-      u"──┘",
+      u"┼─┼",
+      u"│ │",
+      u"┼─┘",
     }};
 
     constexpr RailPlan RailNE = {{
-      u"│ └",
-      u"│  ",
-      u"└──",
+      u"┼─┼",
+      u"│ │",
+      u"└─┼",
     }};
 
     constexpr RailPlan RailWE = {{
-      u"─┼─",
-      u" │ ",
-      u"─┼─",
+      u"┼┼┼",
+      u"│││",
+      u"┼┼┼",
     }};
 
     constexpr RailPlan RailSW = {{
-      u"──┐",
-      u"  │",
-      u"┐ │",
+      u"┼─┐",
+      u"│ │",
+      u"┼─┼",
     }};
 
     constexpr RailPlan RailSE = {{
-      u"┌──",
-      u"│  ",
-      u"│ ┌",
+      u"┌─┼",
+      u"│ │",
+      u"┼─┼",
     }};
 
     uint8_t direction_bit(gf::Direction direction)
