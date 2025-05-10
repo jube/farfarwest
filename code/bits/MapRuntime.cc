@@ -264,7 +264,7 @@ namespace ffw {
       u"║         ║",
       u"╠════─════╣",
       u"║         ║",
-      u"║ ─────── ║",
+      u"║ ███████ ║",
       u"║    .    ║",
       u"║         ║",
       u"║         ║",
@@ -275,13 +275,13 @@ namespace ffw {
     constexpr BuildingPlan Casino = {{
       u"╔═════════╗",
       u"║       .≡║",
-      u"║ │. ♥  .≡║",
-      u"║ │.    .≡║",
-      u"║ │. ♣  .≡║",
+      u"║ █. ♥  .≡║",
+      u"║ █.    .≡║",
+      u"║ █. ♣  .≡║",
       u"║       .≡║",
-      u"║ │. ♦  .≡║",
-      u"║ │.    .≡║",
-      u"║ │. ♠  .≡║",
+      u"║ █. ♦  .≡║",
+      u"║ █.    .≡║",
+      u"║ █. ♠  .≡║",
       u"║       .≡║",
       u"╚════─════╝",
     }};
@@ -290,7 +290,7 @@ namespace ffw {
       u"╔═─═══════╗",
       u"║    +    ║",
       u"║         ║",
-      u"║   ───   ║",
+      u"║   ███   ║",
       u"║         ║",
       u"║         ║",
       u"║         ║",
@@ -307,7 +307,7 @@ namespace ffw {
       u"║=..=║=..=║",
       u"║=.     .=║",
       u"║=.     .=║",
-      u"║=. ─── .=║",
+      u"║=. ███ .=║",
       u"║=.  .  .=║",
       u"║=.     .=║",
       u"║=.     .=║",
@@ -323,7 +323,7 @@ namespace ffw {
       u"║=. ... .=║",
       u"║       .=║",
       u"║  .    .=║",
-      u"║ ──┐   .=║",
+      u"║ ███   .=║",
       u"║       .=║",
       u"╚════─════╝",
     }};
@@ -336,9 +336,9 @@ namespace ffw {
       u"║   │ ║   ║",
       u"╠═══╣ ╚═══╣",
       u"║   ║     ║",
-      u"║   │   │ ║",
-      u"║   ║  .│ ║",
-      u"║   ║   │ ║",
+      u"║   │   █ ║",
+      u"║   ║  .█ ║",
+      u"║   ║   █ ║",
       u"╚═══╩─══╧═╝",
     }};
 
@@ -351,7 +351,7 @@ namespace ffw {
       u"║    ║ ║  ║",
       u"╠════╝ ╚══╣",
       u"║         ║",
-      u"║ ──      ║",
+      u"║ ██      ║",
       u"║         ║",
       u"╚════─════╝",
     }};
@@ -364,8 +364,8 @@ namespace ffw {
       u"╠═─═╩─╦═══╣",
       u"║     ║   ║",
       u"║     │   ║",
-      u"║ │   ║   ║",
-      u"║ │   ║   ║",
+      u"║ █   ║   ║",
+      u"║ █   ║   ║",
       u"║   ║ ║   ║",
       u"╚═══╩─╩═══╝",
     }};
@@ -391,9 +391,9 @@ namespace ffw {
       u"║         ║",
       u"╠══─═══╦══╣",
       u"║      ·  ║",
-      u"║   ── │  ║",
-      u"║ │  . ╠══╣",
-      u"║ │.   ·  ║",
+      u"║   ██ │  ║",
+      u"║ █  . ╠══╣",
+      u"║ █.   ·  ║",
       u"║      │  ║",
       u"╚════─═╩══╝",
     }};
@@ -415,7 +415,7 @@ namespace ffw {
     constexpr BuildingPlan Saloon = {{
       u"╔═══════╦═╗",
       u"║       ║▒║",
-      u"╟────── ║ ║",
+      u"╟██████ ║ ║",
       u"║  · ·    ║",
       u"║ ·     · ║",
       u"║·•·   ·•·║",
@@ -529,17 +529,17 @@ namespace ffw {
 
 
       constexpr std::u16string_view Walls = u"║═╣╩╠╦╚╔╗╝╢╧╟╤╡╨╞╥";
-      constexpr std::u16string_view Tables = u"│─┤┴├┬└┌┐┘•";
+      constexpr std::u16string_view Tables = u"█•=≡│─┤┴├┬└┌┐┘";
 
       if (std::find(Walls.begin(), Walls.end(), picture) != Walls.end()) {
         return { building_base, building_darker  };
       }
 
       if (std::find(Tables.begin(), Tables.end(), picture) != Tables.end()) {
-        return { building_darker, building_base };
+        return { building_dark, building_base };
       }
 
-      return { building_dark, building_base };
+      return { gf::darker(building_base, 0.25f), building_base };
     }
 
   }
