@@ -154,8 +154,9 @@ namespace ffw {
       if (runtime->map.outside_reverse(target).empty() && runtime->map.outside_grid.walkable(target)) {
 
         if (runtime->hero.moves.empty()) {
-          // gf::Log::debug("computing path to {},{}", target.x, target.y);
+          gf::Log::debug("computing path to {},{}", target.x, target.y);
           path = m_grid.compute_route(state->hero().position, target);
+          gf::Log::debug("path computed");
         }
 
         if (!path.empty()) {
@@ -206,6 +207,20 @@ namespace ffw {
 
         offset += 3;
       }
+    }
+
+    const gf::RectI view = runtime->compute_view();
+    const gf::Vec2I view_nw = view.position_at(gf::Orientation::NorthWest) - 1;
+    const gf::Vec2I view_se = view.position_at(gf::Orientation::SouthEast) + 1;
+
+    for (int x = view_nw.x; x <= view_se.x; ++x) {
+      m_grid.set_walkable({ x, view_nw.y }, false);
+      m_grid.set_walkable({ x, view_se.y }, false);
+    }
+
+    for (int y = view_nw.y; y <= view_se.y; ++y) {
+      m_grid.set_walkable({ view_nw.x, y }, false);
+      m_grid.set_walkable({ view_se.x, y }, false);
     }
 
     m_last_grid_update = state->current_date;

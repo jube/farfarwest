@@ -26,6 +26,7 @@ namespace ffw {
     MarshalOffice,
     Restaurant,
     Saloon,
+    School,
     WeaponShop,
   };
 

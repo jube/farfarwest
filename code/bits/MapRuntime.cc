@@ -266,9 +266,9 @@ namespace ffw {
       u"║         ║",
       u"║ ███████ ║",
       u"║    .    ║",
+      u"║ $     $ ║",
       u"║         ║",
-      u"║         ║",
-      u"║         ║",
+      u"║ $     $ ║",
       u"╚════─════╝",
     }};
 
@@ -288,15 +288,15 @@ namespace ffw {
 
     constexpr BuildingPlan Church = {{
       u"╔═─═══════╗",
-      u"║    +    ║",
       u"║         ║",
-      u"║   ███   ║",
+      u"║ ┼     ┼ ║",
+      u"║ │ ███ │ ║",
       u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║         ║",
-      u"║+       +║",
+      u"║ └─┘ └─┘ ║",
+      u"║ └─┘ └─┘ ║",
+      u"║ └─┘ └─┘ ║",
+      u"║ └─┘ └─┘ ║",
+      u"║ └─┘ └─┘ ║",
       u"╚════─════╝",
     }};
 
@@ -426,6 +426,20 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
+    constexpr BuildingPlan School = {{
+      u"╔═─═══════╗",
+      u"║         ║",
+      u"║   ███   ║",
+      u"║         ║",
+      u"║  └┘ └┘  ║",
+      u"║  └┘ └┘  ║",
+      u"║  └┘ └┘  ║",
+      u"║  └┘ └┘  ║",
+      u"║  └┘ └┘  ║",
+      u"║  └┘ └┘  ║",
+      u"╚════─════╝",
+    }};
+
     constexpr BuildingPlan WeaponShop = {{
       u"╔═════════╗",
       u"║         ║",
@@ -482,6 +496,8 @@ namespace ffw {
           return Restaurant;
         case Building::Saloon:
           return Saloon;
+        case Building::School:
+          return School;
         case Building::WeaponShop:
           return WeaponShop;
         default:
@@ -521,25 +537,47 @@ namespace ffw {
       return rotate_picture(picture, direction);
     }
 
-    gf::ConsoleColorStyle building_style(char16_t picture)
+    enum class BuildingType {
+      None,
+      Furniture,
+      Wall,
+    };
+
+    BuildingType building_type(char16_t picture)
     {
-      const gf::Color building_base = 0xcb9651;
-      const gf::Color building_dark = gf::darker(building_base);
-      const gf::Color building_darker = gf::darker(building_dark);
-
-
       constexpr std::u16string_view Walls = u"║═╣╩╠╦╚╔╗╝╢╧╟╤╡╨╞╥";
-      constexpr std::u16string_view Tables = u"█•=≡│─┤┴├┬└┌┐┘";
 
       if (std::find(Walls.begin(), Walls.end(), picture) != Walls.end()) {
-        return { building_base, building_darker  };
+        return BuildingType::Wall;
       }
 
-      if (std::find(Tables.begin(), Tables.end(), picture) != Tables.end()) {
-        return { building_dark, building_base };
+      constexpr std::u16string_view Furnitures = u"█•=≡";
+
+      if (std::find(Furnitures.begin(), Furnitures.end(), picture) != Furnitures.end()) {
+        return BuildingType::Furniture;
       }
 
-      return { gf::darker(building_base, 0.25f), building_base };
+      return BuildingType::None;
+    }
+
+    gf::ConsoleColorStyle building_style(BuildingType type)
+    {
+      const gf::Color base_color = 0xcb9651;
+      const gf::Color decoration_color = gf::darker(base_color, 0.25f);
+      const gf::Color furniture_color = gf::darker(base_color);
+      const gf::Color wall_color = gf::darker(furniture_color);
+
+      switch (type) {
+        case BuildingType::None:
+          return { decoration_color, base_color };
+        case BuildingType::Furniture:
+          return { furniture_color, base_color };
+        case BuildingType::Wall:
+          return { base_color, wall_color  }; // inverted
+      }
+
+      assert(false);
+      return { gf::darker(gf::Red), gf::Red };
     }
 
   }
@@ -604,14 +642,29 @@ namespace ffw {
             for (int32_t y = 0; y < BuildingSize; ++y) {
               const gf::Vec2I position = { x, y };
               const char16_t part = compute_building_part(plan, position, direction);
+              const BuildingType type = building_type(part);
 
               const gf::Vec2I map_position = town.position + block_position * (BuildingSize + StreetSize) + position;
 
               gf::ConsoleStyle style;
-              style.color = building_style(part);
+              style.color = building_style(type);
               style.effect = gf::ConsoleEffect::set();
 
               outside_ground.put_character(map_position, part, style);
+
+              switch (type) {
+                case BuildingType::None:
+                  // nothing to do
+                  break;
+                case BuildingType::Furniture:
+                  outside_grid.set_walkable(map_position, false);
+                  break;
+                case BuildingType::Wall:
+                  outside_grid.set_walkable(map_position, false);
+                  outside_grid.set_transparent(map_position, false);
+                  break;
+              }
+
             }
           }
         }
