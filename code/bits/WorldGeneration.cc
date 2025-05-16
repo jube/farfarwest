@@ -782,9 +782,9 @@ namespace ffw {
         Building::MarshalOffice,
         Building::Restaurant,
         Building::Saloon,
+        Building::School,
         Building::WeaponShop,
 
-        Building::None,
         Building::None,
         Building::None,
         Building::None,
