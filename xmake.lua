@@ -35,6 +35,7 @@ target("farfarwest")
     add_files("code/bits/*.cc")
     add_includedirs("$(buildir)/config")
     add_packages("gamedevframework2", "nlohmann_json")
+    set_rundir("$(projectdir)/run")
 
 target("world-generation")
     set_kind("binary")
