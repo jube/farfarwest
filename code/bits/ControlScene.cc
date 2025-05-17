@@ -46,6 +46,7 @@ namespace ffw {
     if (event.type() == gf::EventType::MouseMoved) {
       const gf::MouseMovedEvent mouse_moved_event = event.from<gf::EventType::MouseMoved>();
       const gf::Vec2I position = m_game->point_to(mouse_moved_event.position);
+
       if (GameBox.contains(position)) {
         m_mouse = position;
       } else {
@@ -103,7 +104,7 @@ namespace ffw {
 
     if (m_action_group.active("go"_id)) {
       if (runtime->hero.moves.empty()) {
-        runtime->hero.moves = compute_path();
+        runtime->hero.moves = std::move(m_computed_path);
         m_mouse = std::nullopt;
       }
     }
@@ -115,16 +116,44 @@ namespace ffw {
     m_action_group.reset();
   }
 
+  void ControlScene::update([[maybe_unused]] gf::Time time)
+  {
+    if (!m_mouse) {
+      return;
+    }
+
+    update_grid();
+
+    const WorldState* state = m_game->state();
+    WorldRuntime* runtime = m_game->runtime();
+
+    const gf::Vec2I target = *m_mouse + runtime->compute_view().position();
+
+    if (!m_computed_path.empty() && m_computed_path.front() == target) {
+      return;
+    }
+
+    if (runtime->map.outside_reverse(target).empty() && runtime->map.outside_grid.walkable(target)) {
+
+      if (runtime->hero.moves.empty()) {
+        gf::Log::debug("computing path to {},{}", target.x, target.y);
+        m_computed_path = m_grid.compute_route(state->hero().position, target);
+        gf::Log::debug("path computed");
+      }
+
+      if (!m_computed_path.empty()) {
+        std::reverse(m_computed_path.begin(), m_computed_path.end());
+        m_computed_path.pop_back();
+      }
+    }
+  }
+
   void ControlScene::render(gf::Console& console)
   {
     const WorldRuntime* runtime = m_game->runtime();
     const gf::RectI view = runtime->compute_view();
 
-    std::vector<gf::Vec2I> path = runtime->hero.moves;
-
-    if (path.empty()) {
-      path = compute_path();
-    }
+    const std::vector<gf::Vec2I>& path = !runtime->hero.moves.empty() ? runtime->hero.moves : m_computed_path;
 
     gf::ConsoleStyle style;
     style.color.foreground = gf::gray(0.2f);
@@ -139,36 +168,6 @@ namespace ffw {
     }
   }
 
-  std::vector<gf::Vec2I> ControlScene::compute_path()
-  {
-    std::vector<gf::Vec2I> path;
-
-    if (m_mouse) {
-      const WorldState* state = m_game->state();
-      WorldRuntime* runtime = m_game->runtime();
-
-      update_grid();
-
-      const gf::Vec2I target = *m_mouse + runtime->compute_view().position();
-
-      if (runtime->map.outside_reverse(target).empty() && runtime->map.outside_grid.walkable(target)) {
-
-        if (runtime->hero.moves.empty()) {
-          gf::Log::debug("computing path to {},{}", target.x, target.y);
-          path = m_grid.compute_route(state->hero().position, target);
-          gf::Log::debug("path computed");
-        }
-
-        if (!path.empty()) {
-          std::reverse(path.begin(), path.end());
-          path.pop_back();
-        }
-      }
-    }
-
-    return path;
-  }
-
   void ControlScene::update_grid()
   {
     const WorldState* state = m_game->state();
@@ -177,7 +176,7 @@ namespace ffw {
       return;
     }
 
-    // gf::Log::debug("updating grid");
+    gf::Log::debug("update grid");
 
     const WorldRuntime* runtime = m_game->runtime();
 
@@ -224,6 +223,7 @@ namespace ffw {
     }
 
     m_last_grid_update = state->current_date;
+    m_computed_path.clear();
   }
 
 }
