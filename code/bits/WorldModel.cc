@@ -195,13 +195,21 @@ namespace ffw {
         {
           MoveAction move = runtime.hero.action.from<ActionType::Move>();
           move.orientation = gf::clamp(move.orientation, -1, +1);
-          assert(move.orientation != gf::vec(0, 0));
+          const int32_t move_length = gf::manhattan_length(move.orientation);
+          assert(move_length != 0);
 
           const gf::Vec2I new_hero_position = state.hero().position + move.orientation;
 
           if (is_walkable(new_hero_position)) {
             move_actor(state.hero(), new_hero_position);
-            update_current_task_in_queue(WalkTime);
+
+            if (move_length == 2) {
+              update_current_task_in_queue(DiagonalWalkTime);
+            } else {
+              assert(move_length == 1);
+              update_current_task_in_queue(StraightWalkTime);
+            }
+
             need_cooldown = true;
           } else {
             runtime.hero.moves.clear();
