@@ -10,19 +10,28 @@ namespace ffw {
 
   enum class ActionType {
     None,
+    Idle,
     Move,
+  };
+
+  struct IdleAction {
   };
 
   struct MoveAction {
     gf::Vec2I orientation = { 0, 0 };
   };
 
-  using HeroAction = gf::TaggedVariant<ActionType, MoveAction>;
+  using HeroAction = gf::TaggedVariant<ActionType, IdleAction, MoveAction>;
 
 
   struct HeroRuntime {
     HeroAction action;
     std::vector<gf::Vec2I> moves;
+
+    void idle()
+    {
+      action = IdleAction{};
+    }
 
     void move(gf::Vec2I orientation)
     {

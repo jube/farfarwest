@@ -102,6 +102,10 @@ namespace ffw {
       runtime->hero.move(orientation);
     }
 
+    if (m_action_group.active("idle"_id)) {
+      runtime->hero.idle();
+    }
+
     if (m_action_group.active("go"_id)) {
       if (runtime->hero.moves.empty()) {
         runtime->hero.moves = std::move(m_computed_path);
@@ -119,6 +123,7 @@ namespace ffw {
   void ControlScene::update([[maybe_unused]] gf::Time time)
   {
     if (!m_mouse) {
+      m_computed_path.clear();
       return;
     }
 

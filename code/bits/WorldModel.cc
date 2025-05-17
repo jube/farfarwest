@@ -5,6 +5,7 @@
 #include "MapRuntime.h"
 #include "MapState.h"
 #include "SchedulerState.h"
+#include "Times.h"
 
 namespace ffw {
 
@@ -13,11 +14,6 @@ namespace ffw {
     constexpr gf::Time Cooldown = gf::milliseconds(50);
 
     constexpr int32_t IdleDistance = 100;
-    constexpr uint16_t IdleTime = 100;
-
-    constexpr uint16_t TrainTime = 5;
-    constexpr uint16_t WalkTime = 15;
-    constexpr uint16_t GrazeTime = 100;
 
     constexpr int MaxMoveTries = 10;
 
@@ -72,7 +68,6 @@ namespace ffw {
     while (state.current_date == state.scheduler.queue.top().date) {
       if (state.scheduler.is_hero_turn()) {
         if (update_hero()) {
-          gf::Log::debug("[SCHEDULER] {}: Update hero", state.current_date.to_string());
           need_cooldown = true;
         }
 
@@ -167,9 +162,7 @@ namespace ffw {
     state.scheduler.queue.pop();
     task.date.add_seconds(seconds);
 
-    if (task.type != TaskType::Actor || task.index != 0) {
-      gf::Log::debug("\tNext turn: {}", task.date.to_string());
-    }
+    gf::Log::debug("\tNext turn: {}", task.date.to_string());
 
     state.scheduler.queue.push(task);
   }
@@ -181,11 +174,22 @@ namespace ffw {
       runtime.hero.moves.pop_back();
     }
 
+    if (runtime.hero.action.type() == ActionType::None) {
+      return false;
+    }
+
+    gf::Log::debug("[SCHEDULER] {}: Update hero", state.current_date.to_string());
     bool need_cooldown = false;
 
     switch (runtime.hero.action.type()) {
       case ActionType::None:
+        assert(false);
         return false;
+
+      case ActionType::Idle:
+        update_current_task_in_queue(HeroIdleTime);
+        need_cooldown = false;
+        break;
 
       case ActionType::Move:
         {
@@ -204,7 +208,6 @@ namespace ffw {
           }
         }
         break;
-
     }
 
     runtime.hero.action = {};
