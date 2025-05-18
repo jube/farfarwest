@@ -17,7 +17,9 @@
 #include <gf2/core/Vec2.h>
 #include <string_view>
 
+#include "ActorState.h"
 #include "Colors.h"
+#include "Date.h"
 #include "MapCell.h"
 #include "MapState.h"
 #include "Names.h"
@@ -1016,6 +1018,26 @@ namespace ffw {
       return position + 2 * gf::sign(position - center);
     }
 
+    Gender generate_gender(gf::Random* random)
+    {
+      std::discrete_distribution distribution({ 50.0, 48.0, 2.0 });
+      const uint8_t index = static_cast<uint8_t>(distribution(random->engine()));
+      return static_cast<Gender>(index);
+    }
+
+    int8_t generate_attribute(gf::Random* random)
+    {
+      // 3d6 + 1
+
+      int8_t attribute = 2;
+
+      for (int i = 0; i < 3; ++i) {
+        attribute += 1 + random->compute_uniform_integer(6);
+      }
+
+      return attribute;
+    }
+
   }
 
   WorldState generate_world(gf::Random* random)
@@ -1050,6 +1072,40 @@ namespace ffw {
     ActorState hero = {};
     hero.data = "Hero";
     hero.position = compute_starting_position(state.network);
+
+    HumanFeature feature;
+    feature.gender = generate_gender(random);
+
+    switch (feature.gender) {
+      case Gender::Female:
+        feature.name = generate_random_white_female_name(random);
+        break;
+      case Gender::Male:
+        feature.name = generate_random_white_male_name(random);
+        break;
+      case Gender::NonBinary:
+        feature.name = generate_random_white_non_binary_name(random);
+        break;
+    }
+
+    feature.age = random->compute_uniform_integer(20, 40);
+    feature.birthday = generate_random_birthday(random);
+
+    feature.health = MaxHealth - 1;
+
+    feature.force = generate_attribute(random);
+    feature.dexterity = generate_attribute(random);
+    feature.constitution = generate_attribute(random);
+    feature.luck = generate_attribute(random);
+
+    feature.intensity = 100;
+    feature.precision = 90;
+    feature.endurance = 70;
+
+    hero.feature = feature;
+
+    gf::Log::info("Name: {} (Luck: {})", feature.name, feature.luck);
+
     state.actors.push_back(hero);
     state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
 
@@ -1057,7 +1113,9 @@ namespace ffw {
     cow.data = "Cow";
     cow.position = hero.position + gf::dirx(10);
     state.actors.push_back(cow);
-    state.scheduler.queue.push({state.current_date + 1, TaskType::Actor, 1});
+    Date cow_next_turn = state.current_date;
+    cow_next_turn.add_seconds(1);
+    state.scheduler.queue.push({cow_next_turn, TaskType::Actor, 1});
 
     for (const auto& [ index, train ] : gf::enumerate(state.network.trains)) {
       Date date = state.current_date;
@@ -1065,10 +1123,7 @@ namespace ffw {
       state.scheduler.queue.push({ date, TaskType::Train, uint32_t(index) } );
     }
 
-    const std::string name = random->compute_bernoulli(0.5) ? generate_random_female_name(random) : generate_random_male_name(random);
-    gf::Log::info("Name: {}", name);
-
-    state.log.messages.push_back({ state.current_date, fmt::format("Hello <style=character>{}</>!", name) });
+    state.log.messages.push_back({ state.current_date, fmt::format("Hello <style=character>{}</>!", feature.name) });
 
     gf::Log::info("- actors ({:g}s)", clock.elapsed_time().as_seconds());
 

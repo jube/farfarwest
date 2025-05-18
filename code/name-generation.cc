@@ -9,6 +9,6 @@ int main()
 
   gf::Random random;
 
-  gf::Log::info("Female name: {}", ffw::generate_random_female_name(&random));
-  gf::Log::info("Male name: {}", ffw::generate_random_male_name(&random));
+  gf::Log::info("Female name: {}", ffw::generate_random_white_female_name(&random));
+  gf::Log::info("Male name: {}", ffw::generate_random_white_male_name(&random));
 }

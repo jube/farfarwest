@@ -5,6 +5,7 @@
 #include <gf2/core/Clock.h>
 #include <gf2/core/Log.h>
 
+#include "Colors.h"
 #include "FarFarWestScene.h"
 #include "Settings.h"
 #include "WorldGeneration.h"
@@ -17,12 +18,25 @@ namespace ffw {
 
     constexpr gf::ConsoleColorStyle Gf = { gf::Orange, gf::Azure };
 
-    constexpr gf::ConsoleColorStyle DateStyle = { gf::Amber, gf::Transparent };
+    constexpr gf::ConsoleColorStyle DateStyle = { gf::gray(0.75f), gf::Transparent };
     constexpr gf::ConsoleColorStyle CharacterStyle = { gf::Chartreuse, gf::Transparent };
     constexpr gf::ConsoleColorStyle ItemStyle = { gf::Capri, gf::Transparent };
+    constexpr gf::ConsoleColorStyle WeaponStyle = { gf::Yellow, gf::Transparent };
     constexpr gf::ConsoleColorStyle CashStyle = { gf::Erin, gf::Transparent };
     constexpr gf::ConsoleColorStyle DebtStyle = { gf::Vermilion, gf::Transparent };
-    constexpr gf::ConsoleColorStyle StatStyle = { gf::Azure, gf::Transparent };
+
+    constexpr gf::ConsoleColorStyle HeroStyle = { gf::White, gf::gray(0.25f) };
+
+    constexpr gf::ConsoleColorStyle FemaleStyle = { gf::Rose, gf::Transparent };
+    constexpr gf::ConsoleColorStyle MaleStyle = { gf::Azure, gf::Transparent };
+    constexpr gf::ConsoleColorStyle NonBinaryStyle = { gf::White, gf::Transparent };
+
+    constexpr gf::ConsoleColorStyle HealthStyle = { gf::Crimson, gf::Transparent };
+    constexpr gf::ConsoleColorStyle NonHealthStyle = { gf::Gray, gf::Transparent };
+
+    constexpr gf::ConsoleColorStyle ForceStyle = { ForceColor, gf::Transparent };
+    constexpr gf::ConsoleColorStyle DexterityStyle = { DexterityColor, gf::Transparent };
+    constexpr gf::ConsoleColorStyle ConstitutionStyle = { ConstitutionColor, gf::Transparent };
 
     gf::ConsoleRichStyle compute_rich_style()
     {
@@ -35,9 +49,22 @@ namespace ffw {
       style.set_style("character", CharacterStyle);
       style.set_style("date", DateStyle);
       style.set_style("item", ItemStyle);
+      style.set_style("weapon", WeaponStyle);
       style.set_style("cash", CashStyle);
       style.set_style("debt", DebtStyle);
-      style.set_style("stat", StatStyle);
+
+      style.set_style("hero", HeroStyle);
+
+      style.set_style("female", FemaleStyle);
+      style.set_style("male", MaleStyle);
+      style.set_style("non_binary", NonBinaryStyle);
+
+      style.set_style("health", HealthStyle);
+      style.set_style("non_health", NonHealthStyle);
+
+      style.set_style("force", ForceStyle);
+      style.set_style("dexterity", DexterityStyle);
+      style.set_style("constitution", ConstitutionStyle);
 
       return style;
     }

@@ -14,6 +14,10 @@ namespace ffw {
 
   inline constexpr gf::Color StreetColor = 0xecbd6b;
 
+  inline constexpr gf::Color ForceColor = gf::Amber;
+  inline constexpr gf::Color DexterityColor = gf::Aquamarine;
+  inline constexpr gf::Color ConstitutionColor = gf::Purple;
+
 }
 
 #endif // FFW_COLORS_H

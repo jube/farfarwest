@@ -18,6 +18,11 @@ namespace ffw {
 
     constexpr int DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
+    int days_in_month(Month month)
+    {
+      return DaysInMonth[uint8_t(month)];
+    }
+
     std::tm to_tm(const Date& date)
     {
       std::tm tm = {};
@@ -56,7 +61,7 @@ namespace ffw {
       ++day;
       weekday = WeekDay{uint8_t((uint8_t(weekday) + 1) % DaysInWeek)};
 
-      if (day > DaysInMonth[uint8_t(month)]) {
+      if (day > days_in_month(month)) {
         day = 1;
         month = Month{uint8_t((uint8_t(month) + 1) % MonthsInYear)};
 
@@ -75,16 +80,23 @@ namespace ffw {
     Date date = {};
 
     date.year = 0; // not used publicly so it's ok to set it to 0
-    date.month = Month{ uint8_t(random->compute_uniform_integer(0, MonthsInYear - 1)) };
-    date.day = uint8_t(random->compute_uniform_integer(1, DaysInMonth[uint8_t(date.month)]));
+    date.month = Month{ random->compute_uniform_integer(MonthsInYear) };
+    date.day = random->compute_uniform_integer(days_in_month(date.month)); ++date.day;
 
-    date.weekday = WeekDay { uint8_t(random->compute_uniform_integer(0, DaysInWeek - 1)) };
+    date.weekday = WeekDay { random->compute_uniform_integer(DaysInWeek) };
 
     date.hours = 12;
-    date.minutes = uint16_t(random->compute_uniform_integer(0, MinutesInHour - 1));
-    date.seconds = uint16_t(random->compute_uniform_integer(0, SecondsInMinute - 1));
+    date.minutes = random->compute_uniform_integer(MinutesInHour);
+    date.seconds = random->compute_uniform_integer(SecondsInMinute);
 
     return date;
+  }
+
+  MonthDay generate_random_birthday(gf::Random* random)
+  {
+    const Month month = Month{ random->compute_uniform_integer(MonthsInYear) };
+    uint8_t day = random->compute_uniform_integer(days_in_month(month)); ++day;
+    return { month, day };
   }
 
   bool operator<(const Date& lhs, const Date& rhs)

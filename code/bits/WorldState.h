@@ -10,6 +10,7 @@
 
 #include "ActorState.h"
 #include "Date.h"
+#include "DebtState.h"
 #include "MapState.h"
 #include "MessageLogState.h"
 #include "NetworkState.h"
@@ -28,8 +29,9 @@ namespace ffw {
 
     std::vector<ActorState> actors;
 
-    SchedulerState scheduler;
+    DebtState debt;
 
+    SchedulerState scheduler;
     MessageLogState log;
 
     ActorState& hero() {
@@ -51,7 +53,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<WorldState, Archive>& state)
   {
-    return ar | state.current_date | state.map | state.network | state.actors | state.scheduler | state.log;
+    return ar | state.current_date | state.map | state.network | state.actors | state.debt | state.scheduler | state.log;
   }
 
 }

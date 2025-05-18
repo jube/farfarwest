@@ -49,13 +49,6 @@ namespace ffw {
     static Date generate_random(gf::Random* random);
   };
 
-  inline Date operator+(const Date& date, uint16_t duration_in_seconds)
-  {
-    Date future(date);
-    future.add_seconds(duration_in_seconds);
-    return future;
-  }
-
   bool operator<(const Date& lhs, const Date& rhs);
   bool operator==(const Date& lhs, const Date& rhs);
 
@@ -63,6 +56,19 @@ namespace ffw {
   Archive& operator|(Archive& ar, gf::MaybeConst<Date, Archive>& date)
   {
     return ar | date.year | date.month | date.day | date.weekday | date.hours | date.minutes | date.seconds;
+  }
+
+  struct MonthDay {
+    Month month;
+    uint8_t day;
+  };
+
+  MonthDay generate_random_birthday(gf::Random* random);
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<MonthDay, Archive>& month_day)
+  {
+    return ar | month_day.month | month_day.day;
   }
 
 }

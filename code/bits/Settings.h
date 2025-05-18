@@ -1,6 +1,8 @@
 #ifndef FFW_SETTINGS_H
 #define FFW_SETTINGS_H
 
+#include <cstdint>
+
 #include <gf2/core/Rect.h>
 #include <gf2/core/Vec2.h>
 
@@ -28,6 +30,8 @@ namespace ffw {
   constexpr gf::Vec2I ContextualBoxPosition = { 72, 27 };
   constexpr gf::Vec2I ContextualBoxSize = { 24, 27 };
   constexpr gf::RectI ContextualBox = gf::RectI::from_position_size(ContextualBoxPosition, ContextualBoxSize);
+
+  constexpr int8_t MaxHealth = 20;
 
 }
 

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <string_view>
 
+#include <gf2/core/Span.h>
+
 namespace ffw {
 
   namespace {
@@ -14,7 +16,7 @@ namespace ffw {
     // data taken from https://www.census.gov/topics/population/genealogy/data/1990_census/1990_census_namefiles.html
     // only the first 200 entries were kept for each file
 
-    constexpr std::string_view Surnames[] = {
+    constexpr std::string_view LastNames[] = {
       "Adams", "Alexander", "Allen", "Anderson", "Andrews", "Armstrong", "Arnold", "Austin", "Bailey", "Baker",
       "Barnes", "Bell", "Bennett", "Berry", "Black", "Boyd", "Bradley", "Brooks", "Brown", "Bryant",
       "Burns", "Butler", "Campbell", "Carpenter", "Carroll", "Carter", "Chavez", "Clark", "Cole", "Coleman",
@@ -83,60 +85,68 @@ namespace ffw {
       "Vernon", "Victor", "Vincent", "Walter", "Warren", "Wayne", "Wesley", "William", "Willie", "Zachary",
     };
 
-  }
-
-  std::string generate_random_male_name(gf::Random* random)
-  {
-    std::string name;
-
-    while (name.empty() || name.length() > NameLengthMax) {
-      name.clear();
-
-      const std::size_t first_name_index = random->compute_uniform_integer(std::size(MaleNames));
-      assert(first_name_index < std::size(MaleNames));
-
-      const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
-      assert(surname_index < std::size(Surnames));
-
-      name += MaleNames[first_name_index];
-      name += ' ';
-
-      if (random->compute_bernoulli(MiddleNameProbability)) {
-        name += random->compute_uniform_integer('A', '['); // A .. Z
-        name += ". ";
-      }
-
-      name += Surnames[surname_index];
+    std::string_view generate(gf::Random* random, gf::Span<const std::string_view> list)
+    {
+      const std::size_t index = random->compute_uniform_integer(list.size());
+      assert(index < list.size());
+      return list[index];
     }
 
-    return name;
-  }
+    std::string generate_white_name(gf::Random* random, gf::Span<const std::string_view> list, const std::string& last_name)
+    {
+      std::string name;
 
-  std::string generate_random_female_name(gf::Random* random)
-  {
-    std::string name;
+      while (name.empty() || name.length() > NameLengthMax) {
+        name.clear();
 
-    while (name.empty() || name.length() > NameLengthMax) {
-      name.clear();
+        // first name
 
-      const std::size_t first_name_index = random->compute_uniform_integer(std::size(FemaleNames));
-      assert(first_name_index < std::size(FemaleNames));
+        name += generate(random, list);
+        name += ' ';
 
-      const std::size_t surname_index = random->compute_uniform_integer(std::size(Surnames));
-      assert(surname_index < std::size(Surnames));
+        // middle name
 
-      name += FemaleNames[first_name_index];
-      name += ' ';
+        if (random->compute_bernoulli(MiddleNameProbability)) {
+          name += random->compute_uniform_integer('A', '['); // A .. Z
+          name += ". ";
+        }
 
-      if (random->compute_bernoulli(MiddleNameProbability)) {
-        name += random->compute_uniform_integer('A', '['); // A .. Z
-        name += ". ";
+        // last name
+
+        if (!last_name.empty()) {
+          name += last_name;
+        } else {
+          name += generate(random, LastNames);
+        }
       }
 
-      name += Surnames[surname_index];
+      return name;
     }
 
-    return name;
+  }
+
+  std::string generate_random_white_last_name(gf::Random* random)
+  {
+    return std::string(generate(random, LastNames));
+  }
+
+  std::string generate_random_white_male_name(gf::Random* random, const std::string& last_name)
+  {
+    return generate_white_name(random, MaleNames, last_name);
+  }
+
+  std::string generate_random_white_female_name(gf::Random* random, const std::string& last_name)
+  {
+    return generate_white_name(random, FemaleNames, last_name);
+  }
+
+  std::string generate_random_white_non_binary_name(gf::Random* random, const std::string& last_name)
+  {
+    if (random->compute_bernoulli(0.5)) {
+      return generate_random_white_male_name(random, last_name);
+    }
+
+    return generate_random_white_female_name(random, last_name);
   }
 
   std::size_t compute_max_length(NameType type)
@@ -149,7 +159,7 @@ namespace ffw {
       case NameType::FemaleName:
         return std::max_element(std::begin(FemaleNames), std::end(FemaleNames), compare)->length();
       case NameType::Surname:
-        return std::max_element(std::begin(Surnames), std::end(Surnames), compare)->length();
+        return std::max_element(std::begin(LastNames), std::end(LastNames), compare)->length();
     }
 
     return 0;
