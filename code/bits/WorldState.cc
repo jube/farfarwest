@@ -33,6 +33,10 @@ namespace ffw {
     for (ActorState& actor : actors) {
       actor.data.bind_from(data.actors);
     }
+
+    for (ItemState& item : items) {
+      item.data.bind_from(data.items);
+    }
   }
 
 

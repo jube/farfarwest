@@ -2,5 +2,8 @@
   "actors": [
     { "label": "Hero", "picture": "@", "color": "#000000" },
     { "label": "Cow", "picture": "c", "color": "#783F21" }
+  ],
+  "items": [
+    { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "weapon", "caliber": 44 }
   ]
 }

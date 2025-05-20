@@ -87,7 +87,7 @@ namespace ffw {
 
     position.y += 2;
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), " <style=health>{}</><style=non_health>{}</>", health_bar(feature.health), health_bar(MaxHealth - feature.health));
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=health>{}</><style=non_health>{}</>", health_bar(feature.health), health_bar(MaxHealth - feature.health));
 
     position.y += 2;
 
@@ -142,11 +142,11 @@ namespace ffw {
     console.print(position, gf::ConsoleAlignment::Left, stat_style, "Endurance: {}", feature.endurance.as_int());
 #endif
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Weapon</>:");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Weapon</>:"); // put the type of the weapon here?
     ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "Winchester");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "Colt Dragoon Revolver");
     ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Ammunitions</>:");
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Ammunitions</>: .44"); // only for firearms
     ++position.y;
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "•••○○○ [32]");
 

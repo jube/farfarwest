@@ -11,6 +11,7 @@
 #include "ActorState.h"
 #include "Date.h"
 #include "DebtState.h"
+#include "ItemState.h"
 #include "MapState.h"
 #include "MessageLogState.h"
 #include "NetworkState.h"
@@ -28,6 +29,7 @@ namespace ffw {
     NetworkState network;
 
     std::vector<ActorState> actors;
+    std::vector<ItemState> items;
 
     DebtState debt;
 

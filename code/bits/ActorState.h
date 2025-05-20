@@ -11,6 +11,7 @@
 #include "ActorData.h"
 #include "DataReference.h"
 #include "Date.h"
+#include "InventoryState.h"
 
 namespace ffw {
 
@@ -56,12 +57,13 @@ namespace ffw {
     DataReference<ActorData> data;
     gf::Vec2I position;
     ActorFeature feature;
+    InventoryState inventory;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<ActorState, Archive>& state)
   {
-    return ar | state.data | state.position | state.feature;
+    return ar | state.data | state.position | state.feature | state.inventory;
   }
 
 }
