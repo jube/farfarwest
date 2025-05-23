@@ -40,7 +40,13 @@ namespace ffw {
   std::string Date::to_string() const
   {
     auto tm = to_tm(*this);
-    return fmt::format("{:%a %d %b, %T}", tm);
+    return fmt::format("{:%a %d %b %r}", tm);
+  }
+
+  std::string Date::to_string_hours_minutes() const
+  {
+    auto tm = to_tm(*this);
+    return fmt::format("{:%R %p}", tm);
   }
 
   void Date::add_seconds(uint16_t duration_in_seconds)

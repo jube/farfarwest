@@ -44,6 +44,8 @@ namespace ffw {
     uint16_t seconds;
 
     std::string to_string() const;
+    std::string to_string_hours_minutes() const;
+
     void add_seconds(uint16_t duration_in_seconds);
 
     static Date generate_random(gf::Random* random);

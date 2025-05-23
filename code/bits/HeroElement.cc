@@ -76,7 +76,7 @@ namespace ffw {
 
     gf::Vec2I position = CharacterBoxPosition + 1;
 
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), " <style=date>{}</>", state->current_date.to_string());
+    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=date>{}</>", state->current_date.to_string());
     position.y += 2;
 
     const ActorState& hero = state->hero();
