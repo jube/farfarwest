@@ -70,6 +70,8 @@ namespace ffw {
       settings.actions.emplace(move_action.id, std::move(action));
     }
 
+    settings.actions.emplace("reload"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::R));
+
     settings.actions.emplace("escape"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Escape));
     settings.actions.emplace("go"_id, gf::instantaneous_action().add_mouse_button_control(gf::MouseButton::Left));
 
@@ -111,6 +113,10 @@ namespace ffw {
         runtime->hero.moves = std::move(m_computed_path);
         m_mouse = std::nullopt;
       }
+    }
+
+    if (m_action_group.active("reload"_id)) {
+      runtime->hero.reload();
     }
 
     if (m_action_group.active("escape"_id)) {

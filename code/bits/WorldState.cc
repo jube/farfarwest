@@ -28,10 +28,27 @@ namespace ffw {
     ar | *this;
   }
 
+  void WorldState::add_message(std::string message)
+  {
+    log.messages.push_back({ current_date, std::move(message) });
+  }
+
   void WorldState::bind(const WorldData& data)
   {
     for (ActorState& actor : actors) {
       actor.data.bind_from(data.actors);
+
+      for (InventoryItemState& item : actor.inventory.items) {
+        item.data.bind_from(data.items);
+      }
+
+      if (actor.weapon.data) {
+        actor.weapon.data.bind_from(data.items);
+      }
+
+      if (actor.ammunition.data) {
+        actor.ammunition.data.bind_from(data.items);
+      }
     }
 
     for (ItemState& item : items) {

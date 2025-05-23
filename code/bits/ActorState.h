@@ -58,12 +58,15 @@ namespace ffw {
     gf::Vec2I position;
     ActorFeature feature;
     InventoryState inventory;
+
+    WeaponItemState weapon;
+    InventoryItemState ammunition;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<ActorState, Archive>& state)
   {
-    return ar | state.data | state.position | state.feature | state.inventory;
+    return ar | state.data | state.position | state.feature | state.inventory | state.weapon | state.ammunition;
   }
 
 }

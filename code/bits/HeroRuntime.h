@@ -12,6 +12,7 @@ namespace ffw {
     None,
     Idle,
     Move,
+    Reload,
   };
 
   struct IdleAction {
@@ -21,7 +22,10 @@ namespace ffw {
     gf::Vec2I orientation = { 0, 0 };
   };
 
-  using HeroAction = gf::TaggedVariant<ActionType, IdleAction, MoveAction>;
+  struct ReloadAction {
+  };
+
+  using HeroAction = gf::TaggedVariant<ActionType, IdleAction, MoveAction, ReloadAction>;
 
 
   struct HeroRuntime {
@@ -36,6 +40,11 @@ namespace ffw {
     void move(gf::Vec2I orientation)
     {
       action = MoveAction{ orientation };
+    }
+
+    void reload()
+    {
+      action = ReloadAction{};
     }
 
   };

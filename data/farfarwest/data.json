@@ -4,6 +4,7 @@
     { "label": "Cow", "picture": "c", "color": "#783F21" }
   ],
   "items": [
-    { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "weapon", "caliber": 44 }
+    { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 44, "capacity": 6, "reload_time": 15 },
+    { "label": ".44 Ammunitions", "picture": "•", "color": "#808080", "type": "ammunition", "caliber": 44 }
   ]
 }

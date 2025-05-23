@@ -11,7 +11,7 @@ namespace ffw {
 
   struct InventoryState {
     int32_t cash = 0;
-    std::vector<ItemState> items;
+    std::vector<InventoryItemState> items;
   };
 
   template<typename Archive>

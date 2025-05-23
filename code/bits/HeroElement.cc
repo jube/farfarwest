@@ -4,6 +4,7 @@
 
 #include "Colors.h"
 #include "FarFarWest.h"
+#include "ItemData.h"
 #include "Settings.h"
 #include "gf2/core/Color.h"
 #include "gf2/core/ConsoleEffect.h"
@@ -144,11 +145,40 @@ namespace ffw {
 
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Weapon</>:"); // put the type of the weapon here?
     ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "Colt Dragoon Revolver");
+
+    if (hero.weapon.data) {
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), hero.weapon.data->label.tag);
+    } else {
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "-");
+    }
+
     ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Ammunitions</>: .44"); // only for firearms
-    ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "•••○○○ [32]");
+
+    if (hero.ammunition.data) {
+      assert(hero.ammunition.data->feature.type() == ItemType::Ammunition);
+      const AmmunitionDataFeature& ammunition = hero.ammunition.data->feature.from<ItemType::Ammunition>();
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Ammunitions</>: .{}", ammunition.caliber); // only for firearms
+      ++position.y;
+
+      assert(hero.weapon.data->feature.type() == ItemType::Firearm);
+      const FirearmDataFeature& firearm = hero.weapon.data->feature.from<ItemType::Firearm>();
+
+      std::string cartridges;
+
+      for (int8_t i = 0; i < hero.weapon.cartridges; ++i) {
+        cartridges += "•";
+      }
+
+      for (int8_t i = hero.weapon.cartridges; i < firearm.capacity; ++i) {
+        cartridges += "○";
+      }
+
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "{} [{}]", cartridges, hero.ammunition.count);
+    } else {
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Ammunitions</>:");
+      ++position.y;
+      console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "-");
+    }
 
     position.y += 2;
 

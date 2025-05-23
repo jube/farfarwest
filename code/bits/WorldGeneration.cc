@@ -1073,38 +1073,44 @@ namespace ffw {
     hero.data = "Hero";
     hero.position = compute_starting_position(state.network);
 
-    HumanFeature feature;
-    feature.gender = generate_gender(random);
+    HumanFeature human;
+    human.gender = generate_gender(random);
 
-    switch (feature.gender) {
+    switch (human.gender) {
       case Gender::Female:
-        feature.name = generate_random_white_female_name(random);
+        human.name = generate_random_white_female_name(random);
         break;
       case Gender::Male:
-        feature.name = generate_random_white_male_name(random);
+        human.name = generate_random_white_male_name(random);
         break;
       case Gender::NonBinary:
-        feature.name = generate_random_white_non_binary_name(random);
+        human.name = generate_random_white_non_binary_name(random);
         break;
     }
 
-    feature.age = random->compute_uniform_integer(20, 40);
-    feature.birthday = generate_random_birthday(random);
+    human.age = random->compute_uniform_integer(20, 40);
+    human.birthday = generate_random_birthday(random);
 
-    feature.health = MaxHealth - 1;
+    human.health = MaxHealth - 1;
 
-    feature.force = generate_attribute(random);
-    feature.dexterity = generate_attribute(random);
-    feature.constitution = generate_attribute(random);
-    feature.luck = generate_attribute(random);
+    human.force = generate_attribute(random);
+    human.dexterity = generate_attribute(random);
+    human.constitution = generate_attribute(random);
+    human.luck = generate_attribute(random);
 
-    feature.intensity = 100;
-    feature.precision = 90;
-    feature.endurance = 70;
+    human.intensity = 100;
+    human.precision = 90;
+    human.endurance = 70;
 
-    hero.feature = feature;
+    hero.feature = human;
 
-    gf::Log::info("Name: {} (Luck: {})", feature.name, feature.luck);
+    hero.weapon.data = "Colt Dragoon Revolver";
+    hero.weapon.cartridges = 0;
+
+    hero.ammunition.data = ".44 Ammunitions";
+    hero.ammunition.count = 32;
+
+    gf::Log::info("Name: {} (Luck: {})", human.name, human.luck);
 
     state.actors.push_back(hero);
     state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
@@ -1123,7 +1129,7 @@ namespace ffw {
       state.scheduler.queue.push({ date, TaskType::Train, uint32_t(index) } );
     }
 
-    state.log.messages.push_back({ state.current_date, fmt::format("Hello <style=character>{}</>!", feature.name) });
+    state.add_message(fmt::format("Hello <style=character>{}</>!", human.name));
 
     gf::Log::info("- actors ({:g}s)", clock.elapsed_time().as_seconds());
 

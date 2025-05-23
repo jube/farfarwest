@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "ActorState.h"
 #include "MapRuntime.h"
 #include "MapState.h"
 #include "SchedulerState.h"
@@ -213,6 +214,31 @@ namespace ffw {
             need_cooldown = true;
           } else {
             runtime.hero.moves.clear();
+          }
+        }
+        break;
+
+      case ActionType::Reload:
+        {
+          ActorState& hero = state.hero();
+          if (hero.weapon.data && hero.weapon.data->feature.type() == ItemType::Firearm && hero.ammunition.data && hero.ammunition.data->feature.type() == ItemType::Ammunition) {
+            const FirearmDataFeature& firearm = hero.weapon.data->feature.from<ItemType::Firearm>();
+            const AmmunitionDataFeature& ammunition = hero.ammunition.data->feature.from<ItemType::Ammunition>();
+
+            if (firearm.caliber == ammunition.caliber) {
+              const int8_t needed_cartridges = firearm.capacity - hero.weapon.cartridges;
+              const int8_t loaded_cartriges = static_cast<int8_t>(std::min<int16_t>(needed_cartridges, hero.ammunition.count));
+
+              if (loaded_cartriges > 0) {
+                hero.weapon.cartridges += loaded_cartriges;
+                hero.ammunition.count -= loaded_cartriges;
+
+                state.add_message(fmt::format("<style=character>{}</> reloads its <style=weapon>{}</> with {} cartridges.", hero.feature.from<ActorType::Human>().name, hero.weapon.data->label.tag, loaded_cartriges));
+
+                update_current_task_in_queue(firearm.reload_time);
+              }
+
+            }
           }
         }
         break;

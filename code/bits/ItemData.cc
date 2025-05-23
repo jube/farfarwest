@@ -10,7 +10,8 @@ namespace ffw {
 
   NLOHMANN_JSON_SERIALIZE_ENUM( ItemType, {
     { ItemType::None, nullptr },
-    { ItemType::Weapon, "weapon" },
+    { ItemType::Firearm, "firearm" },
+    { ItemType::Ammunition, "ammunition" },
   })
 
   void from_json(const nlohmann::json& json, ItemData& data)
@@ -36,13 +37,21 @@ namespace ffw {
       case ItemType::None:
         // nothing
         break;
-      case ItemType::Weapon:
+      case ItemType::Firearm:
         {
-          WeaponDataFeature feature;
+          FirearmDataFeature feature;
           json.at("caliber").get_to(feature.caliber);
+          json.at("capacity").get_to(feature.capacity);
+          json.at("reload_time").get_to(feature.reload_time);
           data.feature = feature;
         }
         break;
+      case ItemType::Ammunition:
+        {
+          AmmunitionDataFeature feature;
+          json.at("caliber").get_to(feature.caliber);
+          data.feature = feature;
+        }
     }
 
   }

@@ -14,14 +14,21 @@ namespace ffw {
 
   enum class ItemType {
     None,
-    Weapon,
+    Firearm,
+    Ammunition,
   };
 
-  struct WeaponDataFeature {
+  struct FirearmDataFeature {
+    int8_t caliber;
+    int8_t capacity;
+    uint16_t reload_time;
+  };
+
+  struct AmmunitionDataFeature {
     int8_t caliber;
   };
 
-  using ItemDataFeature = gf::TaggedVariant<ItemType, WeaponDataFeature>;
+  using ItemDataFeature = gf::TaggedVariant<ItemType, FirearmDataFeature, AmmunitionDataFeature>;
 
   struct ItemData {
     DataLabel label;

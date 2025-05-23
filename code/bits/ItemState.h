@@ -30,6 +30,17 @@ namespace ffw {
     return ar | state.data | state.count;
   }
 
+  struct WeaponItemState {
+    DataReference<ItemData> data;
+    int8_t cartridges = 0;
+  };
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<WeaponItemState, Archive>& state)
+  {
+    return ar | state.data | state.cartridges;
+  }
+
 }
 
 #endif // FFW_ITEM_STATE_H
