@@ -21,8 +21,8 @@ namespace ffw {
   };
 
   enum class Gender : uint8_t {
-    Female,
-    Male,
+    Girl,
+    Boy,
     NonBinary,
   };
 

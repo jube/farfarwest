@@ -17,10 +17,10 @@ namespace ffw {
     std::string_view gender_style(Gender gender)
     {
       switch (gender) {
-        case Gender::Female:
-          return "female";
-        case Gender::Male:
-          return "male";
+        case Gender::Girl:
+          return "girl";
+        case Gender::Boy:
+          return "boy";
         case Gender::NonBinary:
           return "non_binary";
       }
@@ -32,9 +32,9 @@ namespace ffw {
     std::string_view gender_symbol(Gender gender)
     {
       switch (gender) {
-        case Gender::Female:
+        case Gender::Girl:
           return "♀";
-        case Gender::Male:
+        case Gender::Boy:
           return "♂";
         case Gender::NonBinary:
           return "○";

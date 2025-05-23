@@ -1077,10 +1077,10 @@ namespace ffw {
     human.gender = generate_gender(random);
 
     switch (human.gender) {
-      case Gender::Female:
+      case Gender::Girl:
         human.name = generate_random_white_female_name(random);
         break;
-      case Gender::Male:
+      case Gender::Boy:
         human.name = generate_random_white_male_name(random);
         break;
       case Gender::NonBinary:

@@ -27,8 +27,8 @@ namespace ffw {
 
     constexpr gf::ConsoleColorStyle HeroStyle = { gf::White, gf::gray(0.25f) };
 
-    constexpr gf::ConsoleColorStyle FemaleStyle = { gf::Rose, gf::Transparent };
-    constexpr gf::ConsoleColorStyle MaleStyle = { gf::Azure, gf::Transparent };
+    constexpr gf::ConsoleColorStyle GirlStyle = { gf::Rose, gf::Transparent };
+    constexpr gf::ConsoleColorStyle BoyStyle = { gf::Azure, gf::Transparent };
     constexpr gf::ConsoleColorStyle NonBinaryStyle = { gf::White, gf::Transparent };
 
     constexpr gf::ConsoleColorStyle HealthStyle = { gf::Crimson, gf::Transparent };
@@ -55,8 +55,8 @@ namespace ffw {
 
       style.set_style("hero", HeroStyle);
 
-      style.set_style("female", FemaleStyle);
-      style.set_style("male", MaleStyle);
+      style.set_style("girl", GirlStyle);
+      style.set_style("boy", BoyStyle);
       style.set_style("non_binary", NonBinaryStyle);
 
       style.set_style("health", HealthStyle);
