@@ -233,7 +233,7 @@ namespace ffw {
                 hero.weapon.cartridges += loaded_cartriges;
                 hero.ammunition.count -= loaded_cartriges;
 
-                state.add_message(fmt::format("<style=character>{}</> reloads its <style=weapon>{}</> with {} cartridges.", hero.feature.from<ActorType::Human>().name, hero.weapon.data->label.tag, loaded_cartriges));
+                state.add_message(fmt::format("<style=character>{}</> reloads its weapon with {} cartridges.", hero.feature.from<ActorType::Human>().name, loaded_cartriges));
 
                 update_current_task_in_queue(firearm.reload_time);
               }
