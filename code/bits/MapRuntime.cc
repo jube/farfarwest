@@ -724,15 +724,23 @@ namespace ffw {
     {
       const uint8_t bits = direction_bit(direction_before) | direction_bit(direction_after);
 
+      // if both directions are equal, that means the railway made a U-turn that
+      // is not viewable on the minimap
+
       switch (bits) {
         //     WSEN
+        case 0b0001: return u'│';
+        case 0b0010: return u'─';
         case 0b0011: return u'└';
+        case 0b0100: return u'│';
         case 0b0101: return u'│';
         case 0b0110: return u'┌';
+        case 0b1000: return u'─';
         case 0b1001: return u'┘';
         case 0b1010: return u'─';
         case 0b1100: return u'┐';
         default:
+          gf::Log::debug("bits: {:b}", bits);
           assert(false);
           break;
       }
@@ -803,6 +811,7 @@ namespace ffw {
       const gf::Vec2I minimap_position = position / MinimapFactor;
 
       if (minimap_railway.empty() || minimap_position != minimap_railway.back()) {
+        assert(minimap_railway.empty() || gf::manhattan_distance(minimap_railway.back(), minimap_position) == 1);
         minimap_railway.push_back(minimap_position);
       }
     }
