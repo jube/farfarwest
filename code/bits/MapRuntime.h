@@ -30,12 +30,16 @@ namespace ffw {
     gf::GridMap outside_grid;
     gf::Array2D<ReverseMapCell> outside_reverse;
 
+    gf::Console minimap;
+
     void bind(const WorldState& state, gf::Random* random);
 
     void bind_ground(const WorldState& state, gf::Random* random);
     void bind_railway(const WorldState& state);
     void bind_towns(const WorldState& state, gf::Random* random);
     void bind_reverse(const WorldState& state);
+
+    void bind_minimap(const WorldState& state);
   };
 
 }

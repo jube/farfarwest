@@ -78,6 +78,7 @@ namespace ffw {
   , creation(this)
   , primary(this)
   , control(this)
+  , minimap(this)
   , quit(this)
   , save(this)
   , m_enclosing_scene(enclosing_scene)

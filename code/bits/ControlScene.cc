@@ -70,6 +70,8 @@ namespace ffw {
       settings.actions.emplace(move_action.id, std::move(action));
     }
 
+    settings.actions.emplace("minimap"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Tab));
+
     settings.actions.emplace("reload"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::R));
 
     settings.actions.emplace("escape"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Escape));
@@ -117,6 +119,11 @@ namespace ffw {
 
     if (m_action_group.active("reload"_id)) {
       runtime->hero.reload();
+    }
+
+    if (m_action_group.active("minimap"_id)) {
+      m_game->pop_all_scenes();
+      m_game->push_scene(&m_game->minimap);
     }
 
     if (m_action_group.active("escape"_id)) {

@@ -13,6 +13,7 @@
 #include "ControlScene.h"
 #include "CreationScene.h"
 #include "KickoffScene.h"
+#include "MinimapScene.h"
 #include "PrimaryScene.h"
 #include "QuitScene.h"
 #include "SaveScene.h"
@@ -73,6 +74,7 @@ namespace ffw {
 
     PrimaryScene primary;
     ControlScene control;
+    MinimapScene minimap;
     QuitScene quit;
     SaveScene save;
 

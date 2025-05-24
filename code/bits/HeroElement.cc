@@ -117,32 +117,6 @@ namespace ffw {
 
     ++position.y;
 
-#if 0
-    console.print(position, gf::ConsoleAlignment::Left, m_game->style(), " <style=force>FOR</>:{:2} <style=dexterity>DEX</>:{:2} <style=constitution>CON</>:{:2} ", feature.force, feature.dexterity, feature.constitution);
-    ++position.y;
-
-    const int intensity_bar = (feature.intensity * (CharacterBoxSize.w - 2) / 100).as_int();
-    const int precision_bar = (feature.precision * (CharacterBoxSize.w - 2) / 100).as_int();
-    const int endurance_bar = (feature.endurance * (CharacterBoxSize.w - 2) / 100).as_int();
-
-    for (int x = 0; x < CharacterBoxSize.w - 2; ++x) {
-      console.set_background({ position.x + x, position.y + 0 }, x <= intensity_bar ? ForceColor : gf::Gray);
-      console.set_background({ position.x + x, position.y + 1 }, x <= precision_bar ? DexterityColor : gf::Gray);
-      console.set_background({ position.x + x, position.y + 2 }, x <= endurance_bar ? ConstitutionColor : gf::Gray);
-    }
-
-    gf::ConsoleStyle stat_style;
-    stat_style.effect = gf::ConsoleEffect::add();
-    stat_style.color.foreground = gf::Black;
-    stat_style.color.background = gf::Transparent;
-
-    console.print(position, gf::ConsoleAlignment::Left, stat_style, "Intensity: {}", feature.intensity.as_int());
-    ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, stat_style, "Precision: {}", feature.precision.as_int());
-    ++position.y;
-    console.print(position, gf::ConsoleAlignment::Left, stat_style, "Endurance: {}", feature.endurance.as_int());
-#endif
-
     console.print(position, gf::ConsoleAlignment::Left, m_game->style(), "<style=weapon>Weapon</>:"); // put the type of the weapon here?
     ++position.y;
 
