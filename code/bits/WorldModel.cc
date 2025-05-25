@@ -253,7 +253,7 @@ namespace ffw {
     const int32_t distance_to_hero = gf::chebyshev_distance(actor.position, state.hero().position);
 
     if (distance_to_hero > IdleDistance) {
-      update_current_task_in_queue(distance_to_hero - IdleDistance + IdleTime);
+      update_current_task_in_queue(static_cast<uint16_t>(distance_to_hero - IdleDistance + IdleTime));
       return false; // do not cooldown in this case
     }
 

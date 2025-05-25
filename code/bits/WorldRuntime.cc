@@ -39,7 +39,7 @@ namespace ffw {
   {
     uint32_t offset = 0;
 
-    for (std::size_t i = 0; i < TrainLength; ++i) {
+    for (std::size_t k = 0; k < TrainLength; ++k) {
       const uint32_t railway_index = network.next_position(train.railway_index, offset);
       assert(railway_index < network.railway.size());
       const gf::Vec2I position = network.railway[railway_index];
@@ -87,7 +87,7 @@ namespace ffw {
   void WorldRuntime::bind_train(const WorldState& state)
   {
     for (const auto& [ train_index, train ] : gf::enumerate(state.network.trains)) {
-      set_reverse_train(train, train_index);
+      set_reverse_train(train, uint32_t(train_index));
     }
   }
 
