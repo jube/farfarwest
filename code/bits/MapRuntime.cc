@@ -594,7 +594,7 @@ namespace ffw {
       const gf::Vec2I town_center = town_space.center();
 
       for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-        const float distance = gf::chebyshev_distance(position, town_center);
+        const float distance = gf::chebyshev_distance<float>(position, town_center);
         const float factor = (TownRadius - distance) / TownRadius;
         assert(0.0f <= factor && factor <= 1.0f);
         const float probability = 0.2f * gf::ease_out_quint(factor);
@@ -714,7 +714,7 @@ namespace ffw {
   void MapRuntime::bind_reverse(const WorldState& state)
   {
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
-      outside_reverse(actor.position).actor_index = index;
+      outside_reverse(actor.position).actor_index = uint32_t(index);
     }
   }
 

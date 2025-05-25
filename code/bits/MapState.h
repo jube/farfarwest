@@ -44,14 +44,14 @@ namespace ffw {
     uint8_t horizontal_street = 1; // [1, TownsBlockSize - 1]
     uint8_t vertical_street = 1; // [1, TownsBlockSize - 1]
 
-    Building& operator()(gf::Vec2I position)
+    Building& operator()(gf::Vec2I building_position)
     {
-      return buildings[position.y][position.x];
+      return buildings[building_position.y][building_position.x];
     }
 
-    const Building& operator()(gf::Vec2I position) const
+    const Building& operator()(gf::Vec2I building_position) const
     {
-      return buildings[position.y][position.x];
+      return buildings[building_position.y][building_position.x];
     }
 
   };

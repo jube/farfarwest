@@ -16,9 +16,9 @@ namespace ffw {
     constexpr uint8_t DaysInWeek = 7;
     constexpr uint8_t MonthsInYear = 12;
 
-    constexpr int DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    constexpr uint8_t DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-    int days_in_month(Month month)
+    uint8_t days_in_month(Month month)
     {
       return DaysInMonth[uint8_t(month)];
     }

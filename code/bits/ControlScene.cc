@@ -207,7 +207,7 @@ namespace ffw {
     for (const TrainState& train : state->network.trains) {
       uint32_t offset = 0;
 
-      for (uint32_t i = 0; i < TrainLength; ++i) {
+      for (uint32_t k = 0; k < TrainLength; ++k) {
         const uint32_t index = runtime->network.next_position(train.railway_index, offset);
         assert(index < runtime->network.railway.size());
         const gf::Vec2I position = runtime->network.railway[index];

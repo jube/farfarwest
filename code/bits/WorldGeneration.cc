@@ -647,7 +647,7 @@ namespace ffw {
         const std::size_t j = (i + 1) % ordered_towns.size();
         auto path = grid.compute_route(places.towns[ordered_towns[i]].rail_departure, places.towns[ordered_towns[j]].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
           const float distance = gf::euclidean_distance<float>(position, neighbor);
-          const float slope = std::abs(raw(to_map(position)).altitude - raw(to_map(neighbor)).altitude) / distance;
+          const float slope = static_cast<float>(std::abs(raw(to_map(position)).altitude - raw(to_map(neighbor)).altitude)) / distance;
           return distance * (1 + SlopeFactor * gf::square(slope));
         });
 
@@ -1032,7 +1032,7 @@ namespace ffw {
       int8_t attribute = 2;
 
       for (int i = 0; i < 3; ++i) {
-        attribute += 1 + random->compute_uniform_integer(6);
+        attribute += static_cast<int8_t>(1 + random->compute_uniform_integer(6));
       }
 
       return attribute;
@@ -1088,7 +1088,7 @@ namespace ffw {
         break;
     }
 
-    human.age = random->compute_uniform_integer(20, 40);
+    human.age = random->compute_uniform_integer<int8_t>(20, 40);
     human.birthday = generate_random_birthday(random);
 
     human.health = MaxHealth - 1;
