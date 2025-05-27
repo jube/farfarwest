@@ -21,6 +21,14 @@ namespace ffw {
   {
     using namespace gf::literals;
 
+    if (m_action_group.active("zoom_in"_id)) {
+      m_minimap.zoom_in();
+    }
+
+    if (m_action_group.active("zoom_out"_id)) {
+      m_minimap.zoom_out();
+    }
+
     if (m_action_group.active("back"_id)) {
       m_game->start_world();
     }
@@ -33,6 +41,8 @@ namespace ffw {
     using namespace gf::literals;
     gf::ActionGroupSettings settings;
 
+    settings.actions.emplace("zoom_in"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadPlus));
+    settings.actions.emplace("zoom_out"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadMinus));
     settings.actions.emplace("back"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Tab));
 
     return settings;

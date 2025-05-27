@@ -10,10 +10,14 @@ namespace ffw {
   public:
     MinimapElement(FarFarWest* game);
 
+    void zoom_in();
+    void zoom_out();
+
     void render(gf::Console& console) override;
 
   private:
     FarFarWest* m_game = nullptr;
+    std::size_t m_level = 0;
   };
 
 }

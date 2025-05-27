@@ -62,7 +62,7 @@ namespace ffw {
     bind_towns(state, random);
     bind_reverse(state);
 
-    bind_minimap(state);
+    bind_minimaps(state);
   }
 
   void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
@@ -750,92 +750,104 @@ namespace ffw {
 
   }
 
-  void MapRuntime::bind_minimap(const WorldState& state)
+  namespace {
+
+    Minimap compute_minimap(const WorldState& state, int factor) {
+      gf::Console minimap(WorldSize / factor);
+
+      // base colors
+
+      for (const gf::Vec2I position : gf::position_range(minimap.size())) {
+        gf::Color color = gf::Transparent;
+
+        int count[4] = { 0, 0, 0, 0 };
+
+        for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
+          gf::Vec2I origin_position = position * factor + offset;
+          // color += outside_ground.background(origin_position);
+
+          const MapRegion region = state.map.cells(origin_position).region;
+          ++count[static_cast<uint8_t>(region)];
+        }
+
+        const auto iterator = std::max_element(std::begin(count), std::end(count));
+        const std::ptrdiff_t index = iterator - std::begin(count);
+        assert(0 <= index && index < 4);
+        const MapRegion region = static_cast<MapRegion>(index);
+
+        switch (region) {
+          case MapRegion::Prairie:
+            color = PrairieColor;
+            break;
+          case MapRegion::Desert:
+            color = DesertColor;
+            break;
+          case MapRegion::Forest:
+            color = ForestColor;
+            break;
+          case MapRegion::Moutain:
+            color = MountainColor;
+            break;
+        }
+
+        minimap.set_background(position, color);
+      }
+
+      // towns
+
+      for (const TownState& town : state.map.towns) {
+        const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
+
+        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+          minimap.set_background(position / factor, StreetColor);
+        }
+      }
+
+      // train
+
+      const std::vector<gf::Vec2I>& railway = state.network.railway;
+      std::vector<gf::Vec2I> minimap_railway;
+
+      for (const gf::Vec2I position : railway) {
+        const gf::Vec2I minimap_position = position / factor;
+
+        if (minimap_railway.empty() || minimap_position != minimap_railway.back()) {
+          assert(minimap_railway.empty() || gf::manhattan_distance(minimap_railway.back(), minimap_position) == 1);
+          minimap_railway.push_back(minimap_position);
+        }
+      }
+
+      if (minimap_railway.front() == minimap_railway.back()) {
+        minimap_railway.pop_back();
+      }
+
+      for (const auto [ index, position ] : gf::enumerate(minimap_railway)) {
+        const std::size_t index_before = (index + minimap_railway.size() - 1) % minimap_railway.size();
+        const gf::Vec2I position_before = minimap_railway[index_before];
+        const gf::Direction direction_before = undisplacement(gf::sign(position_before - position));
+
+        const std::size_t index_after = (index + 1) % minimap_railway.size();
+        const gf::Vec2I position_after = minimap_railway[index_after];
+        const gf::Direction direction_after = undisplacement(gf::sign(position_after - position));
+
+        const char16_t picture = compute_minimap_rail_plan(direction_before, direction_after);
+
+        minimap.set_foreground(position, gf::Black);
+        minimap.set_character(position, picture);
+      }
+
+      return { minimap, factor };
+    }
+
+  }
+
+
+  void MapRuntime::bind_minimaps(const WorldState& state)
   {
-    minimap = gf::Console(WorldSize / MinimapFactor);
-
-    // base colors
-
-    for (const gf::Vec2I position : gf::position_range(minimap.size())) {
-      gf::Color color = gf::Transparent;
-
-      int count[4] = { 0, 0, 0, 0 };
-
-      for (const gf::Vec2I offset : gf::position_range({ MinimapFactor, MinimapFactor })) {
-        gf::Vec2I origin_position = position * MinimapFactor + offset;
-        // color += outside_ground.background(origin_position);
-
-        const MapRegion region = state.map.cells(origin_position).region;
-        ++count[static_cast<uint8_t>(region)];
-      }
-
-      const auto iterator = std::max_element(std::begin(count), std::end(count));
-      const std::ptrdiff_t index = iterator - std::begin(count);
-      assert(0 <= index && index < 4);
-      const MapRegion region = static_cast<MapRegion>(index);
-
-      switch (region) {
-        case MapRegion::Prairie:
-          color = PrairieColor;
-          break;
-        case MapRegion::Desert:
-          color = DesertColor;
-          break;
-        case MapRegion::Forest:
-          color = ForestColor;
-          break;
-        case MapRegion::Moutain:
-          color = MountainColor;
-          break;
-      }
-
-      minimap.set_background(position, color);
-    }
-
-    // towns
-
-    for (const TownState& town : state.map.towns) {
-      const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
-
-      for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-        minimap.set_background(position / MinimapFactor, StreetColor);
-      }
-    }
-
-    // train
-
-    const std::vector<gf::Vec2I>& railway = state.network.railway;
-    std::vector<gf::Vec2I> minimap_railway;
-
-    for (const gf::Vec2I position : railway) {
-      const gf::Vec2I minimap_position = position / MinimapFactor;
-
-      if (minimap_railway.empty() || minimap_position != minimap_railway.back()) {
-        assert(minimap_railway.empty() || gf::manhattan_distance(minimap_railway.back(), minimap_position) == 1);
-        minimap_railway.push_back(minimap_position);
-      }
-    }
-
-    if (minimap_railway.front() == minimap_railway.back()) {
-      minimap_railway.pop_back();
-    }
-
-    for (const auto [ index, position ] : gf::enumerate(minimap_railway)) {
-      const std::size_t index_before = (index + minimap_railway.size() - 1) % minimap_railway.size();
-      const gf::Vec2I position_before = minimap_railway[index_before];
-      const gf::Direction direction_before = undisplacement(gf::sign(position_before - position));
-
-      const std::size_t index_after = (index + 1) % minimap_railway.size();
-      const gf::Vec2I position_after = minimap_railway[index_after];
-      const gf::Direction direction_after = undisplacement(gf::sign(position_after - position));
-
-      const char16_t picture = compute_minimap_rail_plan(direction_before, direction_after);
-
-      minimap.set_foreground(position, gf::Black);
-      minimap.set_character(position, picture);
-    }
-
-
+    minimaps[0] = compute_minimap(state, 4);
+    minimaps[1] = compute_minimap(state, 8);
+    minimaps[2] = compute_minimap(state, 16);
+    minimaps[3] = compute_minimap(state, 32);
   }
 
 }
