@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include <fmt/std.h>
+
 #include <gf2/core/Clock.h>
 #include <gf2/core/Log.h>
 
@@ -110,7 +112,7 @@ namespace ffw {
         assert(has_save());
         gf::Clock clock;
         m_model.state.load_from_file(m_savefile);
-        gf::Log::info("Game loaded in {:g}s", clock.elapsed_time().as_seconds());
+        gf::Log::info("Game loaded in {:g}s from file {}", clock.elapsed_time().as_seconds(), m_savefile);
         std::filesystem::remove(m_savefile);
       }
 
@@ -147,7 +149,7 @@ namespace ffw {
     m_async_save = std::async(std::launch::async, [&]() {
       gf::Clock clock;
       m_model.state.save_to_file(m_savefile);
-      gf::Log::info("Game saved in {:g}s", clock.elapsed_time().as_seconds());
+      gf::Log::info("Game saved in {:g}s to file {}", clock.elapsed_time().as_seconds(), m_savefile);
     });
   }
 

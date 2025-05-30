@@ -12,13 +12,9 @@
 #include "DataReference.h"
 #include "Date.h"
 #include "InventoryState.h"
+#include "MapRuntime.h"
 
 namespace ffw {
-
-  enum class ActorType : uint16_t {
-    None,
-    Human,
-  };
 
   enum class Gender : uint8_t {
     Girl,
@@ -43,15 +39,29 @@ namespace ffw {
     Stat intensity;
     Stat precision;
     Stat endurance;
+    uint32_t mounting = NoIndex;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<HumanFeature, Archive>& feature)
   {
-    return ar | feature.name | feature.gender | feature.birthday | feature.age | feature.health | feature.force | feature.dexterity | feature.constitution | feature.luck | feature.intensity | feature.precision | feature.endurance;
+    return ar | feature.name | feature.gender | feature.birthday | feature.age | feature.health | feature.force | feature.dexterity | feature.constitution | feature.luck | feature.intensity | feature.precision | feature.endurance | feature.mounting;
   }
 
-  using ActorFeature = gf::TaggedVariant<ActorType, HumanFeature>;
+  struct AnimalFeature {
+    uint32_t mounted_by = NoIndex;
+
+
+  };
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<AnimalFeature, Archive>& feature)
+  {
+    return ar | feature.mounted_by;
+  }
+
+
+  using ActorFeature = gf::TaggedVariant<ActorType, HumanFeature, AnimalFeature>;
 
   struct ActorState {
     DataReference<ActorData> data;

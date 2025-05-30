@@ -12,7 +12,7 @@ namespace ffw {
 
   namespace {
 
-    constexpr gf::Time Cooldown = gf::milliseconds(50);
+    constexpr gf::Time Cooldown = gf::milliseconds(20);
 
     constexpr int32_t IdleDistance = 100;
 

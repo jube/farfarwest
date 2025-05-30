@@ -1,7 +1,7 @@
 {
   "actors": [
-    { "label": "Hero", "picture": "@", "color": "#000000" },
-    { "label": "Cow", "picture": "c", "color": "#783F21" }
+    { "label": "Hero", "picture": "@", "color": "#000000", "type": "human" },
+    { "label": "Cow", "picture": "c", "color": "#783F21", "type": "animal", "can_be_mounted": true }
   ],
   "items": [
     { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 44, "capacity": 6, "reload_time": 15 },

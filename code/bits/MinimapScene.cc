@@ -1,6 +1,7 @@
 #include "MinimapScene.h"
 
 #include "FarFarWest.h"
+#include "gf2/core/Scancode.h"
 
 namespace ffw {
 
@@ -41,8 +42,8 @@ namespace ffw {
     using namespace gf::literals;
     gf::ActionGroupSettings settings;
 
-    settings.actions.emplace("zoom_in"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadPlus));
-    settings.actions.emplace("zoom_out"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadMinus));
+    settings.actions.emplace("zoom_in"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadPlus).add_scancode_control(gf::Scancode::F11));
+    settings.actions.emplace("zoom_out"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::NumpadMinus).add_scancode_control(gf::Scancode::F12));
     settings.actions.emplace("back"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Tab));
 
     return settings;
