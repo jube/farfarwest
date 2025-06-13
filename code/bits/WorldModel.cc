@@ -372,6 +372,11 @@ namespace ffw {
 
   void WorldModel::update_cow(ActorState& cow)
   {
+    if (cow.feature.from<ActorType::Animal>().mounted_by != NoIndex) {
+      update_current_task_in_queue(IdleTime);
+      return;
+    }
+
     gf::Orientation orientation = random_orientation(m_random);
     gf::Vec2I new_position = cow.position + gf::displacement(orientation);
 
