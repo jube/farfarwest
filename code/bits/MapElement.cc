@@ -132,16 +132,29 @@ namespace ffw {
     const WorldState* state = m_game->state();
 
     gf::ConsoleStyle actor_style;
-    actor_style.color.background = gf::Transparent;
-    actor_style.effect = gf::ConsoleEffect::none();
 
     for (const ActorState& actor : state->actors) {
       if (!view.contains(actor.position)) {
         continue;
       }
 
+      actor_style.color.background = gf::Transparent;
       actor_style.color.foreground = actor.data->color;
-      console.put_character(actor.position - view.position(), actor.data->picture, actor_style);
+      actor_style.effect = gf::ConsoleEffect::none();
+      char16_t actor_picture = actor.data->picture;
+
+      if (actor.feature.type() == ActorType::Animal) {
+        const uint32_t index = actor.feature.from<ActorType::Animal>().mounted_by;
+
+        if (index != NoIndex) {
+          const ActorState& mounted_by = state->actors[index];
+          actor_style.color.background = mounted_by.data->color;
+          actor_style.effect = gf::ConsoleEffect::alpha(0.2f);
+          actor_picture = to_uppercase_ascii(actor_picture);
+        }
+      }
+
+      console.put_character(actor.position - view.position(), actor_picture, actor_style);
     }
 
     // display trains

@@ -72,6 +72,7 @@ namespace ffw {
 
     settings.actions.emplace("minimap"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Tab));
 
+    settings.actions.emplace("mount"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::M));
     settings.actions.emplace("reload"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::R));
 
     settings.actions.emplace("escape"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Escape));
@@ -115,6 +116,10 @@ namespace ffw {
         runtime->hero.moves = std::move(m_computed_path);
         m_mouse = std::nullopt;
       }
+    }
+
+    if (m_action_group.active("mount"_id)) {
+      runtime->hero.mount();
     }
 
     if (m_action_group.active("reload"_id)) {

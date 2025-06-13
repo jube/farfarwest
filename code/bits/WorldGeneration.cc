@@ -1115,13 +1115,21 @@ namespace ffw {
     state.actors.push_back(hero);
     state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
 
-    ActorState cow = {};
-    cow.data = "Cow";
-    cow.position = hero.position + gf::dirx(10);
-    state.actors.push_back(cow);
-    Date cow_next_turn = state.current_date;
-    cow_next_turn.add_seconds(1);
-    state.scheduler.queue.push({cow_next_turn, TaskType::Actor, 1});
+    {
+      ActorState cow = {};
+      cow.data = "Cow";
+      cow.position = hero.position + gf::dirx(10);
+
+      AnimalFeature feature;
+      feature.mounted_by = NoIndex;
+      cow.feature = feature;
+
+      state.actors.push_back(cow);
+
+      Date cow_next_turn = state.current_date;
+      cow_next_turn.add_seconds(1);
+      state.scheduler.queue.push({cow_next_turn, TaskType::Actor, 1});
+    }
 
     for (const auto& [ index, train ] : gf::enumerate(state.network.trains)) {
       Date date = state.current_date;

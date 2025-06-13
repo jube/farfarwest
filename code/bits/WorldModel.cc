@@ -1,7 +1,9 @@
 #include "WorldModel.h"
 
 #include <cassert>
+#include <cstdint>
 
+#include "ActorData.h"
 #include "ActorState.h"
 #include "MapRuntime.h"
 #include "MapState.h"
@@ -152,6 +154,45 @@ namespace ffw {
     std::swap(old_reverse_cell.actor_index, new_reverse_cell.actor_index);
   }
 
+  bool WorldModel::move_human(ActorState& actor, gf::Vec2I position)
+  {
+    assert(actor.feature.type() == ActorType::Human);
+
+    if (!is_walkable(position)) {
+      return false;
+    }
+
+    const int32_t move_length = gf::manhattan_length(actor.position - position);
+
+    const uint32_t mount_index = actor.feature.from<ActorType::Human>().mounting;
+
+    if (mount_index == NoIndex) {
+      // the human is not mouting an animal
+
+      move_actor(actor, position);
+
+      if (move_length == 2) {
+        update_current_task_in_queue(DiagonalWalkTime);
+      } else if (move_length == 1) {
+        update_current_task_in_queue(StraightWalkTime);
+      }
+    } else {
+      // the humain is mouting an animal
+
+      ActorState& mount = state.actors[mount_index];
+      move_actor(mount, position);
+      actor.position = position;
+
+      if (move_length == 2) {
+        update_current_task_in_queue(DiagonalWalkTime); // TODO: change the time according to mount
+      } else if (move_length == 1) {
+        update_current_task_in_queue(StraightWalkTime);
+      }
+    }
+
+    return true;
+  }
+
   void WorldModel::update_date()
   {
     state.current_date = state.scheduler.queue.top().date;
@@ -194,27 +235,83 @@ namespace ffw {
 
       case ActionType::Move:
         {
+          ActorState& hero = state.hero();
+
           MoveAction move = runtime.hero.action.from<ActionType::Move>();
           move.orientation = gf::clamp(move.orientation, -1, +1);
-          const int32_t move_length = gf::manhattan_length(move.orientation);
-          assert(move_length != 0);
-
           const gf::Vec2I new_hero_position = state.hero().position + move.orientation;
 
-          if (is_walkable(new_hero_position)) {
-            move_actor(state.hero(), new_hero_position);
-
-            if (move_length == 2) {
-              update_current_task_in_queue(DiagonalWalkTime);
-            } else {
-              assert(move_length == 1);
-              update_current_task_in_queue(StraightWalkTime);
-            }
-
+          if (move_human(hero, new_hero_position)) {
             need_cooldown = true;
           } else {
             runtime.hero.moves.clear();
           }
+        }
+        break;
+
+      case ActionType::Mount:
+        {
+          ActorState& hero = state.hero();
+          HumanFeature& hero_feature = hero.feature.from<ActorType::Human>();
+          ReverseMapCell& hero_cell = runtime.map.outside_reverse(hero.position);
+
+          if (hero_feature.mounting != NoIndex) {
+            // the hero is already mouting an animal
+            break;
+          }
+
+          gf::Log::debug("The hero is not mouting an animal.");
+
+          std::vector<uint32_t> actor_indices;
+
+          for (const gf::Vec2I neighbor : runtime.map.outside_reverse.compute_4_neighbors_range(hero.position)) {
+            const ReverseMapCell& cell = runtime.map.outside_reverse(neighbor);
+
+            if (cell.actor_index == NoIndex) {
+              // not actor on this cell
+              continue;
+            }
+
+            gf::Log::debug("There is an actor next to the hero: {}", cell.actor_index);
+
+            actor_indices.push_back(cell.actor_index);
+          }
+
+          for (const uint32_t actor_index : actor_indices) {
+            assert(actor_index < state.actors.size());
+            ActorState& actor = state.actors[actor_index];
+
+            if (actor.feature.type() != ActorType::Animal) {
+              // it's not an animal
+              continue;
+            }
+
+            gf::Log::debug("The actor {} is an animal", actor_index);
+
+            const AnimalDataFeature& data_feature = actor.data->feature.from<ActorType::Animal>();
+
+            if (!data_feature.can_be_mounted) {
+              // the animal cannot be mounted
+              continue;
+            }
+
+            gf::Log::debug("The actor {} can be mounted", actor_index);
+
+            AnimalFeature& feature = actor.feature.from<ActorType::Animal>();
+
+            if (feature.mounted_by != NoIndex) {
+              // the animal is already mounted
+              continue;
+            }
+
+            gf::Log::debug("Mount!");
+
+            hero_feature.mounting = actor_index;
+            hero.position = actor.position;
+
+            std::swap(feature.mounted_by, hero_cell.actor_index);
+          }
+
         }
         break;
 

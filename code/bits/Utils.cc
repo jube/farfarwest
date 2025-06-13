@@ -6,6 +6,15 @@
 
 namespace ffw {
 
+  char16_t to_uppercase_ascii(char16_t c)
+  {
+    if (u'a' <= c && c <= u'z') {
+      return c - u'a' + u'A';
+    }
+
+    return c;
+  }
+
   gf::Direction undisplacement(gf::Vec2I displacement)
   {
     for (gf::Direction direction : { gf::Direction::Up, gf::Direction::Right, gf::Direction::Down, gf::Direction::Left }) {

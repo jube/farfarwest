@@ -26,6 +26,7 @@ namespace ffw {
 
     bool is_walkable(gf::Vec2I position) const;
     void move_actor(ActorState& actor, gf::Vec2I position);
+    bool move_human(ActorState& actor, gf::Vec2I position);
 
   private:
     gf::Random* m_random = nullptr;

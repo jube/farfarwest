@@ -5,6 +5,8 @@
 
 namespace ffw {
 
+  char16_t to_uppercase_ascii(char16_t c);
+
   gf::Direction undisplacement(gf::Vec2I displacement);
 
 }
