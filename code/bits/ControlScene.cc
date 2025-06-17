@@ -119,7 +119,11 @@ namespace ffw {
     }
 
     if (m_action_group.active("mount"_id)) {
-      runtime->hero.mount();
+      if (state->hero().feature.from<ActorType::Human>().mounting == NoIndex) {
+        runtime->hero.mount();
+      } else {
+        runtime->hero.dismount();
+      }
     }
 
     if (m_action_group.active("reload"_id)) {

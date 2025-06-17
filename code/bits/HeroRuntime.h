@@ -13,6 +13,7 @@ namespace ffw {
     Idle,
     Move,
     Mount,
+    Dismount,
     Reload,
   };
 
@@ -26,10 +27,13 @@ namespace ffw {
   struct MountAction {
   };
 
+  struct DismountAction {
+  };
+
   struct ReloadAction {
   };
 
-  using HeroAction = gf::TaggedVariant<ActionType, IdleAction, MoveAction, MountAction, ReloadAction>;
+  using HeroAction = gf::TaggedVariant<ActionType, IdleAction, MoveAction, MountAction, DismountAction, ReloadAction>;
 
 
   struct HeroRuntime {
@@ -49,6 +53,11 @@ namespace ffw {
     void mount()
     {
       action = MountAction{};
+    }
+
+    void dismount()
+    {
+      action = DismountAction{};
     }
 
     void reload()

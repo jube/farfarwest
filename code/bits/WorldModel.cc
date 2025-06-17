@@ -310,8 +310,54 @@ namespace ffw {
             hero.position = actor.position;
 
             std::swap(feature.mounted_by, hero_cell.actor_index);
+            update_current_task_in_queue(MountTime);
+            break;
           }
 
+        }
+        break;
+
+      case ActionType::Dismount:
+        {
+          ActorState& hero = state.hero();
+          HumanFeature& hero_feature = hero.feature.from<ActorType::Human>();
+
+          if (hero_feature.mounting == NoIndex) {
+            // the hero is not mouting an animal
+            break;
+          }
+
+          gf::Log::debug("The hero is mouting an animal.");
+
+          std::optional<gf::Vec2I> position;
+
+          for (const gf::Vec2I neighbor : runtime.map.outside_reverse.compute_4_neighbors_range(hero.position)) {
+            if (!is_walkable(neighbor)) {
+              continue;
+            }
+
+            gf::Log::debug("There is an empty place next to the hero");
+
+            position = neighbor;
+            break;
+          }
+
+          if (!position) {
+            gf::Log::debug("There is no empty place next to the hero");
+            break;
+          }
+
+          hero.position = *position;
+          ReverseMapCell& hero_cell = runtime.map.outside_reverse(hero.position);
+          assert(hero_cell.actor_index == NoIndex);
+          hero_cell.actor_index = 0;
+
+          ActorState& mount = state.actors[hero_feature.mounting];
+          assert(mount.feature.type() == ActorType::Animal);
+          mount.feature.from<ActorType::Animal>().mounted_by = NoIndex;
+
+          hero_feature.mounting = NoIndex;
+          update_current_task_in_queue(MountTime);
         }
         break;
 
@@ -372,6 +418,8 @@ namespace ffw {
 
   void WorldModel::update_cow(ActorState& cow)
   {
+    assert(cow.feature.type() == ActorType::Animal);
+
     if (cow.feature.from<ActorType::Animal>().mounted_by != NoIndex) {
       update_current_task_in_queue(IdleTime);
       return;
