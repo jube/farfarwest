@@ -22,7 +22,7 @@ namespace ffw {
     Tree,
   };
 
-  enum MapDecoration : uint8_t {
+  enum class MapDecoration : uint8_t {
     None,
     Herb,
     Rail,
