@@ -6,7 +6,7 @@ add_repositories("gf-repo https://github.com/GamedevFramework/xmake-repo")
 add_requires("gamedevframework2", "nlohmann_json")
 
 add_rules("mode.debug", "mode.releasedbg", "mode.release")
-add_rules("plugin.compile_commands.autoupdate", {outputdir = "$(buildir)"})
+add_rules("plugin.compile_commands.autoupdate", {outputdir = "$(builddir)"})
 
 if is_mode("sanitizers") then
     set_symbols("debug")
@@ -25,7 +25,7 @@ if is_plat("windows") then
   add_defines("NOMINMAX", "_CRT_SECURE_NO_WARNINGS")
 end
 
-set_configdir("$(buildir)/config")
+set_configdir("$(builddir)/config")
 set_configvar("FARFARWEST_DATADIR", "$(projectdir)/data/farfarwest")
 add_configfiles("code/config.h.in", {pattern = "@(.-)@"})
 
@@ -33,7 +33,7 @@ target("farfarwest")
     set_kind("binary")
     add_files("code/farfarwest.cc")
     add_files("code/bits/*.cc")
-    add_includedirs("$(buildir)/config")
+    add_includedirs("$(builddir)/config")
     add_packages("gamedevframework2", "nlohmann_json")
     set_rundir("$(projectdir)/run")
 
