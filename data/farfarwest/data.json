@@ -1,7 +1,9 @@
 {
   "actors": [
     { "label": "Hero", "picture": "@", "color": "#000000", "type": "human" },
-    { "label": "Cow", "picture": "c", "color": "#783F21", "type": "animal", "can_be_mounted": true }
+    { "label": "Cow", "picture": "c", "color": "#783F21", "type": "animal", "can_be_mounted": true },
+    { "label": "Horse", "picture": "h", "color": "#AB6A0F", "type": "animal", "can_be_mounted": true },
+    { "label": "Snake", "picture": "s", "color": "#53E82A", "type": "animal", "can_be_mounted": false }
   ],
   "items": [
     { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 44, "capacity": 6, "reload_time": 15 },
