@@ -92,20 +92,24 @@ namespace ffw {
       gf::Color foreground_color = gf::Transparent;
       char16_t character = u' ';
 
-      switch (cell.block) {
-        case MapBlock::None:
+      switch (cell.decoration) {
+        case MapDecoration::None:
           break;
-        case MapBlock::Cactus:
+        case MapDecoration::Herb:
+          character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
+          foreground_color = gf::darker(background_color, 0.1f);
+          break;
+        case MapDecoration::Cactus:
           character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, random);
           foreground_color = gf::darker(gf::Green, 0.3f);
           break;
-        case MapBlock::Tree:
+        case MapDecoration::Tree:
           character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, random);
           foreground_color = gf::darker(gf::Green, 0.7f);
           break;
-        case MapBlock::Cliff:
+        case MapDecoration::Cliff:
           {
-            const uint8_t neighbor_bits = compute_neighbor_bits<MapBlock, &MapCell::block>(state.map, position, MapBlock::Cliff);
+            const uint8_t neighbor_bits = compute_neighbor_bits<MapDecoration, &MapCell::decoration>(state.map, position, MapDecoration::Cliff);
 
             // clang-format off
             constexpr char16_t BlockCharacters[] = {
@@ -136,20 +140,9 @@ namespace ffw {
           break;
       }
 
-      switch (cell.decoration) {
-        case MapDecoration::None:
-          break;
-        case MapDecoration::Herb:
-          character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
-          foreground_color = gf::darker(background_color, 0.1f);
-          break;
-        case MapDecoration::Rail:
-          break;
-      }
-
       outside_ground.put_character(position, character, foreground_color, background_color);
 
-      if (cell.block != MapBlock::None) {
+      if (is_blocking(cell.decoration)) {
         outside_grid.set_walkable(position, false);
         outside_grid.set_transparent(position, false);
       }

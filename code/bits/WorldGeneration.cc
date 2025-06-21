@@ -109,13 +109,13 @@ namespace ffw {
             color = PrairieColor;
             break;
           case MapRegion::Desert:
-            color = type == ImageType::Basic || cell.block == MapBlock::None ? DesertColor : gf::darker(gf::Green, 0.3f);
+            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
             break;
           case MapRegion::Forest:
-            color = type == ImageType::Basic || cell.block == MapBlock::None ? ForestColor : gf::darker(gf::Green, 0.7f);
+            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
             break;
           case MapRegion::Moutain:
-            color = type == ImageType::Basic || cell.block == MapBlock::None ? MountainColor : gf::darker(MountainColor, 0.5f);;
+            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);;
             break;
         }
 
@@ -214,7 +214,7 @@ namespace ffw {
             cell.region = MapRegion::Desert;
 
             if (random->compute_bernoulli(DesertCactusProbability * raw_cell.moisture / MoistureLoThreshold)) {
-              cell.block = MapBlock::Cactus;
+              cell.decoration = MapDecoration::Cactus;
             }
           } else {
             cell.region = MapRegion::Prairie;
@@ -232,7 +232,7 @@ namespace ffw {
             cell.region = MapRegion::Forest;
 
             if (is_on_side(position) || random->compute_bernoulli(ForestTreeProbability * raw_cell.moisture)) {
-              cell.block = MapBlock::Tree;
+              cell.decoration = MapDecoration::Tree;
             }
           }
         }
@@ -364,9 +364,9 @@ namespace ffw {
 
       for (const gf::Vec2I position : map.position_range()) {
         if (map(position) == Cliff) {
-          state.cells(position).block = MapBlock::Cliff;
+          state.cells(position).decoration = MapDecoration::Cliff;
         } else if (state.cells(position).region == MapRegion::Moutain && is_on_side(position)) {
-          state.cells(position).block = MapBlock::Cliff;
+          state.cells(position).decoration = MapDecoration::Cliff;
         }
       }
 
@@ -578,7 +578,7 @@ namespace ffw {
         int cliffs = 0;
 
         for (const gf::Vec2I neighbor : state.cells.compute_24_neighbors_range(map_position)) {
-          if (state.cells(neighbor).block == MapBlock::Cliff) {
+          if (state.cells(neighbor).decoration == MapDecoration::Cliff) {
             ++cliffs;
           }
         }
@@ -728,7 +728,7 @@ namespace ffw {
 
       for (const gf::Vec2I position : network.railway) {
         for (const gf::Vec2I relative_neighbor : EightNeighbors) {
-          state.cells(position + relative_neighbor).block = MapBlock::None;
+          state.cells(position + relative_neighbor).decoration = MapDecoration::None;
         }
       }
 

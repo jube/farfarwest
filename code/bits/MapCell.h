@@ -15,29 +15,34 @@ namespace ffw {
     Moutain,
   };
 
-  enum class MapBlock : uint8_t {
+  enum class MapDecoration : uint8_t {
     None,
-    Cactus,
+
+    // non-blocking
+
+    Herb,
+
+    // blocking
+
+    Cactus = 0x80,
     Cliff,
     Tree,
   };
 
-  enum class MapDecoration : uint8_t {
-    None,
-    Herb,
-    Rail,
-  };
+  constexpr bool is_blocking(MapDecoration decoration)
+  {
+    return decoration >= MapDecoration::Cactus;
+  }
 
   struct MapCell {
     MapRegion region = MapRegion::Prairie;
-    MapBlock block = MapBlock::None;
     MapDecoration decoration = MapDecoration::None;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapCell, Archive>& cell)
   {
-    return ar | cell.region | cell.block | cell.decoration;
+    return ar | cell.region | cell.decoration;
   }
 
 }
