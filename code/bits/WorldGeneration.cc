@@ -76,6 +76,7 @@ namespace ffw {
       // clang-format on
     };
 
+    constexpr std::size_t SurfacePerCave = 250;
 
     bool is_on_side(gf::Vec2I position)
     {
@@ -1001,6 +1002,20 @@ namespace ffw {
       return regions;
     }
 
+    /*
+     * Step ... Underground
+     */
+
+    void compute_underground(MapState& state, const WorldRegions& regions, gf::Random* random)
+    {
+      state.underground = { WorldSize };
+
+      for (const WorldRegion& region : regions.mountain_regions) {
+        const std::size_t entrances = region.points.size() / SurfacePerCave;
+
+      }
+
+    }
 
     gf::Vec2I compute_starting_position(const NetworkState& network)
     {
@@ -1047,14 +1062,14 @@ namespace ffw {
     WorldState state = {};
     state.current_date = Date::generate_random(random);
     gf::Log::info("Starting generation...");
-    RawWorld raw = generate_raw(random);
+    const RawWorld raw = generate_raw(random);
     gf::Log::info("- raw ({:g}s)", clock.elapsed_time().as_seconds());
     state.map = generate_outline(raw, random);
     gf::Log::info("- outline ({:g}s)", clock.elapsed_time().as_seconds());
     generate_mountains(state.map, random);
     gf::Log::info("- moutains ({:g}s)", clock.elapsed_time().as_seconds());
 
-    [[maybe_unused]] auto places = generate_places(state.map, random);
+    const WorldPlaces places = generate_places(state.map, random);
     gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
 
     state.network = generate_network(raw, state.map, places, random);
@@ -1063,9 +1078,11 @@ namespace ffw {
     generate_towns(state.map, places, random);
     gf::Log::info("- towns ({:g}s)", clock.elapsed_time().as_seconds());
 
-    [[maybe_unused]] auto regions = compute_regions(state.map);
+    const WorldRegions regions = compute_regions(state.map);
     gf::Log::info("- regions ({:g}s)", clock.elapsed_time().as_seconds());
 
+    compute_underground(state.map, regions, random);
+    gf::Log::info("- underground ({:g}s)", clock.elapsed_time().as_seconds());
 
     // state.map = generate_map(outline, random);
 

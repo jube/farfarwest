@@ -65,12 +65,13 @@ namespace ffw {
   struct MapState {
     gf::Array2D<MapCell> cells;
     std::array<TownState, TownsCount> towns;
+    gf::Array2D<MapCell> underground;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.cells | state.towns;
+    return ar | state.cells | state.towns | state.underground;
   }
 
 }
