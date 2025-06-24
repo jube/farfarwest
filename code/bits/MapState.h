@@ -65,7 +65,7 @@ namespace ffw {
   struct MapState {
     gf::Array2D<MapCell> cells;
     std::array<TownState, TownsCount> towns;
-    gf::Array2D<MapCell> underground;
+    gf::Array2D<MapUndergroundCell> underground;
   };
 
   template<typename Archive>

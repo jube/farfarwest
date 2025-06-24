@@ -15,6 +15,10 @@ namespace ffw {
     Moutain,
   };
 
+  enum class MapUnderground :uint8_t {
+    Rock,
+  };
+
   enum class MapDecoration : uint8_t {
     None,
 
@@ -43,6 +47,17 @@ namespace ffw {
   Archive& operator|(Archive& ar, gf::MaybeConst<MapCell, Archive>& cell)
   {
     return ar | cell.region | cell.decoration;
+  }
+
+  struct MapUndergroundCell {
+    MapUnderground type = MapUnderground::Rock;
+    MapDecoration decoration = MapDecoration::None;
+  };
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<MapUndergroundCell, Archive>& cell)
+  {
+    return ar | cell.type | cell.decoration;
   }
 
 }
