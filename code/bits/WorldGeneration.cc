@@ -76,7 +76,7 @@ namespace ffw {
       // clang-format on
     };
 
-    constexpr std::size_t SurfacePerCave = 250;
+    constexpr std::size_t SurfacePerCave = 2000;
     constexpr int32_t CaveMinDistance = 10;
 
     bool is_on_side(gf::Vec2I position)
@@ -1034,8 +1034,10 @@ namespace ffw {
 
     std::vector<CaveAccess> compute_underground_cave_accesses(MapState& state, const WorldRegion& region, gf::Random* random)
     {
-      const std::size_t access_count = region.points.size() / SurfacePerCave;
+      const std::size_t access_count = 1 + region.points.size() / SurfacePerCave;
       std::vector<CaveAccess> accesses(access_count);
+
+      gf::Log::debug("\taccess count: {}", access_count);
 
       for (;;) {
 
@@ -1043,20 +1045,18 @@ namespace ffw {
           accesses[i] = (compute_underground_cave_access(state, region, random));
         }
 
-        auto min_distance = [&]() {
-          int32_t min_distance = std::numeric_limits<int32_t>::max();
+        int32_t min_distance = std::numeric_limits<int32_t>::max();
 
-          for (std::size_t i = 0; i < access_count; ++i) {
-            for (std::size_t j = i + 1; j < access_count; ++j) {
-              const int32_t distance = gf::manhattan_distance(accesses[i].entrance, accesses[j].entrance);
-              min_distance = std::min(min_distance, distance);
-            }
+        for (std::size_t i = 0; i < access_count; ++i) {
+          for (std::size_t j = i + 1; j < access_count; ++j) {
+            const int32_t distance = gf::manhattan_distance(accesses[i].entrance, accesses[j].entrance);
+            min_distance = std::min(min_distance, distance);
           }
+        }
 
-          return min_distance;
-        };
+        gf::Log::debug("\tmin distance: {}", min_distance);
 
-        if (min_distance() >= CaveMinDistance) {
+        if (min_distance >= CaveMinDistance) {
           return accesses;
         }
       }

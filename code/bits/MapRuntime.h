@@ -55,6 +55,7 @@ namespace ffw {
   };
 
   struct MapRuntime {
+    LevelMap underground;
     LevelMap ground;
 
     std::array<Minimap, MinimapCount> minimaps;
