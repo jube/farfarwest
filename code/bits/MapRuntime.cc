@@ -53,9 +53,7 @@ namespace ffw {
 
   void MapRuntime::bind(const WorldState& state, gf::Random* random)
   {
-    outside_ground = gf::Console(WorldSize);
-    outside_grid = gf::GridMap::make_orthogonal(WorldSize);
-    outside_reverse = gf::Array2D<ReverseMapCell>(WorldSize);
+    ground = LevelMap(WorldSize);
 
     bind_ground(state, random);
     bind_railway(state);
@@ -65,35 +63,23 @@ namespace ffw {
     bind_minimaps(state);
   }
 
-  void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
-  {
-    for (auto position : state.map.cells.position_range()) {
-      const MapCell& cell = state.map.cells(position);
+  namespace {
 
-      gf::Color background_color = gf::White;
-
-      switch (cell.region) {
-        case MapRegion::Prairie:
-          background_color = PrairieColor;
-          break;
-        case MapRegion::Desert:
-          background_color = DesertColor;
-          break;
-        case MapRegion::Forest:
-          background_color = ForestColor;
-          break;
-        case MapRegion::Moutain:
-          background_color = MountainColor;
-          break;
-      }
-
-      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
-
+    std::tuple<char16_t, gf::Color> compute_decoration(const WorldState& state, gf::Vec2I position, MapDecoration decoration, gf::Color background_color, gf::Random* random)
+    {
       gf::Color foreground_color = gf::Transparent;
       char16_t character = u' ';
 
-      switch (cell.decoration) {
+      switch (decoration) {
         case MapDecoration::None:
+          break;
+        case MapDecoration::FloorDown:
+          character = u'▼';
+          foreground_color = gf::darker(background_color);
+          break;
+        case MapDecoration::FloorUp:
+          character = u'▲';
+          foreground_color = gf::darker(background_color);
           break;
         case MapDecoration::Herb:
           character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
@@ -138,15 +124,57 @@ namespace ffw {
             foreground_color = gf::darker(background_color, 0.5f);
           }
           break;
+        case MapDecoration::Wall:
+          character = gf::ConsoleChar::FullBlock;
+          foreground_color = gf::darker(background_color, 0.5f);
+          break;
       }
 
-      outside_ground.put_character(position, character, foreground_color, background_color);
+      return { character, foreground_color };
+    }
+
+  }
+
+  void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
+  {
+    // level 0
+
+    for (auto position : state.map.cells.position_range()) {
+      const MapCell& cell = state.map.cells(position);
+
+      gf::Color background_color = gf::White;
+
+      switch (cell.region) {
+        case MapRegion::Prairie:
+          background_color = PrairieColor;
+          break;
+        case MapRegion::Desert:
+          background_color = DesertColor;
+          break;
+        case MapRegion::Forest:
+          background_color = ForestColor;
+          break;
+        case MapRegion::Moutain:
+          background_color = MountainColor;
+          break;
+      }
+
+      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
+
+      const auto [ character, foreground_color ] = compute_decoration(state, position, cell.decoration, background_color, random);
+
+      ground.console.put_character(position, character, foreground_color, background_color);
 
       if (is_blocking(cell.decoration)) {
-        outside_grid.set_walkable(position, false);
-        outside_grid.set_transparent(position, false);
+        ground.grid.set_walkable(position, false);
+        ground.grid.set_transparent(position, false);
       }
     }
+
+    // level -1
+
+
+
   }
 
   namespace {
@@ -244,7 +272,7 @@ namespace ffw {
           const gf::Vec2I neighbor(i, j);
           const gf::Vec2I neighbor_position = position + neighbor;
 
-          outside_ground.put_character(neighbor_position, plan[neighbor.y + 1][neighbor.x + 1], style);
+          ground.console.put_character(neighbor_position, plan[neighbor.y + 1][neighbor.x + 1], style);
         }
       }
     }
@@ -594,7 +622,7 @@ namespace ffw {
 
         if (random->compute_bernoulli(probability)) {
           gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          outside_ground.set_background(position, color, street_effect);
+          ground.console.set_background(position, color, street_effect);
         }
       }
     }
@@ -646,18 +674,18 @@ namespace ffw {
               style.color = building_style(type);
               style.effect = gf::ConsoleEffect::set();
 
-              outside_ground.put_character(map_position, part, style);
+              ground.console.put_character(map_position, part, style);
 
               switch (type) {
                 case BuildingType::None:
                   // nothing to do
                   break;
                 case BuildingType::Furniture:
-                  outside_grid.set_walkable(map_position, false);
+                  ground.grid.set_walkable(map_position, false);
                   break;
                 case BuildingType::Wall:
-                  outside_grid.set_walkable(map_position, false);
-                  outside_grid.set_transparent(map_position, false);
+                  ground.grid.set_walkable(map_position, false);
+                  ground.grid.set_transparent(map_position, false);
                   break;
               }
 
@@ -677,13 +705,13 @@ namespace ffw {
       for (int32_t i = 0; i < TownDiameter; ++i) {
         const gf::Vec2I position = horizontal_position + gf::dirx(i);
         gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-        outside_ground.set_background(position, color, street_effect);
+        ground.console.set_background(position, color, street_effect);
 
         if (position.x != vertical_position.x) {
           color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          outside_ground.set_background(position + gf::diry(-1), color, street_effect);
+          ground.console.set_background(position + gf::diry(-1), color, street_effect);
           color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          outside_ground.set_background(position + gf::diry(+1), color, street_effect);
+          ground.console.set_background(position + gf::diry(+1), color, street_effect);
         }
       }
 
@@ -691,13 +719,13 @@ namespace ffw {
       for (int32_t i = 0; i < TownDiameter; ++i) {
         const gf::Vec2I position = vertical_position + gf::diry(i);
         gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-        outside_ground.set_background(position, color, street_effect);
+        ground.console.set_background(position, color, street_effect);
 
         if (position.y != horizontal_position.y) {
           color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          outside_ground.set_background(position + gf::dirx(-1), color, street_effect);
+          ground.console.set_background(position + gf::dirx(-1), color, street_effect);
           color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          outside_ground.set_background(position + gf::dirx(+1), color, street_effect);
+          ground.console.set_background(position + gf::dirx(+1), color, street_effect);
         }
       }
    }
@@ -707,7 +735,7 @@ namespace ffw {
   void MapRuntime::bind_reverse(const WorldState& state)
   {
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
-      outside_reverse(actor.position).actor_index = uint32_t(index);
+      ground.reverse(actor.position).actor_index = uint32_t(index);
     }
   }
 
@@ -757,7 +785,7 @@ namespace ffw {
 
         for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
           gf::Vec2I origin_position = position * factor + offset;
-          // color += outside_ground.background(origin_position);
+          // color += ground.console.background(origin_position);
 
           const MapRegion region = state.map.cells(origin_position).region;
           ++count[static_cast<uint8_t>(region)];

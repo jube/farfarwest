@@ -160,7 +160,7 @@ namespace ffw {
       return;
     }
 
-    if (runtime->map.outside_reverse(target).empty() && runtime->map.outside_grid.walkable(target)) {
+    if (runtime->map.ground.reverse(target).empty() && runtime->map.ground.grid.walkable(target)) {
 
       if (runtime->hero.moves.empty()) {
         gf::Log::debug("computing path to {},{}", target.x, target.y);
@@ -207,7 +207,7 @@ namespace ffw {
 
     const WorldRuntime* runtime = m_game->runtime();
 
-    m_grid = runtime->map.outside_grid;
+    m_grid = runtime->map.ground.grid;
 
     for (const ActorState& actor : state->actors) {
       m_grid.set_walkable(actor.position, false);

@@ -28,15 +28,34 @@ namespace ffw {
     }
   };
 
+  enum Level {
+    Underground,
+    Ground,
+    Floor,
+  };
+
+  struct LevelMap {
+    LevelMap() = default;
+
+    explicit LevelMap(gf::Vec2I size)
+    : console(size)
+    , grid(gf::GridMap::make_orthogonal(size))
+    , reverse(size)
+    {
+    }
+
+    gf::Console console;
+    gf::GridMap grid;
+    gf::Array2D<ReverseMapCell> reverse;
+  };
+
   struct Minimap {
     gf::Console console;
     int factor;
   };
 
   struct MapRuntime {
-    gf::Console outside_ground;
-    gf::GridMap outside_grid;
-    gf::Array2D<ReverseMapCell> outside_reverse;
+    LevelMap ground;
 
     std::array<Minimap, MinimapCount> minimaps;
 

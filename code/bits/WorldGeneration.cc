@@ -77,6 +77,7 @@ namespace ffw {
     };
 
     constexpr std::size_t SurfacePerCave = 250;
+    constexpr int32_t CaveMinDistance = 10;
 
     bool is_on_side(gf::Vec2I position)
     {
@@ -1006,15 +1007,89 @@ namespace ffw {
      * Step ... Underground
      */
 
+    struct CaveAccess {
+      gf::Vec2I entrance;
+      gf::Vec2I exit;
+    };
+
+    CaveAccess compute_underground_cave_access(MapState& state, const WorldRegion& region, gf::Random* random)
+    {
+      for (;;) {
+        const std::size_t index = random->compute_uniform_integer(region.points.size());
+        const gf::Vec2I entrance = region.points[index];
+
+        if (state.cells(entrance).decoration != MapDecoration::Cliff) {
+          continue;
+        }
+
+        for (const gf::Vec2I exit : state.cells.compute_4_neighbors_range(entrance)) {
+          if (state.cells(exit).decoration != MapDecoration::Cliff) {
+            return { entrance, exit };
+          }
+        }
+      }
+
+      return {{ 0, 0 }, { 0, 0 }};
+    }
+
+    std::vector<CaveAccess> compute_underground_cave_accesses(MapState& state, const WorldRegion& region, gf::Random* random)
+    {
+      const std::size_t access_count = region.points.size() / SurfacePerCave;
+      std::vector<CaveAccess> accesses(access_count);
+
+      for (;;) {
+
+        for (std::size_t i = 0; i < access_count; ++i) {
+          accesses[i] = (compute_underground_cave_access(state, region, random));
+        }
+
+        auto min_distance = [&]() {
+          int32_t min_distance = std::numeric_limits<int32_t>::max();
+
+          for (std::size_t i = 0; i < access_count; ++i) {
+            for (std::size_t j = i + 1; j < access_count; ++j) {
+              const int32_t distance = gf::manhattan_distance(accesses[i].entrance, accesses[j].entrance);
+              min_distance = std::min(min_distance, distance);
+            }
+          }
+
+          return min_distance;
+        };
+
+        if (min_distance() >= CaveMinDistance) {
+          return accesses;
+        }
+      }
+
+      return {};
+    }
+
+
+    // bool compute_underground_cave(MapState& state, const WorldRegion& region, gf::Random* random)
+    // {
+    //   const auto [ access, exit  ] = compute_underground_cave_entrance(state, region, random);
+    //
+    //   return true;
+    // }
+
     void compute_underground(MapState& state, const WorldRegions& regions, gf::Random* random)
     {
       state.underground = { WorldSize };
 
       for (const WorldRegion& region : regions.mountain_regions) {
-        const std::size_t entrances = region.points.size() / SurfacePerCave;
+        const std::vector<CaveAccess> accesses = compute_underground_cave_accesses(state, region, random);
 
+        for (const auto [ entrance, exit ] : accesses) {
+          state.underground(entrance).decoration = MapDecoration::None;
+          state.underground(exit).decoration = MapDecoration::FloorUp;
+
+          for (const gf::Vec2I cave : state.underground.compute_8_neighbors_range(entrance)) {
+            state.underground(cave).decoration = MapDecoration::None;
+          }
+
+          state.cells(entrance).decoration = MapDecoration::FloorDown;
+        }
       }
-
     }
 
     gf::Vec2I compute_starting_position(const NetworkState& network)

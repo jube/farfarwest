@@ -48,7 +48,7 @@ namespace ffw {
         for (int32_t j = -1; j <= 1; ++j) {
           const gf::Vec2I neighbor = { i, j };
           const gf::Vec2I neighbor_position = position + neighbor;
-          map.outside_reverse(neighbor_position).train_index = train_index;
+          map.ground.reverse(neighbor_position).train_index = train_index;
         }
       }
 

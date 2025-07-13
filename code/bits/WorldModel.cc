@@ -119,12 +119,12 @@ namespace ffw {
 
   bool WorldModel::is_walkable(gf::Vec2I position) const
   {
-    if (!runtime.map.outside_grid.walkable(position)) {
+    if (!runtime.map.ground.grid.walkable(position)) {
       return false;
     }
 
-    assert(runtime.map.outside_reverse.valid(position));
-    const ReverseMapCell& cell = runtime.map.outside_reverse(position);
+    assert(runtime.map.ground.reverse.valid(position));
+    const ReverseMapCell& cell = runtime.map.ground.reverse(position);
 
     if (!cell.empty()) {
       return false;
@@ -141,14 +141,14 @@ namespace ffw {
       return;
     }
 
-    assert(runtime.map.outside_reverse.valid(actor.position));
-    ReverseMapCell& old_reverse_cell = runtime.map.outside_reverse(actor.position);
+    assert(runtime.map.ground.reverse.valid(actor.position));
+    ReverseMapCell& old_reverse_cell = runtime.map.ground.reverse(actor.position);
     assert(old_reverse_cell.actor_index < state.actors.size());
     assert(&actor == &state.actors[old_reverse_cell.actor_index]);
 
-    assert(runtime.map.outside_reverse.valid(position));
-    ReverseMapCell& new_reverse_cell = runtime.map.outside_reverse(position);
-    assert(runtime.map.outside_reverse(position).actor_index == NoIndex);
+    assert(runtime.map.ground.reverse.valid(position));
+    ReverseMapCell& new_reverse_cell = runtime.map.ground.reverse(position);
+    assert(runtime.map.ground.reverse(position).actor_index == NoIndex);
 
     actor.position = position;
     std::swap(old_reverse_cell.actor_index, new_reverse_cell.actor_index);
@@ -253,7 +253,7 @@ namespace ffw {
         {
           ActorState& hero = state.hero();
           HumanFeature& hero_feature = hero.feature.from<ActorType::Human>();
-          ReverseMapCell& hero_cell = runtime.map.outside_reverse(hero.position);
+          ReverseMapCell& hero_cell = runtime.map.ground.reverse(hero.position);
 
           if (hero_feature.mounting != NoIndex) {
             // the hero is already mouting an animal
@@ -264,8 +264,8 @@ namespace ffw {
 
           std::vector<uint32_t> actor_indices;
 
-          for (const gf::Vec2I neighbor : runtime.map.outside_reverse.compute_4_neighbors_range(hero.position)) {
-            const ReverseMapCell& cell = runtime.map.outside_reverse(neighbor);
+          for (const gf::Vec2I neighbor : runtime.map.ground.reverse.compute_4_neighbors_range(hero.position)) {
+            const ReverseMapCell& cell = runtime.map.ground.reverse(neighbor);
 
             if (cell.actor_index == NoIndex) {
               // not actor on this cell
@@ -331,7 +331,7 @@ namespace ffw {
 
           std::optional<gf::Vec2I> position;
 
-          for (const gf::Vec2I neighbor : runtime.map.outside_reverse.compute_4_neighbors_range(hero.position)) {
+          for (const gf::Vec2I neighbor : runtime.map.ground.reverse.compute_4_neighbors_range(hero.position)) {
             if (!is_walkable(neighbor)) {
               continue;
             }
@@ -348,7 +348,7 @@ namespace ffw {
           }
 
           hero.position = *position;
-          ReverseMapCell& hero_cell = runtime.map.outside_reverse(hero.position);
+          ReverseMapCell& hero_cell = runtime.map.ground.reverse(hero.position);
           assert(hero_cell.actor_index == NoIndex);
           hero_cell.actor_index = 0;
 

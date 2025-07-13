@@ -125,7 +125,7 @@ namespace ffw {
 
     // display map background
 
-    runtime->map.outside_ground.blit_to(console, view, GameBoxPosition);
+    runtime->map.ground.console.blit_to(console, view, GameBoxPosition);
 
     // display actors
 

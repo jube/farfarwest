@@ -16,6 +16,7 @@ namespace ffw {
   };
 
   enum class MapUnderground :uint8_t {
+    Dirt,
     Rock,
   };
 
@@ -24,6 +25,8 @@ namespace ffw {
 
     // non-blocking
 
+    FloorDown,
+    FloorUp,
     Herb,
 
     // blocking
@@ -31,6 +34,9 @@ namespace ffw {
     Cactus = 0x80,
     Cliff,
     Tree,
+    Wall,
+
+    // TODO: ores: gold, silver, coal, copper, iron (blocking and non-blocking version)
   };
 
   constexpr bool is_blocking(MapDecoration decoration)
@@ -50,8 +56,8 @@ namespace ffw {
   }
 
   struct MapUndergroundCell {
-    MapUnderground type = MapUnderground::Rock;
-    MapDecoration decoration = MapDecoration::None;
+    MapUnderground type = MapUnderground::Dirt;
+    MapDecoration decoration = MapDecoration::Wall;
   };
 
   template<typename Archive>
