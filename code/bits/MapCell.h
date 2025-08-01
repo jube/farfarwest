@@ -16,8 +16,8 @@ namespace ffw {
   };
 
   enum class MapUnderground :uint8_t {
-    Dirt,
     Rock,
+    Dirt,
   };
 
   enum class MapDecoration : uint8_t {

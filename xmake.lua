@@ -45,6 +45,7 @@ target("world-generation")
     add_files("code/bits/*State.cc")
     add_files("code/bits/WorldGeneration.cc")
     add_packages("gamedevframework2", "nlohmann_json")
+    set_rundir("$(projectdir)/run")
 
 target("name-generation")
     set_kind("binary")

@@ -12,7 +12,10 @@ namespace ffw {
   inline constexpr gf::Color ForestColor = 0x4A6A4D;
   inline constexpr gf::Color MountainColor = 0x8B5A2B;
 
-  inline constexpr gf::Color StreetColor = 0xecbd6b;
+  inline constexpr gf::Color RockColor = gf::gray();
+  inline constexpr gf::Color DirtColor = 0xB69F66;
+
+  inline constexpr gf::Color StreetColor = 0xECBD6B;
 
   inline constexpr gf::Color ForceColor = gf::Amber;
   inline constexpr gf::Color DexterityColor = gf::Aquamarine;

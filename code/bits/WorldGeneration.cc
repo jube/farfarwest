@@ -9,6 +9,7 @@
 #include <gf2/core/Clock.h>
 #include <gf2/core/Direction.h>
 #include <gf2/core/Easing.h>
+#include <gf2/core/Geometry.h>
 #include <gf2/core/GridMap.h>
 #include <gf2/core/Heightmap.h>
 #include <gf2/core/Log.h>
@@ -78,6 +79,7 @@ namespace ffw {
 
     constexpr std::size_t SurfacePerCave = 2000;
     constexpr int32_t CaveMinDistance = 10;
+    constexpr int32_t CaveLinkDistance = 70;
 
     bool is_on_side(gf::Vec2I position)
     {
@@ -126,6 +128,31 @@ namespace ffw {
 
       return image;
     }
+
+    gf::Image compute_basic_underground_image(const MapState& state) {
+      gf::Image image(WorldSize);
+
+      for (const gf::Vec2I position : image.position_range()) {
+        const MapUndergroundCell& cell = state.underground(position);
+        gf::Color color = gf::Transparent;
+
+        switch (cell.type) {
+          case MapUnderground::Rock:
+            color = RockColor;
+            break;
+          case MapUnderground::Dirt:
+            color = DirtColor;
+            break;
+        }
+
+        image.put_pixel(position, color);
+      }
+
+      return image;
+    }
+
+
+
     /*
      * Step 1. Generate a raw map.
      *
@@ -430,6 +457,30 @@ namespace ffw {
 
     };
 
+    gf::Image compute_image_add_towns_and_farms(const gf::Image& original, const WorldPlaces& places)
+    {
+      gf::Image image(original);
+
+      for (const OuterTown& town : places.towns) {
+        const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
+
+        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+          image.put_pixel(position, gf::Azure);
+        }
+      }
+
+      for (const gf::Vec2I farm : places.farms) {
+        const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
+
+        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+          image.put_pixel(position, gf::Azure);
+        }
+      }
+
+      return image;
+    }
+
+
     bool can_have_place(const MapState& state, gf::Vec2I position, int32_t radius)
     {
       assert(state.cells.valid(position));
@@ -541,23 +592,7 @@ namespace ffw {
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-
-        for (const OuterTown& town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
-
-          for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-            image.put_pixel(position, gf::Azure);
-          }
-        }
-
-        for (const gf::Vec2I farm : places.farms) {
-          const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
-
-          for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
-            image.put_pixel(position, gf::Azure);
-          }
-        }
-
+        image = compute_image_add_towns_and_farms(image, places);
         image.save_to_file("02_places.png");
       }
 
@@ -567,6 +602,17 @@ namespace ffw {
     /*
      * Step 4. Generate railway
      */
+
+    gf::Image compute_image_add_railways(const gf::Image& original, const NetworkState& network)
+    {
+      gf::Image image(original);
+
+      for (const gf::Vec2I position : network.railway) {
+        image.put_pixel(position, gf::Black);
+      }
+
+      return image;
+    }
 
     NetworkState generate_network(const RawWorld& raw, MapState& state, const WorldPlaces& places, gf::Random* random)
     {
@@ -736,28 +782,8 @@ namespace ffw {
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-
-        for (const OuterTown& town : places.towns) {
-          const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
-
-          for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-            image.put_pixel(position, gf::Azure);
-          }
-        }
-
-        for (const gf::Vec2I farm : places.farms) {
-          const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
-
-          for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
-            image.put_pixel(position, gf::Azure);
-          }
-        }
-
-
-        for (const gf::Vec2I position : network.railway) {
-          image.put_pixel(position, gf::Black);
-        }
-
+        image = compute_image_add_towns_and_farms(image, places);
+        image = compute_image_add_railways(image, network);
         image.save_to_file("03_railways.png");
       }
 
@@ -1012,18 +1038,58 @@ namespace ffw {
       gf::Vec2I exit;
     };
 
+    gf::Image compute_image_add_cave_accesses(const gf::Image& original, const MapState& state)
+    {
+      gf::Image image(original);
+
+      for (const gf::Vec2I position : image.position_range()) {
+        const MapCell& cell = state.cells(position);
+
+        switch (cell.decoration) {
+          case MapDecoration::FloorDown:
+            image.put_pixel(position, gf::Yellow);
+            break;
+          default:
+            break;
+        }
+
+      }
+
+      return image;
+    }
+
+    gf::Image compute_underground_image_add_cave_accesses(const gf::Image& original, const MapState& state)
+    {
+      gf::Image image(original);
+
+      for (const gf::Vec2I position : image.position_range()) {
+        const MapUndergroundCell& cell = state.underground(position);
+
+        switch (cell.decoration) {
+          case MapDecoration::FloorUp:
+            image.put_pixel(position, gf::Orange);
+            break;
+          default:
+            break;
+        }
+
+      }
+
+      return image;
+    }
+
     CaveAccess compute_underground_cave_access(MapState& state, const WorldRegion& region, gf::Random* random)
     {
       for (;;) {
         const std::size_t index = random->compute_uniform_integer(region.points.size());
         const gf::Vec2I entrance = region.points[index];
 
-        if (state.cells(entrance).decoration != MapDecoration::Cliff) {
+        if (is_on_side(entrance) || state.cells(entrance).decoration != MapDecoration::Cliff) {
           continue;
         }
 
         for (const gf::Vec2I exit : state.cells.compute_4_neighbors_range(entrance)) {
-          if (state.cells(exit).decoration != MapDecoration::Cliff) {
+          if (!is_on_side(exit) && state.cells(exit).decoration != MapDecoration::Cliff) {
             return { entrance, exit };
           }
         }
@@ -1043,6 +1109,10 @@ namespace ffw {
 
         for (std::size_t i = 0; i < access_count; ++i) {
           accesses[i] = (compute_underground_cave_access(state, region, random));
+        }
+
+        if (access_count == 1) {
+          return accesses;
         }
 
         int32_t min_distance = std::numeric_limits<int32_t>::max();
@@ -1065,31 +1135,137 @@ namespace ffw {
     }
 
 
-    // bool compute_underground_cave(MapState& state, const WorldRegion& region, gf::Random* random)
-    // {
-    //   const auto [ access, exit  ] = compute_underground_cave_entrance(state, region, random);
-    //
-    //   return true;
-    // }
+    std::vector<gf::Vec2I> compute_tunnel(gf::Vec2I from, gf::Vec2I to, gf::Random* random) {
+      constexpr std::size_t Iterations = 5;
+      constexpr gf::RectI Limits = gf::RectI::from_size(WorldSize).shrink_by(5);
+
+      const std::size_t size = std::size_t(1) << Iterations;
+      const std::size_t count = size + 1;
+
+      std::vector<gf::Vec2I> points(count);
+      points[0] = from;
+      points[count - 1] = to;
+
+      gf::Vec2I direction = gf::perp(from - to);
+
+      std::size_t step = size / 2;
+
+      while (step > 0) {
+        for (std::size_t i = step; i < size; i += 2 * step) {
+          assert(i - step < count);
+          const gf::Vec2I prev = points[i - step];
+          assert(i + step < count);
+          const gf::Vec2I next = points[i + step];
+
+          gf::Vec2I middle = (prev + next) / 2;
+          middle += random->compute_uniform_float(-0.5f, +0.5f) * direction;
+          points[i] = gf::clamp(middle, Limits.offset, Limits.offset + Limits.extent);
+        }
+
+        direction /= 2;
+        step /= 2;
+      }
+
+      std::vector<gf::Vec2I> tunnel;
+
+      for (std::size_t i = 0; i < points.size() - 1; ++i) {
+        std::vector<gf::Vec2I> part = gf::generate_line(points[i], points[i + 1]);
+        tunnel.insert(tunnel.end(), part.begin(), part.end());
+      }
+
+      return tunnel;
+    }
+
+    void compute_and_dig_tunnel(MapState& state, gf::Vec2I from, gf::Vec2I to, gf::Random* random) {
+      constexpr gf::RectI Limits = gf::RectI::from_size(WorldSize).shrink_by(1);
+
+      const std::vector<gf::Vec2I> tunnel = compute_tunnel(from, to, random);
+
+      for (const gf::Vec2I position : tunnel) {
+       state.underground(position).type = MapUnderground::Dirt;
+
+        for (const gf::Vec2I neighbor : state.underground.compute_12_neighbors_range(position)) {
+          if (Limits.contains(neighbor)) {
+            state.underground(neighbor).type = MapUnderground::Dirt;
+          }
+        }
+      }
+    }
 
     void compute_underground(MapState& state, const WorldRegions& regions, gf::Random* random)
     {
-      state.underground = { WorldSize };
+      state.underground = { WorldSize, { MapUnderground::Rock, MapDecoration::None } };
 
       for (const WorldRegion& region : regions.mountain_regions) {
         const std::vector<CaveAccess> accesses = compute_underground_cave_accesses(state, region, random);
 
         for (const auto [ entrance, exit ] : accesses) {
-          state.underground(entrance).decoration = MapDecoration::None;
-          state.underground(exit).decoration = MapDecoration::FloorUp;
+          state.underground(entrance).type = MapUnderground::Dirt;
 
           for (const gf::Vec2I cave : state.underground.compute_8_neighbors_range(entrance)) {
-            state.underground(cave).decoration = MapDecoration::None;
+            MapUndergroundCell& cell = state.underground(cave);
+            cell.type = MapUnderground::Dirt;
           }
 
+          state.underground(exit).decoration = MapDecoration::FloorUp;
           state.cells(entrance).decoration = MapDecoration::FloorDown;
         }
+
+        const std::size_t access_count = accesses.size();
+
+        auto compute_fake_entrance = [random](gf::Vec2I from) {
+          const float radius = random->compute_radius(0.5f * CaveLinkDistance, 0.8f * CaveLinkDistance);
+          const float angle = random->compute_angle();
+          const gf::Vec2I fake_entrance = radius * gf::unit(angle);
+          return from + fake_entrance;
+        };
+
+        constexpr gf::RectI Limits = gf::RectI::from_size(WorldSize).shrink_by(5);
+
+        for (const auto [ entrance, exit ] : accesses) {
+          const gf::Vec2I fake_entrance = compute_fake_entrance(entrance);
+
+          if (Limits.contains(fake_entrance)) {
+            compute_and_dig_tunnel(state, entrance, fake_entrance, random);
+          }
+        }
+
+        if (access_count == 1) {
+          const gf::Vec2I entrance = accesses.front().entrance;
+
+          const gf::Vec2I fake_entrance = compute_fake_entrance(entrance);
+
+          if (Limits.contains(fake_entrance)) {
+            compute_and_dig_tunnel(state, entrance, fake_entrance, random);
+          }
+
+          break;
+        }
+
+        for (std::size_t i = 0; i < access_count; ++i) {
+          for (std::size_t j = i + 1; j < access_count; ++j) {
+            const gf::Vec2I entrance0 = accesses[i].entrance;
+            const gf::Vec2I entrance1 = accesses[j].entrance;
+
+            if (gf::manhattan_distance(entrance0, entrance1) < CaveLinkDistance) {
+              compute_and_dig_tunnel(state, entrance0, entrance1, random);
+            }
+          }
+        }
       }
+
+      if constexpr (Debug) {
+        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        // image = compute_image_add_towns_and_farms(image, places);
+        // image = compute_image_add_railways(image, network);
+        image = compute_image_add_cave_accesses(image, state);
+        image.save_to_file("06_accesses.png");
+
+        gf::Image underground_image = compute_basic_underground_image(state);
+        underground_image = compute_underground_image_add_cave_accesses(underground_image, state);
+        underground_image.save_to_file("06_access_underground.png");
+      }
+
     }
 
     gf::Vec2I compute_starting_position(const NetworkState& network)
