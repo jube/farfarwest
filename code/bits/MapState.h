@@ -10,6 +10,11 @@
 
 namespace ffw {
 
+  enum class Floor : int8_t {
+    Underground = -1,
+    Ground = 0,
+  };
+
   enum class Building : uint8_t {
     Empty,
     None,
@@ -63,6 +68,7 @@ namespace ffw {
   }
 
   struct MapState {
+    Floor floor = Floor::Ground;
     gf::Array2D<MapCell> cells;
     std::array<TownState, TownsCount> towns;
     gf::Array2D<MapUndergroundCell> underground;
@@ -71,7 +77,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.cells | state.towns | state.underground;
+    return ar | ar.floor | state.cells | state.towns | state.underground;
   }
 
 }
