@@ -11,8 +11,9 @@
 #include "ActorData.h"
 #include "DataReference.h"
 #include "Date.h"
+#include "Index.h"
 #include "InventoryState.h"
-#include "MapRuntime.h"
+#include "MapFloor.h"
 
 namespace ffw {
 
@@ -66,6 +67,7 @@ namespace ffw {
   struct ActorState {
     DataReference<ActorData> data;
     gf::Vec2I position;
+    Floor floor = Floor::Ground;
     ActorFeature feature;
     InventoryState inventory;
 
@@ -76,7 +78,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<ActorState, Archive>& state)
   {
-    return ar | state.data | state.position | state.feature | state.inventory | state.weapon | state.ammunition;
+    return ar | state.data | state.position | state.floor | state.feature | state.inventory | state.weapon | state.ammunition;
   }
 
 }

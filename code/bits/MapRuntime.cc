@@ -59,7 +59,22 @@ namespace ffw {
       case Floor::Ground:
         return ground;
       case Floor::Upstairs:
-        return ground; // TODO: change
+        return ground; // TODO: upstairs
+    }
+
+    assert(false);
+    return ground;
+  }
+
+  FloorMap& MapRuntime::from_floor(Floor floor)
+  {
+    switch (floor) {
+      case Floor::Underground:
+        return underground;
+      case Floor::Ground:
+        return ground;
+      case Floor::Upstairs:
+        return ground; // TODO: upstairs
     }
 
     assert(false);
@@ -69,6 +84,7 @@ namespace ffw {
   void MapRuntime::bind(const WorldState& state, gf::Random* random)
   {
     ground = FloorMap(WorldSize);
+    underground = FloorMap(WorldSize);
 
     bind_ground(state, random);
     bind_railway(state);
@@ -775,7 +791,8 @@ namespace ffw {
   void MapRuntime::bind_reverse(const WorldState& state)
   {
     for (const auto& [ index, actor ] : gf::enumerate(state.actors)) {
-      ground.reverse(actor.position).actor_index = uint32_t(index);
+      FloorMap& floor = from_floor(actor.floor);
+      floor.reverse(actor.position).actor_index = uint32_t(index);
     }
   }
 

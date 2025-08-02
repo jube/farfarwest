@@ -7,6 +7,7 @@
 
 #include "ActorState.h"
 #include "FarFarWest.h"
+#include "MapRuntime.h"
 #include "NetworkState.h"
 #include "Pictures.h"
 #include "Settings.h"
@@ -118,6 +119,8 @@ namespace ffw {
 
   void MapElement::render(gf::Console& console)
   {
+    const ActorState& hero = m_game->state()->hero();
+
     // get current view
 
     const WorldRuntime* runtime = m_game->runtime();
@@ -125,7 +128,8 @@ namespace ffw {
 
     // display map background
 
-    runtime->map.ground.console.blit_to(console, view, GameBoxPosition);
+    const FloorMap& floor_map = runtime->map.from_floor(hero.floor);
+    floor_map.console.blit_to(console, view, GameBoxPosition);
 
     // display actors
 
@@ -135,6 +139,10 @@ namespace ffw {
 
     for (const ActorState& actor : state->actors) {
       if (!view.contains(actor.position)) {
+        continue;
+      }
+
+      if (actor.floor != hero.floor) {
         continue;
       }
 
@@ -158,6 +166,10 @@ namespace ffw {
     }
 
     // display trains
+
+    if (hero.floor != Floor::Ground) {
+      return;
+    }
 
     gf::ConsoleStyle train_style;
     train_style.color.foreground = gf::gray(0.1f);

@@ -7,7 +7,6 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "MapCell.h"
-#include "MapFloor.h"
 
 namespace ffw {
 
@@ -64,7 +63,6 @@ namespace ffw {
   }
 
   struct MapState {
-    Floor floor = Floor::Ground;
     gf::Array2D<MapCell> cells;
     std::array<TownState, TownsCount> towns;
     gf::Array2D<MapUndergroundCell> underground;
@@ -73,7 +71,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.floor | state.cells | state.towns | state.underground;
+    return ar | state.cells | state.towns | state.underground;
   }
 
 }

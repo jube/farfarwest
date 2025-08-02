@@ -160,7 +160,9 @@ namespace ffw {
       return;
     }
 
-    if (runtime->map.ground.reverse(target).empty() && runtime->map.ground.grid.walkable(target)) {
+    const FloorMap& floor_map = runtime->map.from_floor(state->hero().floor);
+
+    if (floor_map.reverse(target).empty() && floor_map.grid.walkable(target)) {
 
       if (runtime->hero.moves.empty()) {
         gf::Log::debug("computing path to {},{}", target.x, target.y);
@@ -206,32 +208,38 @@ namespace ffw {
     gf::Log::debug("update grid");
 
     const WorldRuntime* runtime = m_game->runtime();
+    const Floor hero_floor = state->hero().floor;
+    const FloorMap& floor_map = runtime->map.from_floor(hero_floor);
 
-    m_grid = runtime->map.ground.grid;
+    m_grid = floor_map.grid;
 
     for (const ActorState& actor : state->actors) {
-      m_grid.set_walkable(actor.position, false);
+      if (actor.floor == hero_floor) {
+        m_grid.set_walkable(actor.position, false);
+      }
     }
 
-    for (const TrainState& train : state->network.trains) {
-      uint32_t offset = 0;
+    if (hero_floor == Floor::Ground) {
+      for (const TrainState& train : state->network.trains) {
+        uint32_t offset = 0;
 
-      for (uint32_t k = 0; k < TrainLength; ++k) {
-        const uint32_t index = runtime->network.next_position(train.railway_index, offset);
-        assert(index < runtime->network.railway.size());
-        const gf::Vec2I position = runtime->network.railway[index];
+        for (uint32_t k = 0; k < TrainLength; ++k) {
+          const uint32_t index = runtime->network.next_position(train.railway_index, offset);
+          assert(index < runtime->network.railway.size());
+          const gf::Vec2I position = runtime->network.railway[index];
 
 
-        for (int32_t i = -1; i <= 1; ++i) {
-          for (int32_t j = -1; j <= 1; ++j) {
-            const gf::Vec2I neighbor = { i, j };
-            const gf::Vec2I neighbor_position = position + neighbor;
+          for (int32_t i = -1; i <= 1; ++i) {
+            for (int32_t j = -1; j <= 1; ++j) {
+              const gf::Vec2I neighbor = { i, j };
+              const gf::Vec2I neighbor_position = position + neighbor;
 
-            m_grid.set_walkable(neighbor_position, false);
+              m_grid.set_walkable(neighbor_position, false);
+            }
           }
-        }
 
-        offset += 3;
+          offset += 3;
+        }
       }
     }
 

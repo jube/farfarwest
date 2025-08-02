@@ -27,7 +27,7 @@ namespace ffw {
 
   void MinimapElement::render(gf::Console& console)
   {
-    const FloorMap& floor = m_game->runtime()->map.from_floor(m_game->state()->map.floor);
+    const FloorMap& floor = m_game->runtime()->map.from_floor(m_game->state()->hero().floor);
     const Minimap& minimap = floor.minimaps[m_zoom_level];
     gf::Console minimap_console = minimap.console;
 

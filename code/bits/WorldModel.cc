@@ -5,6 +5,7 @@
 
 #include "ActorData.h"
 #include "ActorState.h"
+#include "MapCell.h"
 #include "MapRuntime.h"
 #include "MapState.h"
 #include "SchedulerState.h"
@@ -36,6 +37,36 @@ namespace ffw {
       const std::size_t index = random->compute_uniform_integer(std::size(Orientations));
       assert(index < std::size(Orientations));
       return Orientations[index];
+    }
+
+    constexpr Floor compute_floor_down(Floor floor)
+    {
+      switch (floor) {
+        case Floor::Underground:
+          return Floor::Underground;
+        case Floor::Ground:
+          return Floor::Underground;
+        case Floor::Upstairs:
+          return Floor::Ground;
+      }
+
+      assert(false);
+      return Floor::Ground;
+    }
+
+    constexpr Floor compute_floor_up(Floor floor)
+    {
+      switch (floor) {
+        case Floor::Underground:
+          return Floor::Ground;
+        case Floor::Ground:
+          return Floor::Upstairs;
+        case Floor::Upstairs:
+          return Floor::Upstairs;
+      }
+
+      assert(false);
+      return Floor::Ground;
     }
 
   }
@@ -117,14 +148,16 @@ namespace ffw {
     return state.map.cells(position).region == MapRegion::Prairie;
   }
 
-  bool WorldModel::is_walkable(gf::Vec2I position) const
+  bool WorldModel::is_walkable(Floor floor, gf::Vec2I position) const
   {
-    if (!runtime.map.ground.grid.walkable(position)) {
+    const FloorMap& floor_map = runtime.map.from_floor(floor);
+
+    if (!floor_map.grid.walkable(position)) {
       return false;
     }
 
-    assert(runtime.map.ground.reverse.valid(position));
-    const ReverseMapCell& cell = runtime.map.ground.reverse(position);
+    assert(floor_map.reverse.valid(position));
+    const ReverseMapCell& cell = floor_map.reverse(position);
 
     if (!cell.empty()) {
       return false;
@@ -141,14 +174,16 @@ namespace ffw {
       return;
     }
 
-    assert(runtime.map.ground.reverse.valid(actor.position));
-    ReverseMapCell& old_reverse_cell = runtime.map.ground.reverse(actor.position);
+    FloorMap& floor_map = runtime.map.from_floor(actor.floor);
+
+    assert(floor_map.reverse.valid(actor.position));
+    ReverseMapCell& old_reverse_cell = floor_map.reverse(actor.position);
     assert(old_reverse_cell.actor_index < state.actors.size());
     assert(&actor == &state.actors[old_reverse_cell.actor_index]);
 
-    assert(runtime.map.ground.reverse.valid(position));
-    ReverseMapCell& new_reverse_cell = runtime.map.ground.reverse(position);
-    assert(runtime.map.ground.reverse(position).actor_index == NoIndex);
+    assert(floor_map.reverse.valid(position));
+    ReverseMapCell& new_reverse_cell = floor_map.reverse(position);
+    assert(floor_map.reverse(position).actor_index == NoIndex);
 
     actor.position = position;
     std::swap(old_reverse_cell.actor_index, new_reverse_cell.actor_index);
@@ -158,7 +193,7 @@ namespace ffw {
   {
     assert(actor.feature.type() == ActorType::Human);
 
-    if (!is_walkable(position)) {
+    if (!is_walkable(actor.floor, position)) {
       return false;
     }
 
@@ -250,145 +285,219 @@ namespace ffw {
         break;
 
       case ActionType::Mount:
-        {
-          ActorState& hero = state.hero();
-          HumanFeature& hero_feature = hero.feature.from<ActorType::Human>();
-          ReverseMapCell& hero_cell = runtime.map.ground.reverse(hero.position);
-
-          if (hero_feature.mounting != NoIndex) {
-            // the hero is already mouting an animal
-            break;
-          }
-
-          gf::Log::debug("The hero is not mouting an animal.");
-
-          std::vector<uint32_t> actor_indices;
-
-          for (const gf::Vec2I neighbor : runtime.map.ground.reverse.compute_4_neighbors_range(hero.position)) {
-            const ReverseMapCell& cell = runtime.map.ground.reverse(neighbor);
-
-            if (cell.actor_index == NoIndex) {
-              // not actor on this cell
-              continue;
-            }
-
-            gf::Log::debug("There is an actor next to the hero: {}", cell.actor_index);
-
-            actor_indices.push_back(cell.actor_index);
-          }
-
-          for (const uint32_t actor_index : actor_indices) {
-            assert(actor_index < state.actors.size());
-            ActorState& actor = state.actors[actor_index];
-
-            if (actor.feature.type() != ActorType::Animal) {
-              // it's not an animal
-              continue;
-            }
-
-            gf::Log::debug("The actor {} is an animal", actor_index);
-
-            const AnimalDataFeature& data_feature = actor.data->feature.from<ActorType::Animal>();
-
-            if (!data_feature.can_be_mounted) {
-              // the animal cannot be mounted
-              continue;
-            }
-
-            gf::Log::debug("The actor {} can be mounted", actor_index);
-
-            AnimalFeature& feature = actor.feature.from<ActorType::Animal>();
-
-            if (feature.mounted_by != NoIndex) {
-              // the animal is already mounted
-              continue;
-            }
-
-            gf::Log::debug("Mount!");
-
-            hero_feature.mounting = actor_index;
-            hero.position = actor.position;
-
-            std::swap(feature.mounted_by, hero_cell.actor_index);
-            update_current_task_in_queue(MountTime);
-            break;
-          }
-
-        }
+        need_cooldown = update_actor_mount(state.hero());
         break;
 
       case ActionType::Dismount:
-        {
-          ActorState& hero = state.hero();
-          HumanFeature& hero_feature = hero.feature.from<ActorType::Human>();
-
-          if (hero_feature.mounting == NoIndex) {
-            // the hero is not mouting an animal
-            break;
-          }
-
-          gf::Log::debug("The hero is mouting an animal.");
-
-          std::optional<gf::Vec2I> position;
-
-          for (const gf::Vec2I neighbor : runtime.map.ground.reverse.compute_4_neighbors_range(hero.position)) {
-            if (!is_walkable(neighbor)) {
-              continue;
-            }
-
-            gf::Log::debug("There is an empty place next to the hero");
-
-            position = neighbor;
-            break;
-          }
-
-          if (!position) {
-            gf::Log::debug("There is no empty place next to the hero");
-            break;
-          }
-
-          hero.position = *position;
-          ReverseMapCell& hero_cell = runtime.map.ground.reverse(hero.position);
-          assert(hero_cell.actor_index == NoIndex);
-          hero_cell.actor_index = 0;
-
-          ActorState& mount = state.actors[hero_feature.mounting];
-          assert(mount.feature.type() == ActorType::Animal);
-          mount.feature.from<ActorType::Animal>().mounted_by = NoIndex;
-
-          hero_feature.mounting = NoIndex;
-          update_current_task_in_queue(MountTime);
-        }
+        need_cooldown = update_actor_dismount(state.hero());
         break;
 
       case ActionType::Reload:
-        {
-          ActorState& hero = state.hero();
-          if (hero.weapon.data && hero.weapon.data->feature.type() == ItemType::Firearm && hero.ammunition.data && hero.ammunition.data->feature.type() == ItemType::Ammunition) {
-            const FirearmDataFeature& firearm = hero.weapon.data->feature.from<ItemType::Firearm>();
-            const AmmunitionDataFeature& ammunition = hero.ammunition.data->feature.from<ItemType::Ammunition>();
-
-            if (firearm.caliber == ammunition.caliber) {
-              const int8_t needed_cartridges = firearm.capacity - hero.weapon.cartridges;
-              const int8_t loaded_cartriges = static_cast<int8_t>(std::min<int16_t>(needed_cartridges, hero.ammunition.count));
-
-              if (loaded_cartriges > 0) {
-                hero.weapon.cartridges += loaded_cartriges;
-                hero.ammunition.count -= loaded_cartriges;
-
-                state.add_message(fmt::format("<style=character>{}</> reloads its weapon with {} cartridges.", hero.feature.from<ActorType::Human>().name, loaded_cartriges));
-
-                update_current_task_in_queue(firearm.reload_time);
-              }
-
-            }
-          }
-        }
+        need_cooldown = update_actor_reload(state.hero());
         break;
+    }
+
+    if (check_actor_position(state.hero())) {
+      runtime.hero.moves.clear();
     }
 
     runtime.hero.action = {};
     return need_cooldown;
+  }
+
+  bool WorldModel::check_actor_position(ActorState& actor)
+  {
+    MapDecoration decoration = MapDecoration::None;
+
+    switch (actor.floor) {
+      case Floor::Underground:
+        decoration = state.map.underground(actor.position).decoration;
+        break;
+      case Floor::Ground:
+        decoration = state.map.cells(actor.position).decoration;
+        break;
+      case Floor::Upstairs:
+        assert(false); // TODO: upstairs
+        break;
+    }
+
+    switch (decoration) {
+      case MapDecoration::FloorDown:
+        return change_floor(actor, compute_floor_down(actor.floor));
+      case MapDecoration::FloorUp:
+        return change_floor(actor, compute_floor_up(actor.floor));
+      default:
+        break;
+    }
+
+    return false;
+  }
+
+  bool WorldModel::change_floor(ActorState& actor, Floor new_floor)
+  {
+    gf::Log::debug("Want to change floor: {} -> {}", int(actor.floor), int(new_floor));
+
+    if (actor.floor == new_floor) {
+      return false;
+    }
+
+    // TODO: check if actor is mounted -> no floor change possible
+
+    FloorMap& old_floor_map = runtime.map.from_floor(actor.floor);
+    FloorMap& new_floor_map = runtime.map.from_floor(new_floor);
+
+    ReverseMapCell& old_map_cell = old_floor_map.reverse(actor.position);
+    ReverseMapCell& new_map_cell = new_floor_map.reverse(actor.position);
+
+    if (new_map_cell.actor_index != NoIndex) {
+      return false;
+    }
+
+    gf::Log::debug("Change floor!");
+
+    std::swap(old_map_cell.actor_index, new_map_cell.actor_index);
+    actor.floor = new_floor;
+    return true;
+  }
+
+  bool WorldModel::update_actor_mount(ActorState& actor)
+  {
+    FloorMap& floor_map = runtime.map.from_floor(actor.floor);
+
+    HumanFeature& actor_feature = actor.feature.from<ActorType::Human>();
+    ReverseMapCell& actor_cell = floor_map.reverse(actor.position);
+
+    if (actor_feature.mounting != NoIndex) {
+      // the hero is already mouting an animal
+      return false;
+    }
+
+    gf::Log::debug("The hero is not mouting an animal.");
+
+    std::vector<uint32_t> actor_indices;
+
+    for (const gf::Vec2I neighbor : floor_map.reverse.compute_4_neighbors_range(actor.position)) {
+      const ReverseMapCell& cell = floor_map.reverse(neighbor);
+
+      if (cell.actor_index == NoIndex) {
+        // not actor on this cell
+        continue;
+      }
+
+      gf::Log::debug("There is an actor next to the hero: {}", cell.actor_index);
+
+      actor_indices.push_back(cell.actor_index);
+    }
+
+    for (const uint32_t animal_actor_index : actor_indices) {
+      assert(animal_actor_index < state.actors.size());
+      ActorState& animal_actor = state.actors[animal_actor_index];
+
+      if (animal_actor.feature.type() != ActorType::Animal) {
+        // it's not an animal
+        continue;
+      }
+
+      gf::Log::debug("The actor {} is an animal", animal_actor_index);
+
+      const AnimalDataFeature& animal_data_feature = animal_actor.data->feature.from<ActorType::Animal>();
+
+      if (!animal_data_feature.can_be_mounted) {
+        // the animal cannot be mounted
+        continue;
+      }
+
+      gf::Log::debug("The actor {} can be mounted", animal_actor_index);
+
+      AnimalFeature& animal_feature = animal_actor.feature.from<ActorType::Animal>();
+
+      if (animal_feature.mounted_by != NoIndex) {
+        // the animal is already mounted
+        continue;
+      }
+
+      gf::Log::debug("Mount!");
+
+      actor_feature.mounting = animal_actor_index;
+      actor.position = animal_actor.position;
+
+      std::swap(animal_feature.mounted_by, actor_cell.actor_index);
+      update_current_task_in_queue(MountTime);
+      break;
+    }
+
+    return true;
+  }
+
+  bool WorldModel::update_actor_dismount(ActorState& actor)
+  {
+    FloorMap& floor_map = runtime.map.from_floor(actor.floor);
+
+    HumanFeature& actor_feature = actor.feature.from<ActorType::Human>();
+
+    if (actor_feature.mounting == NoIndex) {
+      // the actor is not mouting an animal
+      return false;
+    }
+
+    gf::Log::debug("The actor is mouting an animal.");
+
+    std::optional<gf::Vec2I> position;
+
+    for (const gf::Vec2I neighbor : floor_map.reverse.compute_4_neighbors_range(actor.position)) {
+      if (!is_walkable(actor.floor, neighbor)) {
+        continue;
+      }
+
+      gf::Log::debug("There is an empty place next to the actor");
+
+      position = neighbor;
+      break;
+    }
+
+    if (!position) {
+      gf::Log::debug("There is no empty place next to the actor");
+      return false;
+    }
+
+    actor.position = *position;
+    ReverseMapCell& actor_cell = floor_map.reverse(actor.position);
+    assert(actor_cell.actor_index == NoIndex);
+    actor_cell.actor_index = 0;
+
+    ActorState& mount = state.actors[actor_feature.mounting];
+    assert(mount.feature.type() == ActorType::Animal);
+    mount.feature.from<ActorType::Animal>().mounted_by = NoIndex;
+
+    actor_feature.mounting = NoIndex;
+    update_current_task_in_queue(MountTime);
+    return true;
+  }
+
+  bool WorldModel::update_actor_reload(ActorState& actor)
+  {
+    if (actor.weapon.data && actor.weapon.data->feature.type() == ItemType::Firearm && actor.ammunition.data && actor.ammunition.data->feature.type() == ItemType::Ammunition) {
+      const FirearmDataFeature& firearm = actor.weapon.data->feature.from<ItemType::Firearm>();
+      const AmmunitionDataFeature& ammunition = actor.ammunition.data->feature.from<ItemType::Ammunition>();
+
+      if (firearm.caliber == ammunition.caliber) {
+        const int8_t needed_cartridges = firearm.capacity - actor.weapon.cartridges;
+        const int8_t loaded_cartriges = static_cast<int8_t>(std::min<int16_t>(needed_cartridges, actor.ammunition.count));
+
+        if (loaded_cartriges > 0) {
+          actor.weapon.cartridges += loaded_cartriges;
+          actor.ammunition.count -= loaded_cartriges;
+
+          state.add_message(fmt::format("<style=character>{}</> reloads its weapon with {} cartridges.", actor.feature.from<ActorType::Human>().name, loaded_cartriges));
+
+          update_current_task_in_queue(firearm.reload_time);
+          return true;
+        }
+
+      }
+    }
+
+    return false;
   }
 
   bool WorldModel::update_actor(ActorState& actor)
@@ -436,7 +545,7 @@ namespace ffw {
         break;
       }
 
-      if (is_walkable(new_position) && is_prairie(new_position)) {
+      if (is_walkable(cow.floor, new_position) && is_prairie(new_position)) { // TODO: maybe change this, a cow should be able to walk anywhere
         break;
       }
 

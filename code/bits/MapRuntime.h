@@ -4,19 +4,17 @@
 #include <cstdint>
 
 #include <array>
-#include <limits>
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Console.h>
 #include <gf2/core/GridMap.h>
 #include <gf2/core/Random.h>
 
+#include "Index.h"
 #include "MapFloor.h"
 
 namespace ffw {
   struct WorldState;
-
-  constexpr uint32_t NoIndex = std::numeric_limits<uint32_t>::max();
 
   constexpr std::size_t MinimapCount = 4;
 
@@ -57,6 +55,7 @@ namespace ffw {
     FloorMap ground;
 
     const FloorMap& from_floor(Floor floor) const;
+    FloorMap& from_floor(Floor floor);
 
     void bind(const WorldState& state, gf::Random* random);
 
