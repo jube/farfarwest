@@ -11,6 +11,8 @@
 #include <gf2/core/GridMap.h>
 #include <gf2/core/Random.h>
 
+#include "MapFloor.h"
+
 namespace ffw {
   struct WorldState;
 
@@ -28,16 +30,15 @@ namespace ffw {
     }
   };
 
-  enum Level {
-    Underground,
-    Ground,
-    Floor,
+  struct Minimap {
+    gf::Console console;
+    int factor;
   };
 
-  struct LevelMap {
-    LevelMap() = default;
+  struct FloorMap {
+    FloorMap() = default;
 
-    explicit LevelMap(gf::Vec2I size)
+    explicit FloorMap(gf::Vec2I size)
     : console(size)
     , grid(gf::GridMap::make_orthogonal(size))
     , reverse(size)
@@ -47,18 +48,15 @@ namespace ffw {
     gf::Console console;
     gf::GridMap grid;
     gf::Array2D<ReverseMapCell> reverse;
-  };
 
-  struct Minimap {
-    gf::Console console;
-    int factor;
+    std::array<Minimap, MinimapCount> minimaps;
   };
 
   struct MapRuntime {
-    LevelMap underground;
-    LevelMap ground;
+    FloorMap underground;
+    FloorMap ground;
 
-    std::array<Minimap, MinimapCount> minimaps;
+    const FloorMap& from_floor(Floor floor) const;
 
     void bind(const WorldState& state, gf::Random* random);
 

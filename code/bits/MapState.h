@@ -7,13 +7,9 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "MapCell.h"
+#include "MapFloor.h"
 
 namespace ffw {
-
-  enum class Floor : int8_t {
-    Underground = -1,
-    Ground = 0,
-  };
 
   enum class Building : uint8_t {
     Empty,
@@ -77,7 +73,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | ar.floor | state.cells | state.towns | state.underground;
+    return ar | state.floor | state.cells | state.towns | state.underground;
   }
 
 }

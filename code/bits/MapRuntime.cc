@@ -51,9 +51,24 @@ namespace ffw {
 
   }
 
+  const FloorMap& MapRuntime::from_floor(Floor floor) const
+  {
+    switch (floor) {
+      case Floor::Underground:
+        return underground;
+      case Floor::Ground:
+        return ground;
+      case Floor::Upstairs:
+        return ground; // TODO: change
+    }
+
+    assert(false);
+    return ground;
+  }
+
   void MapRuntime::bind(const WorldState& state, gf::Random* random)
   {
-    ground = LevelMap(WorldSize);
+    ground = FloorMap(WorldSize);
 
     bind_ground(state, random);
     bind_railway(state);
@@ -139,7 +154,7 @@ namespace ffw {
   {
     // level 0
 
-    for (auto position : state.map.cells.position_range()) {
+    for (const gf::Vec2I position : state.map.cells.position_range()) {
       const MapCell& cell = state.map.cells(position);
 
       gf::Color background_color = gf::White;
@@ -173,6 +188,31 @@ namespace ffw {
 
     // level -1
 
+    for (const gf::Vec2I position : state.map.underground.position_range()) {
+      const MapUndergroundCell& cell = state.map.underground(position);
+
+      gf::Color background_color = gf::White;
+
+      switch (cell.type) {
+        case MapUnderground::Dirt:
+          background_color = DirtColor;
+          break;
+        case MapUnderground::Rock:
+          background_color = RockColor;
+          break;
+      }
+
+      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
+
+      const auto [ character, foreground_color ] = compute_decoration(state, position, cell.decoration, background_color, random);
+
+      underground.console.put_character(position, character, foreground_color, background_color);
+
+      if (is_blocking(cell.decoration) || cell.type == MapUnderground::Rock) {
+        underground.grid.set_walkable(position, false);
+        underground.grid.set_transparent(position, false);
+      }
+    }
 
 
   }
@@ -773,7 +813,7 @@ namespace ffw {
 
   namespace {
 
-    Minimap compute_minimap(const WorldState& state, int factor) {
+    Minimap compute_ground_minimap(const WorldState& state, int factor) {
       gf::Console minimap(WorldSize / factor);
 
       // base colors
@@ -785,8 +825,6 @@ namespace ffw {
 
         for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
           gf::Vec2I origin_position = position * factor + offset;
-          // color += ground.console.background(origin_position);
-
           const MapRegion region = state.map.cells(origin_position).region;
           ++count[static_cast<uint8_t>(region)];
         }
@@ -860,15 +898,56 @@ namespace ffw {
       return { minimap, factor };
     }
 
-  }
+    Minimap compute_underground_minimap(const WorldState& state, int factor) {
+      gf::Console minimap(WorldSize / factor);
 
+      // base colors
+
+      for (const gf::Vec2I position : gf::position_range(minimap.size())) {
+        gf::Color color = gf::Transparent;
+
+        int count[2] = { 0, 0 };
+
+        for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
+          gf::Vec2I origin_position = position * factor + offset;
+
+          const MapUnderground type = state.map.underground(origin_position).type;
+          ++count[static_cast<uint8_t>(type)];
+        }
+
+        const auto iterator = std::max_element(std::begin(count), std::end(count));
+        const std::ptrdiff_t index = iterator - std::begin(count);
+        assert(0 <= index && index < 2);
+        const MapUnderground type = static_cast<MapUnderground>(index);
+
+        switch (type) {
+          case MapUnderground::Rock:
+            color = RockColor;
+            break;
+          case MapUnderground::Dirt:
+            color = DirtColor;
+            break;
+        }
+
+        minimap.set_background(position, color);
+      }
+
+      return { minimap, factor };
+    }
+
+  }
 
   void MapRuntime::bind_minimaps(const WorldState& state)
   {
-    minimaps[0] = compute_minimap(state, 4);
-    minimaps[1] = compute_minimap(state, 8);
-    minimaps[2] = compute_minimap(state, 16);
-    minimaps[3] = compute_minimap(state, 32);
+    ground.minimaps[0] = compute_ground_minimap(state, 4);
+    ground.minimaps[1] = compute_ground_minimap(state, 8);
+    ground.minimaps[2] = compute_ground_minimap(state, 16);
+    ground.minimaps[3] = compute_ground_minimap(state, 32);
+
+    underground.minimaps[0] = compute_underground_minimap(state, 4);
+    underground.minimaps[1] = compute_underground_minimap(state, 8);
+    underground.minimaps[2] = compute_underground_minimap(state, 16);
+    underground.minimaps[3] = compute_underground_minimap(state, 32);
   }
 
 }

@@ -13,21 +13,22 @@ namespace ffw {
 
   void MinimapElement::zoom_in()
   {
-    if (m_level > 0) {
-      --m_level;
+    if (m_zoom_level > 0) {
+      --m_zoom_level;
     }
   }
 
   void MinimapElement::zoom_out()
   {
-    if (m_level < MinimapCount - 1) {
-      ++m_level;
+    if (m_zoom_level < MinimapCount - 1) {
+      ++m_zoom_level;
     }
   }
 
   void MinimapElement::render(gf::Console& console)
   {
-    const Minimap& minimap = m_game->runtime()->map.minimaps[m_level];
+    const FloorMap& floor = m_game->runtime()->map.from_floor(m_game->state()->map.floor);
+    const Minimap& minimap = floor.minimaps[m_zoom_level];
     gf::Console minimap_console = minimap.console;
 
     const gf::Vec2I hero_position = m_game->state()->hero().position / minimap.factor;

@@ -17,7 +17,7 @@ namespace ffw {
 
   private:
     FarFarWest* m_game = nullptr;
-    std::size_t m_level = 0;
+    std::size_t m_zoom_level = 0;
   };
 
 }
