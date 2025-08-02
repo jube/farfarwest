@@ -1184,7 +1184,7 @@ namespace ffw {
       for (const gf::Vec2I position : tunnel) {
        state.underground(position).type = MapUnderground::Dirt;
 
-        for (const gf::Vec2I neighbor : state.underground.compute_12_neighbors_range(position)) {
+        for (const gf::Vec2I neighbor : state.underground.compute_8_neighbors_range(position)) {
           if (Limits.contains(neighbor)) {
             state.underground(neighbor).type = MapUnderground::Dirt;
           }

@@ -961,10 +961,10 @@ namespace ffw {
     ground.minimaps[2] = compute_ground_minimap(state, 16);
     ground.minimaps[3] = compute_ground_minimap(state, 32);
 
-    underground.minimaps[0] = compute_underground_minimap(state, 4);
-    underground.minimaps[1] = compute_underground_minimap(state, 8);
-    underground.minimaps[2] = compute_underground_minimap(state, 16);
-    underground.minimaps[3] = compute_underground_minimap(state, 32);
+    underground.minimaps[0] = compute_underground_minimap(state, 2);
+    underground.minimaps[1] = compute_underground_minimap(state, 4);
+    underground.minimaps[2] = compute_underground_minimap(state, 8);
+    underground.minimaps[3] = compute_underground_minimap(state, 16);
   }
 
 }
