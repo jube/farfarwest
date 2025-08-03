@@ -1,6 +1,7 @@
 #include "CreationScene.h"
 
 #include "FarFarWest.h"
+#include "WorldGenerationStep.h"
 
 #include <gf2/core/Color.h>
 
@@ -8,7 +9,7 @@ namespace ffw {
 
   namespace {
 
-    constexpr gf::Vec2I CreationConsoleSize = { 28, 3 };
+    constexpr gf::Vec2I CreationConsoleSize = { 30, 4 };
     constexpr float DotsPerSeconds = 1.5f;
 
     std::string_view compute_step(WorldGenerationStep step)
@@ -56,6 +57,8 @@ namespace ffw {
           return "Generating the minimaps";
         case WorldGenerationStep::Network:
           return "Tracing the railway network";
+        case WorldGenerationStep::End:
+          return "The end!";
       }
 
       return "???";
@@ -86,14 +89,15 @@ namespace ffw {
     style.effect = gf::ConsoleEffect::set();
 
     m_console.clear(style);
-    // m_console.draw_frame(gf::RectI::from_size(CreationConsoleSize), style);
+    m_console.draw_frame(gf::RectI::from_size(CreationConsoleSize), style);
 
     const std::size_t dots = std::size_t(m_time.as_seconds() * DotsPerSeconds) % 4;
     m_console.print({ 3, 1 }, gf::ConsoleAlignment::Left, style, "Creation of the world" + std::string(dots, '.'));
 
     style.color.foreground = gf::Amber;
-    const std::string_view step = compute_step(m_game->world_creation_step());
-    m_console.print({ 14, 2 }, gf::ConsoleAlignment::Center, style, step);
+    const WorldGenerationStep step = m_game->world_creation_step();
+    const std::string_view step_name = compute_step(step);
+    m_console.print({ CreationConsoleSize.x / 2, 2 }, gf::ConsoleAlignment::Center, style, step_name);
 
     const gf::Vec2I padding = console.size() - m_console.size();
     const gf::Vec2I creation_position = { padding.x / 2, padding.y / 2 + 10 };

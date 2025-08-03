@@ -1103,7 +1103,7 @@ namespace ffw {
       const std::size_t access_count = 1 + region.points.size() / SurfacePerCave;
       std::vector<CaveAccess> accesses(access_count);
 
-      gf::Log::debug("\taccess count: {}", access_count);
+      // gf::Log::debug("\taccess count: {}", access_count);
 
       for (;;) {
 
@@ -1124,7 +1124,7 @@ namespace ffw {
           }
         }
 
-        gf::Log::debug("\tmin distance: {}", min_distance);
+        // gf::Log::debug("\tmin distance: {}", min_distance);
 
         if (min_distance >= CaveMinDistance) {
           return accesses;
@@ -1423,6 +1423,7 @@ namespace ffw {
 
     gf::Log::info("- actors ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::End);
     return state;
   }
 

@@ -30,6 +30,8 @@ namespace ffw {
     MapTowns,
     MapMinimap,
     Network,
+
+    End,
   };
 
 }
