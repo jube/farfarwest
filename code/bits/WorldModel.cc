@@ -5,6 +5,7 @@
 
 #include "ActorData.h"
 #include "ActorState.h"
+#include "Index.h"
 #include "MapCell.h"
 #include "MapRuntime.h"
 #include "MapState.h"
@@ -343,7 +344,10 @@ namespace ffw {
       return false;
     }
 
-    // TODO: check if actor is mounted -> no floor change possible
+    if (actor.feature.type() == ActorType::Human && actor.feature.from<ActorType::Human>().mounting != NoIndex) {
+      // actor is mounted, no floor change possible
+      return false;
+    }
 
     FloorMap& old_floor_map = runtime.map.from_floor(actor.floor);
     FloorMap& new_floor_map = runtime.map.from_floor(new_floor);
