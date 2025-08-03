@@ -1,6 +1,7 @@
 #ifndef FFW_WORLD_RUNTIME_H
 #define FFW_WORLD_RUNTIME_H
 
+#include <atomic>
 #include <vector>
 
 #include <gf2/core/Random.h>
@@ -8,6 +9,7 @@
 #include "HeroRuntime.h"
 #include "MapRuntime.h"
 #include "NetworkRuntime.h"
+#include "WorldGenerationStep.h"
 
 namespace ffw {
   struct ActorState;
@@ -29,7 +31,7 @@ namespace ffw {
 
     void set_reverse_train(const TrainState& train, uint32_t train_index);
 
-    void bind(const WorldData& data, const WorldState& state, gf::Random* random);
+    void bind(const WorldData& data, const WorldState& state, gf::Random* random, std::atomic<WorldGenerationStep>& step);
 
     void bind_network(const WorldState& state);
     void bind_train(const WorldState& state);

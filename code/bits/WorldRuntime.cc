@@ -56,10 +56,12 @@ namespace ffw {
     }
   }
 
-  void WorldRuntime::bind([[maybe_unused]] const WorldData& data, const WorldState& state, gf::Random* random)
+  void WorldRuntime::bind([[maybe_unused]] const WorldData& data, const WorldState& state, gf::Random* random, std::atomic<WorldGenerationStep>& step)
   {
     view_center = state.hero().position;
-    map.bind(state, random);
+    map.bind(state, random, step);
+
+    step.store(WorldGenerationStep::Network);
     bind_network(state);
     bind_train(state);
     sort_actors_by_distance(state.actors);

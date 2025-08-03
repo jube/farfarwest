@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include <atomic>
 #include <filesystem>
 #include <future>
 
@@ -20,6 +21,7 @@
 #include "SaveScene.h"
 #include "TitleScene.h"
 #include "WorldModel.h"
+#include "WorldGenerationStep.h"
 
 namespace ffw {
   class FarFarWestScene;
@@ -60,6 +62,7 @@ namespace ffw {
 
     void create_world(AdventureChoice choice);
     bool world_creation_finished();
+    WorldGenerationStep world_creation_step();
 
     void start_world();
 
@@ -92,6 +95,8 @@ namespace ffw {
     WorldModel m_model;
     std::future<void> m_async_world;
     bool m_async_world_finished = false;
+
+    std::atomic<WorldGenerationStep> m_step;
 
     gf::ConsoleRichStyle m_rich_style;
   };

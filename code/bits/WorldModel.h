@@ -1,11 +1,14 @@
 #ifndef FFW_WORLD_MODEL_H
 #define FFW_WORLD_MODEL_H
 
+#include <atomic>
+
 #include <gf2/core/Model.h>
 #include <gf2/core/Random.h>
 
 #include "ActorState.h"
 #include "WorldData.h"
+#include "WorldGenerationStep.h"
 #include "WorldRuntime.h"
 #include "WorldState.h"
 
@@ -18,7 +21,7 @@ namespace ffw {
     WorldState state;
     WorldRuntime runtime;
 
-    void bind();
+    void bind(std::atomic<WorldGenerationStep>& step);
 
     void update(gf::Time time) override;
 

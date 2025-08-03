@@ -10,6 +10,7 @@
 #include "MapState.h"
 #include "SchedulerState.h"
 #include "Times.h"
+#include "WorldGenerationStep.h"
 
 namespace ffw {
 
@@ -76,10 +77,11 @@ namespace ffw {
   {
   }
 
-  void WorldModel::bind()
+  void WorldModel::bind(std::atomic<WorldGenerationStep>& step)
   {
+    step.store(WorldGenerationStep::Data);
     state.bind(data);
-    runtime.bind(data, state, m_random);
+    runtime.bind(data, state, m_random, step);
   }
 
   void WorldModel::update(gf::Time time)

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include <atomic>
 #include <array>
 
 #include <gf2/core/Array2D.h>
@@ -12,6 +13,7 @@
 
 #include "Index.h"
 #include "MapFloor.h"
+#include "WorldGenerationStep.h"
 
 namespace ffw {
   struct WorldState;
@@ -57,9 +59,10 @@ namespace ffw {
     const FloorMap& from_floor(Floor floor) const;
     FloorMap& from_floor(Floor floor);
 
-    void bind(const WorldState& state, gf::Random* random);
+    void bind(const WorldState& state, gf::Random* random, std::atomic<WorldGenerationStep>& step);
 
     void bind_ground(const WorldState& state, gf::Random* random);
+    void bind_underground(const WorldState& state, gf::Random* random);
     void bind_railway(const WorldState& state);
     void bind_towns(const WorldState& state, gf::Random* random);
     void bind_reverse(const WorldState& state);

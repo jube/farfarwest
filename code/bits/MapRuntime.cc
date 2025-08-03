@@ -81,16 +81,20 @@ namespace ffw {
     return ground;
   }
 
-  void MapRuntime::bind(const WorldState& state, gf::Random* random)
+  void MapRuntime::bind(const WorldState& state, gf::Random* random, std::atomic<WorldGenerationStep>& step)
   {
-    ground = FloorMap(WorldSize);
-    underground = FloorMap(WorldSize);
-
+    step.store(WorldGenerationStep::MapGround);
     bind_ground(state, random);
+    step.store(WorldGenerationStep::MapUnderground);
+    bind_underground(state, random);
+    step.store(WorldGenerationStep::MapRails);
     bind_railway(state);
+    step.store(WorldGenerationStep::MapTowns);
     bind_towns(state, random);
+
     bind_reverse(state);
 
+    step.store(WorldGenerationStep::MapMinimap);
     bind_minimaps(state);
   }
 
@@ -168,7 +172,7 @@ namespace ffw {
 
   void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
   {
-    // level 0
+    ground = FloorMap(WorldSize);
 
     for (const gf::Vec2I position : state.map.cells.position_range()) {
       const MapCell& cell = state.map.cells(position);
@@ -201,8 +205,12 @@ namespace ffw {
         ground.grid.set_transparent(position, false);
       }
     }
+  }
 
-    // level -1
+
+  void MapRuntime::bind_underground(const WorldState& state, gf::Random* random)
+  {
+    underground = FloorMap(WorldSize);
 
     for (const gf::Vec2I position : state.map.underground.position_range()) {
       const MapUndergroundCell& cell = state.map.underground(position);
@@ -229,9 +237,8 @@ namespace ffw {
         underground.grid.set_transparent(position, false);
       }
     }
-
-
   }
+
 
   namespace {
 

@@ -1306,36 +1306,48 @@ namespace ffw {
 
   }
 
-  WorldState generate_world(gf::Random* random)
+  WorldState generate_world(gf::Random* random, std::atomic<WorldGenerationStep>& step)
   {
     gf::Clock clock;
 
     WorldState state = {};
+    step.store(WorldGenerationStep::Date);
     state.current_date = Date::generate_random(random);
+
     gf::Log::info("Starting generation...");
+    step.store(WorldGenerationStep::Terrain);
     const RawWorld raw = generate_raw(random);
     gf::Log::info("- raw ({:g}s)", clock.elapsed_time().as_seconds());
+
+    step.store(WorldGenerationStep::Biomes);
     state.map = generate_outline(raw, random);
     gf::Log::info("- outline ({:g}s)", clock.elapsed_time().as_seconds());
+
+    step.store(WorldGenerationStep::Moutains);
     generate_mountains(state.map, random);
     gf::Log::info("- moutains ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::Towns);
     const WorldPlaces places = generate_places(state.map, random);
     gf::Log::info("- places ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::Rails);
     state.network = generate_network(raw, state.map, places, random);
     gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::Buildings);
     generate_towns(state.map, places, random);
     gf::Log::info("- towns ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::Regions);
     const WorldRegions regions = compute_regions(state.map);
     gf::Log::info("- regions ({:g}s)", clock.elapsed_time().as_seconds());
 
+    step.store(WorldGenerationStep::Underground);
     compute_underground(state.map, regions, random);
     gf::Log::info("- underground ({:g}s)", clock.elapsed_time().as_seconds());
 
-    // state.map = generate_map(outline, random);
+    step.store(WorldGenerationStep::Hero);
 
     ActorState hero = {};
     hero.data = "Hero";
@@ -1382,6 +1394,8 @@ namespace ffw {
 
     state.actors.push_back(hero);
     state.scheduler.queue.push({state.current_date, TaskType::Actor, 0});
+
+    step.store(WorldGenerationStep::Actors);
 
     {
       ActorState cow = {};
