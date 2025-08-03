@@ -71,6 +71,7 @@ namespace ffw {
     }
 
     settings.actions.emplace("minimap"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Tab));
+    settings.actions.emplace("help"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::H).add_scancode_control(gf::Scancode::F1));
 
     settings.actions.emplace("mount"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::M));
     settings.actions.emplace("reload"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::R));
@@ -133,6 +134,10 @@ namespace ffw {
     if (m_action_group.active("minimap"_id)) {
       m_game->pop_all_scenes();
       m_game->push_scene(&m_game->minimap);
+    }
+
+    if (m_action_group.active("help"_id)) {
+      m_game->replace_scene(&m_game->help);
     }
 
     if (m_action_group.active("escape"_id)) {

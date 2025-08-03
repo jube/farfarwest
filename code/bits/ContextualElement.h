@@ -1,7 +1,6 @@
 #ifndef FFW_CONTEXTUAL_ELEMENT_H
 #define FFW_CONTEXTUAL_ELEMENT_H
 
-#include <gf2/core/Time.h>
 #include <gf2/core/ConsoleElement.h>
 
 namespace ffw {
