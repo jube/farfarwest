@@ -6,7 +6,10 @@
     { "label": "Snake", "picture": "s", "color": "#53E82A", "type": "animal", "can_be_mounted": false }
   ],
   "items": [
+    { "label": "Adams Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 44, "capacity": 5, "reload_time": 15, "url": "https://en.wikipedia.org/wiki/Adams_(revolver)" },
+    { "label": "Beaumont-Adams Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 36, "capacity": 5, "reload_time": 15, "url": "https://en.wikipedia.org/wiki/Beaumont%E2%80%93Adams_revolver" },
     { "label": "Colt Dragoon Revolver", "picture": "§", "color": "#222222", "type": "firearm", "caliber": 44, "capacity": 6, "reload_time": 15 },
+
     { "label": ".44 Ammunitions", "picture": "•", "color": "#808080", "type": "ammunition", "caliber": 44 }
   ]
 }
