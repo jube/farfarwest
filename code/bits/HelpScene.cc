@@ -108,7 +108,7 @@ namespace ffw {
 
   void HelpScene::render(gf::Console& console)
   {
-    m_console.blit_to(console, gf::RectI::from_size(m_console.size()), { 0, 0 }, 1.0f, 0.9f);
+    m_console.blit_to(console, gf::RectI::from_size(m_console.size()), { 0, 0 }, 1.0f, RpgBlueAlpha);
   }
 
   gf::ActionGroupSettings HelpScene::compute_settings()

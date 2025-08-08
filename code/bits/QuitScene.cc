@@ -75,7 +75,7 @@ namespace ffw {
 
     const gf::Vec2I padding = console.size() - m_console.size();
     const gf::Vec2I quit_position = padding / 2;
-    m_console.blit_to(console, gf::RectI::from_size(m_console.size()), quit_position, 1.0f, 0.8f);
+    m_console.blit_to(console, gf::RectI::from_size(m_console.size()), quit_position, 1.0f, RpgBlueAlpha);
   }
 
   gf::ActionGroupSettings QuitScene::compute_settings()
