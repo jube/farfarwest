@@ -66,6 +66,8 @@ namespace ffw {
     constexpr int CliffThreshold = 2;
 
     constexpr float SlopeFactor = 225.0f;
+    constexpr float RailBlockPenalty = 1.5f;
+    constexpr float DoubleRailBlockPenalty = 5.0f;
 
     constexpr std::size_t RegionMinimumSize = 400;
 
@@ -208,6 +210,14 @@ namespace ffw {
 
       return raw;
     }
+
+    float distance_with_slope(const RawWorld& raw, gf::Vec2I position, gf::Vec2I neighbor)
+    {
+      const float distance = gf::euclidean_distance<float>(position, neighbor);
+      const float slope = static_cast<float>(std::abs(raw(to_map(position)).altitude - raw(to_map(neighbor)).altitude)) / distance;
+      return distance * (1 + SlopeFactor * gf::square(slope));
+    }
+
 
     /*
      * Step 1. Generate an outline
@@ -603,7 +613,7 @@ namespace ffw {
      * Step 4. Generate railway
      */
 
-    gf::Image compute_image_add_railways(const gf::Image& original, const NetworkState& network)
+    gf::Image compute_image_add_network(const gf::Image& original, const NetworkState& network)
     {
       gf::Image image(original);
 
@@ -611,13 +621,15 @@ namespace ffw {
         image.put_pixel(position, gf::Black);
       }
 
+      for (const gf::Vec2I position : network.roads) {
+        image.put_pixel(position, gf::Gray);
+      }
+
       return image;
     }
 
-    NetworkState generate_network(const RawWorld& raw, MapState& state, const WorldPlaces& places, gf::Random* random)
+    gf::GridMap compute_basic_grid(const MapState& state)
     {
-      // initialize the grid
-
       gf::GridMap grid = gf::GridMap::make_orthogonal(WorldSize / ReducedFactor);
 
       for (const gf::Vec2I position : grid.position_range()) {
@@ -633,6 +645,15 @@ namespace ffw {
 
         grid.set_walkable(position, cliffs <= CliffThreshold);
       }
+
+      return grid;
+    }
+
+    NetworkState generate_network(const RawWorld& raw, MapState& state, const WorldPlaces& places, gf::Random* random)
+    {
+      // initialize the grid
+
+      gf::GridMap grid = compute_basic_grid(state);
 
       if constexpr (Debug) {
         gf::Image image(grid.size());
@@ -666,7 +687,7 @@ namespace ffw {
         const gf::RectI farm_space = gf::RectI::from_center_size(farm, { ReducedFarmDiameter, ReducedFarmDiameter }).grow_by(1);
 
         for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
-          grid.set_walkable(to_reduced(position), false);
+          grid.set_walkable(position, false);
         }
       }
 
@@ -694,9 +715,7 @@ namespace ffw {
 
         const std::size_t j = (i + 1) % ordered_towns.size();
         auto path = grid.compute_route(places.towns[ordered_towns[i]].rail_departure, places.towns[ordered_towns[j]].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
-          const float distance = gf::euclidean_distance<float>(position, neighbor);
-          const float slope = static_cast<float>(std::abs(raw(to_map(position)).altitude - raw(to_map(neighbor)).altitude)) / distance;
-          return distance * (1 + SlopeFactor * gf::square(slope));
+          return distance_with_slope(raw, position, neighbor);
         });
 
         for (const gf::Vec2I point : path) {
@@ -783,7 +802,7 @@ namespace ffw {
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
         image = compute_image_add_towns_and_farms(image, places);
-        image = compute_image_add_railways(image, network);
+        image = compute_image_add_network(image, network);
         image.save_to_file("03_railways.png");
       }
 
@@ -792,6 +811,83 @@ namespace ffw {
       return network;
     }
 
+    /*
+     * Step ?. Generate roads
+     *
+     *
+     */
+
+    void generate_roads(const RawWorld& raw, const MapState& state, NetworkState& network, const WorldPlaces& places)
+    {
+      gf::GridMap grid = compute_basic_grid(state);
+
+      for (const OuterTown& town : places.towns) {
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
+
+        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+          grid.set_blocked(position);
+        }
+      }
+
+      for (const gf::Vec2I map_position : network.railway) {
+        const gf::Vec2I position = to_reduced(map_position);
+        grid.set_blocked(position);
+      }
+
+      std::vector<gf::Vec2I> roads;
+
+      auto road_to_town = [&](gf::Vec2I farm, const OuterTown& town) {
+        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
+
+        std::vector<gf::Vec2I> road = grid.compute_route(farm, town.center, [&](gf::Vec2I position, gf::Vec2I neighbor) {
+          const float distance = distance_with_slope(raw, position, neighbor);
+
+          if (grid.blocked(neighbor)) {
+            if (grid.blocked(position)) {
+              return DoubleRailBlockPenalty * distance;
+            }
+
+            return RailBlockPenalty * distance;
+          }
+
+          return distance;
+        });
+
+        std::copy_if(road.begin(), road.end(), std::back_inserter(roads), [&](gf::Vec2I position) {
+          return !town_space.contains(position);
+        });
+      };
+
+      for (const gf::Vec2I farm : places.farms) {
+        std::array<std::size_t, TownsCount> town_indices;
+        std::iota(town_indices.begin(), town_indices.end(), 0);
+
+        std::sort(town_indices.begin(), town_indices.end(), [&](std::size_t lhs, std::size_t rhs) {
+          return gf::manhattan_distance(farm, places.towns[lhs].center) < gf::manhattan_distance(farm, places.towns[rhs].center);
+        });
+
+        road_to_town(farm, places.towns[town_indices[0]]);
+        road_to_town(farm, places.towns[town_indices[1]]);
+      }
+
+      std::sort(roads.begin(), roads.end(), [](gf::Vec2I lhs, gf::Vec2I rhs) {
+        return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
+      });
+
+      auto new_end = std::unique(roads.begin(), roads.end());
+      roads.erase(new_end, roads.end());
+
+      for (const gf::Vec2I position : roads) {
+        network.roads.push_back(to_map(position));
+      }
+
+      if constexpr (Debug) {
+        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        image = compute_image_add_towns_and_farms(image, places);
+        image = compute_image_add_network(image, network);
+        image.save_to_file("04_roads.png");
+      }
+    }
 
     /*
      * Step W. Create towns
@@ -910,6 +1006,7 @@ namespace ffw {
         }
       }
     }
+
 
     /*
      * Step X. Compute the regions.
@@ -1334,6 +1431,10 @@ namespace ffw {
     step.store(WorldGenerationStep::Rails);
     state.network = generate_network(raw, state.map, places, random);
     gf::Log::info("- network ({:g}s)", clock.elapsed_time().as_seconds());
+
+    // TODO: step
+    generate_roads(raw, state.map, state.network, places);
+    gf::Log::info("- roads ({:g}s)", clock.elapsed_time().as_seconds());
 
     step.store(WorldGenerationStep::Buildings);
     generate_towns(state.map, places, random);

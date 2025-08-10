@@ -37,12 +37,14 @@ namespace ffw {
     std::vector<gf::Vec2I> railway;
     std::vector<StationState> stations;
     std::vector<TrainState> trains;
+
+    std::vector<gf::Vec2I> roads;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<NetworkState, Archive>& state)
   {
-    return ar | state.railway | state.stations | state.trains;
+    return ar | state.railway | state.stations | state.trains | state.roads;
   }
 
 }
