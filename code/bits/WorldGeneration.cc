@@ -54,7 +54,7 @@ namespace ffw {
     constexpr int32_t ReducedTownDiameter = TownDiameter / ReducedFactor;
     constexpr int32_t TownMinDistanceFromOther = 1500;
 
-    constexpr std::size_t FarmsCount = TownsCount * 5;
+    constexpr std::size_t FarmsCount = TownsCount * 3;
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmDiameter = 2 * FarmRadius + 1;
     constexpr int32_t ReducedFarmDiameter = FarmDiameter / ReducedFactor;
@@ -874,8 +874,7 @@ namespace ffw {
         return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
       });
 
-      auto new_end = std::unique(roads.begin(), roads.end());
-      roads.erase(new_end, roads.end());
+      roads.erase(std::unique(roads.begin(), roads.end()), roads.end());
 
       for (const gf::Vec2I position : roads) {
         network.roads.push_back(to_map(position));

@@ -942,6 +942,25 @@ namespace ffw {
         minimap.set_character(position, picture);
       }
 
+      // roads
+
+      std::vector<gf::Vec2I> minimap_roads;
+
+      for (const gf::Vec2I position : state.network.roads) {
+        minimap_roads.push_back(position / factor);
+      }
+
+      std::sort(minimap_roads.begin(), minimap_roads.end(), [](gf::Vec2I lhs, gf::Vec2I rhs) {
+        return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
+      });
+
+      minimap_roads.erase(std::unique(minimap_roads.begin(), minimap_roads.end()), minimap_roads.end());
+
+      for (const gf::Vec2I position : minimap_roads) {
+        const gf::Color background = minimap.background(position);
+        minimap.set_background(position, gf::darker(background, 0.4f / factor));
+      }
+
       return { minimap, factor };
     }
 
