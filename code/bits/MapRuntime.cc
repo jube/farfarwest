@@ -15,6 +15,7 @@
 #include "Settings.h"
 #include "Utils.h"
 #include "WorldState.h"
+#include "gf2/core/Vec2.h"
 
 namespace ffw {
 
@@ -93,6 +94,9 @@ namespace ffw {
     bind_roads(state, random);
     step.store(WorldGenerationStep::MapTowns);
     bind_towns(state, random);
+
+    // TODO: step
+    bind_buildings(state);
 
     bind_reverse(state);
 
@@ -354,13 +358,106 @@ namespace ffw {
           const gf::Vec2I neighbor(i, j);
           const gf::Vec2I neighbor_position = position + neighbor;
 
-          gf::Color color = gf::lighter(gf::gray(0.95f), random->compute_uniform_float(0.0f, ColorLighterBound)); // TODO: change road color according to biome ?
+          gf::Color color = gf::lighter(gf::gray(0.9f), random->compute_uniform_float(0.0f, ColorLighterBound));
           ground.console.set_background(neighbor_position, color, road_effect);
         }
       }
     }
 
   }
+
+  void MapRuntime::bind_towns(const WorldState& state, gf::Random* random)
+  {
+    const gf::ConsoleEffect street_effect = gf::ConsoleEffect::alpha(0.5f);
+
+    for (const TownState& town : state.map.towns) {
+      const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
+      const gf::Vec2I town_center = town_space.center();
+
+      for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+        const float distance = gf::chebyshev_distance<float>(position, town_center);
+        const float factor = (TownRadius - distance) / TownRadius;
+        assert(0.0f <= factor && factor <= 1.0f);
+        const float probability = 0.1f * gf::ease_out_quint(factor);
+
+        if (random->compute_bernoulli(probability)) {
+          gf::Color color = gf::lighter(StreetColor, random->compute_uniform_float(0.0f, ColorLighterBound));
+          ground.console.set_background(position, color, street_effect);
+        }
+      }
+    }
+
+    // streets
+
+    for (const TownState& town : state.map.towns) {
+      const int32_t horizontal_street = town.horizontal_street * (BuildingSize + StreetSize) - 2;
+      const gf::Vec2I horizontal_position = town.position + gf::diry(horizontal_street);
+
+      const int32_t vertical_street = town.vertical_street * (BuildingSize + StreetSize) - 2;
+      const gf::Vec2I vertical_position = town.position + gf::dirx(vertical_street);
+
+      static constexpr int32_t Extra = 5;
+
+      for (int32_t i = -Extra; i < TownDiameter + Extra; ++i) {
+        const gf::Vec2I position = horizontal_position + gf::dirx(i);
+        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+        ground.console.set_background(position, color, street_effect);
+
+        if (position.x != vertical_position.x) {
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+          ground.console.set_background(position + gf::diry(-1), color, street_effect);
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+          ground.console.set_background(position + gf::diry(+1), color, street_effect);
+        }
+      }
+
+
+      for (int32_t i = -Extra; i < TownDiameter + Extra; ++i) {
+        const gf::Vec2I position = vertical_position + gf::diry(i);
+        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+        ground.console.set_background(position, color, street_effect);
+
+        if (position.y != horizontal_position.y) {
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+          ground.console.set_background(position + gf::dirx(-1), color, street_effect);
+          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
+          ground.console.set_background(position + gf::dirx(+1), color, street_effect);
+        }
+      }
+   }
+  }
+
+  // void MapRuntime::blur(const WorldState& state)
+  // {
+  //   gf::Console new_ground = ground.console;
+  //
+  //   constexpr int KernelSize = 3;
+  //   constexpr int KernelCenter = (KernelSize - 1) / 2;
+  //   constexpr int Kernel[KernelSize][KernelSize] = {
+  //     {  1,  2,  1 },
+  //     {  2, 16,  2 },
+  //     {  1,  2,  1 }
+  //   };
+  //
+  //   for (gf::Vec2I position : state.map.cells.position_range()) {
+  //     gf::Color new_color = Kernel[KernelCenter][KernelCenter] * ground.console.background(position);
+  //     int total_weight = Kernel[KernelCenter][KernelCenter];
+  //
+  //     for (const gf::Vec2I neighbor : state.map.cells.compute_8_neighbors_range(position)) {
+  //       const gf::Vec2I offset = KernelCenter + (position - neighbor);
+  //       assert(0 <= offset.x && offset.x < KernelSize);
+  //       assert(0 <= offset.y && offset.y < KernelSize);
+  //       const int weight = Kernel[offset.x][offset.y];
+  //       new_color += weight * ground.console.background(neighbor);
+  //       total_weight += weight;
+  //     }
+  //
+  //     new_color /= total_weight;
+  //     new_ground.set_background(position, new_color);
+  //   }
+  //
+  //   ground.console = std::move(new_ground);
+  // }
 
   namespace {
 
@@ -690,27 +787,9 @@ namespace ffw {
 
   }
 
-  void MapRuntime::bind_towns(const WorldState& state, gf::Random* random)
+
+  void MapRuntime::bind_buildings(const WorldState& state)
   {
-    const gf::ConsoleEffect street_effect = gf::ConsoleEffect::alpha(0.5f);
-
-    for (const TownState& town : state.map.towns) {
-      const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
-      const gf::Vec2I town_center = town_space.center();
-
-      for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-        const float distance = gf::chebyshev_distance<float>(position, town_center);
-        const float factor = (TownRadius - distance) / TownRadius;
-        assert(0.0f <= factor && factor <= 1.0f);
-        const float probability = 0.1f * gf::ease_out_quint(factor);
-
-        if (random->compute_bernoulli(probability)) {
-          gf::Color color = gf::lighter(StreetColor, random->compute_uniform_float(0.0f, ColorLighterBound));
-          ground.console.set_background(position, color, street_effect);
-        }
-      }
-    }
-
     for (const TownState& town : state.map.towns) {
       // buildings
 
@@ -772,51 +851,12 @@ namespace ffw {
                   ground.grid.set_transparent(map_position, false);
                   break;
               }
-
             }
           }
         }
       }
-
-      // streets
-
-      const int32_t horizontal_street = town.horizontal_street * (BuildingSize + StreetSize) - 2;
-      const gf::Vec2I horizontal_position = town.position + gf::diry(horizontal_street);
-
-      const int32_t vertical_street = town.vertical_street * (BuildingSize + StreetSize) - 2;
-      const gf::Vec2I vertical_position = town.position + gf::dirx(vertical_street);
-
-      static constexpr int32_t Extra = 5;
-
-      for (int32_t i = -Extra; i < TownDiameter + Extra; ++i) {
-        const gf::Vec2I position = horizontal_position + gf::dirx(i);
-        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-        ground.console.set_background(position, color, street_effect);
-
-        if (position.x != vertical_position.x) {
-          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          ground.console.set_background(position + gf::diry(-1), color, street_effect);
-          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          ground.console.set_background(position + gf::diry(+1), color, street_effect);
-        }
-      }
-
-
-      for (int32_t i = -Extra; i < TownDiameter + Extra; ++i) {
-        const gf::Vec2I position = vertical_position + gf::diry(i);
-        gf::Color color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-        ground.console.set_background(position, color, street_effect);
-
-        if (position.y != horizontal_position.y) {
-          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          ground.console.set_background(position + gf::dirx(-1), color, street_effect);
-          color = gf::lighter(StreetColor, random->compute_normal_float(0.0f, ColorLighterBound));
-          ground.console.set_background(position + gf::dirx(+1), color, street_effect);
-        }
-      }
-   }
+    }
   }
-
 
   void MapRuntime::bind_reverse(const WorldState& state)
   {
@@ -958,7 +998,7 @@ namespace ffw {
 
       for (const gf::Vec2I position : minimap_roads) {
         const gf::Color background = minimap.background(position);
-        minimap.set_background(position, gf::darker(background, 0.4f / factor));
+        minimap.set_background(position, gf::darker(background, 0.2f / factor));
       }
 
       return { minimap, factor };

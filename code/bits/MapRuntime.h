@@ -66,6 +66,10 @@ namespace ffw {
     void bind_railway(const WorldState& state);
     void bind_roads(const WorldState& state, gf::Random* random);
     void bind_towns(const WorldState& state, gf::Random* random);
+
+    void blur(const WorldState& state);
+
+    void bind_buildings(const WorldState& state);
     void bind_reverse(const WorldState& state);
 
     void bind_minimaps(const WorldState& state);
