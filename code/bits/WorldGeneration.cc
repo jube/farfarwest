@@ -1,9 +1,10 @@
 #include "WorldGeneration.h"
 
-#include <algorithm>
 #include <cstdint>
 
+#include <algorithm>
 #include <queue>
+#include <string_view>
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Clock.h>
@@ -16,7 +17,6 @@
 #include <gf2/core/Noises.h>
 #include <gf2/core/ProcGen.h>
 #include <gf2/core/Vec2.h>
-#include <string_view>
 
 #include "ActorState.h"
 #include "Colors.h"
@@ -54,7 +54,7 @@ namespace ffw {
     constexpr int32_t ReducedTownDiameter = TownDiameter / ReducedFactor;
     constexpr int32_t TownMinDistanceFromOther = 1500;
 
-    constexpr std::size_t FarmsCount = TownsCount * 3;
+    constexpr std::size_t FarmsCount = TownsCount * 5;
     constexpr int32_t FarmRadius = 10;
     constexpr int32_t FarmDiameter = 2 * FarmRadius + 1;
     constexpr int32_t ReducedFarmDiameter = FarmDiameter / ReducedFactor;
@@ -69,6 +69,10 @@ namespace ffw {
     constexpr float RailBlockPenalty = 1.5f;
     constexpr float DoubleRailBlockPenalty = 5.0f;
 
+    constexpr int32_t RoadMaxDistanceFromFarm = 250;
+    constexpr int32_t RoadMaxDistanceFromTown = 350;
+    static_assert(FarmMinDistanceFromOther < RoadMaxDistanceFromFarm && RoadMaxDistanceFromTown < TownMinDistanceFromOther);
+
     constexpr std::size_t RegionMinimumSize = 400;
 
     constexpr gf::Vec2I EightNeighbors[] = {
@@ -80,6 +84,7 @@ namespace ffw {
     };
 
     constexpr std::size_t SurfacePerCave = 2000;
+    constexpr std::size_t MaxCaveAccessTries = 20;
     constexpr int32_t CaveMinDistance = 10;
     constexpr int32_t CaveLinkDistance = 70;
 
@@ -426,6 +431,8 @@ namespace ffw {
       gf::Vec2I center;
       gf::Vec2I rail_arrival;
       gf::Vec2I rail_departure;
+      gf::Vec2I road_from_prev;
+      gf::Vec2I road_to_next;
     };
 
     struct WorldPlaces {
@@ -546,26 +553,38 @@ namespace ffw {
         const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
         const gf::Direction direction = gf::direction(gf::angle<float>(WorldCenter - to_map(town.center)));
 
-        auto put_at = [&](gf::Orientation orientation) {
+        auto put_rail_at = [&](gf::Orientation orientation) {
           return town_space.position_at(orientation) + RailSpacing * gf::displacement(orientation);
+        };
+
+        auto put_road_at = [&](gf::Orientation orientation) {
+          return town_space.position_at(orientation);
         };
 
         switch (direction) {
           case gf::Direction::Up:
-            town.rail_arrival = put_at(gf::Orientation::NorthEast);
-            town.rail_departure = put_at(gf::Orientation::NorthWest);
+            town.rail_arrival = put_rail_at(gf::Orientation::NorthEast);
+            town.rail_departure = put_rail_at(gf::Orientation::NorthWest);
+            town.road_from_prev = put_road_at(gf::Orientation::East);
+            town.road_to_next = put_road_at(gf::Orientation::West);
             break;
           case gf::Direction::Right:
-            town.rail_arrival = put_at(gf::Orientation::SouthEast);
-            town.rail_departure = put_at(gf::Orientation::NorthEast);
+            town.rail_arrival = put_rail_at(gf::Orientation::SouthEast);
+            town.rail_departure = put_rail_at(gf::Orientation::NorthEast);
+            town.road_from_prev = put_road_at(gf::Orientation::South);
+            town.road_to_next = put_road_at(gf::Orientation::North);
             break;
           case gf::Direction::Down:
-            town.rail_arrival = put_at(gf::Orientation::SouthWest);
-            town.rail_departure = put_at(gf::Orientation::SouthEast);
+            town.rail_arrival = put_rail_at(gf::Orientation::SouthWest);
+            town.rail_departure = put_rail_at(gf::Orientation::SouthEast);
+            town.road_from_prev = put_road_at(gf::Orientation::West);
+            town.road_to_next = put_road_at(gf::Orientation::East);
             break;
           case gf::Direction::Left:
-            town.rail_arrival = put_at(gf::Orientation::NorthWest);
-            town.rail_departure = put_at(gf::Orientation::SouthWest);
+            town.rail_arrival = put_rail_at(gf::Orientation::NorthWest);
+            town.rail_departure = put_rail_at(gf::Orientation::SouthWest);
+            town.road_from_prev = put_road_at(gf::Orientation::North);
+            town.road_to_next = put_road_at(gf::Orientation::South);
             break;
           case gf::Direction::Center:
             assert(false);
@@ -573,6 +592,13 @@ namespace ffw {
         }
 
       }
+
+      // sort towns
+
+      std::sort(places.towns.begin(), places.towns.end(), [&](const OuterTown& lhs, const OuterTown& rhs) {
+        return gf::angle<float>(lhs.center - to_reduced(WorldCenter)) < gf::angle<float>(rhs.center - to_reduced(WorldCenter));
+      });
+
 
       // second generate farms
 
@@ -655,20 +681,6 @@ namespace ffw {
 
       gf::GridMap grid = compute_basic_grid(state);
 
-      if constexpr (Debug) {
-        gf::Image image(grid.size());
-
-        for (const gf::Vec2I position : image.position_range()) {
-          if (grid.walkable(position)) {
-            image.put_pixel(position, gf::White);
-          } else {
-            image.put_pixel(position, gf::Black);
-          }
-        }
-
-        image.save_to_file("03_railways_alt.png");
-      }
-
       for (const OuterTown& town : places.towns) {
         const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
 
@@ -691,21 +703,29 @@ namespace ffw {
         }
       }
 
+      if constexpr (Debug) {
+        gf::Image image(grid.size());
+
+        for (const gf::Vec2I position : image.position_range()) {
+          if (grid.walkable(position)) {
+            image.put_pixel(position, gf::White);
+          } else {
+            image.put_pixel(position, gf::Black);
+          }
+        }
+
+        image.save_to_file("03_railways_alt.png");
+      }
+
       std::vector<std::vector<gf::Vec2I>> paths;
 
-      std::vector<std::size_t> ordered_towns(places.towns.size());
-      std::iota(ordered_towns.begin(), ordered_towns.end(), 0);
-      std::sort(ordered_towns.begin(), ordered_towns.end(), [&](std::size_t lhs, std::size_t rhs) {
-        return gf::angle<float>(places.towns[lhs].center - to_reduced(WorldCenter)) < gf::angle<float>(places.towns[rhs].center - to_reduced(WorldCenter));
-      });
-
-      for (std::size_t i = 0; i < ordered_towns.size(); ++i) {
+      for (std::size_t i = 0; i < places.towns.size(); ++i) {
         // path for the station
 
         std::vector<gf::Vec2I> station;
-        const gf::Vec2I step = gf::sign(places.towns[ordered_towns[i]].rail_departure - places.towns[ordered_towns[i]].rail_arrival);
+        const gf::Vec2I step = gf::sign(places.towns[i].rail_departure - places.towns[i].rail_arrival);
 
-        for (gf::Vec2I position = places.towns[ordered_towns[i]].rail_arrival + step; position != places.towns[ordered_towns[i]].rail_departure; position += step) {
+        for (gf::Vec2I position = places.towns[i].rail_arrival + step; position != places.towns[i].rail_departure; position += step) {
           station.push_back(position);
         }
 
@@ -713,8 +733,8 @@ namespace ffw {
 
         // path to the next town
 
-        const std::size_t j = (i + 1) % ordered_towns.size();
-        auto path = grid.compute_route(places.towns[ordered_towns[i]].rail_departure, places.towns[ordered_towns[j]].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
+        const std::size_t j = (i + 1) % places.towns.size();
+        auto path = grid.compute_route(places.towns[i].rail_departure, places.towns[j].rail_arrival, [&](gf::Vec2I position, gf::Vec2I neighbor) {
           return distance_with_slope(raw, position, neighbor);
         });
 
@@ -727,7 +747,7 @@ namespace ffw {
         }
 
         assert(!path.empty());
-        gf::Log::info("Points between {} and {}: {}", ordered_towns[i], ordered_towns[j], path.size());
+        gf::Log::info("Points between {} and {}: {}", i, j, path.size());
 
         paths.push_back(std::move(path));
       }
@@ -829,6 +849,14 @@ namespace ffw {
         }
       }
 
+      for (const gf::Vec2I farm : places.farms) {
+        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { ReducedFarmDiameter, ReducedFarmDiameter }).grow_by(1);
+
+        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+          grid.set_blocked(position);
+        }
+      }
+
       for (const gf::Vec2I map_position : network.railway) {
         const gf::Vec2I position = to_reduced(map_position);
         grid.set_blocked(position);
@@ -836,43 +864,61 @@ namespace ffw {
 
       std::vector<gf::Vec2I> roads;
 
-      auto road_to_town = [&](gf::Vec2I farm, const OuterTown& town) {
-        const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
+      const auto distance_function = [&](gf::Vec2I position, gf::Vec2I neighbor) {
+        const float distance = distance_with_slope(raw, position, neighbor);
 
-        std::vector<gf::Vec2I> road = grid.compute_route(farm, town.center, [&](gf::Vec2I position, gf::Vec2I neighbor) {
-          const float distance = distance_with_slope(raw, position, neighbor);
-
-          if (grid.blocked(neighbor)) {
-            if (grid.blocked(position)) {
-              return DoubleRailBlockPenalty * distance;
-            }
-
-            return RailBlockPenalty * distance;
+        if (grid.blocked(neighbor)) {
+          if (grid.blocked(position)) {
+            return DoubleRailBlockPenalty * distance;
           }
 
-          return distance;
-        });
+          return RailBlockPenalty * distance;
+        }
 
-        std::copy_if(road.begin(), road.end(), std::back_inserter(roads), [&](gf::Vec2I position) {
-          return !town_space.contains(position);
-        });
+        return distance;
       };
 
-      for (const gf::Vec2I farm : places.farms) {
-        std::array<std::size_t, TownsCount> town_indices;
-        std::iota(town_indices.begin(), town_indices.end(), 0);
+      const auto position_comparator = [](gf::Vec2I lhs, gf::Vec2I rhs) {
+        return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
+      };
 
-        std::sort(town_indices.begin(), town_indices.end(), [&](std::size_t lhs, std::size_t rhs) {
-          return gf::manhattan_distance(farm, places.towns[lhs].center) < gf::manhattan_distance(farm, places.towns[rhs].center);
-        });
+      for (const gf::Vec2I from : places.farms) {
+        for (const gf::Vec2I to : places.farms) {
+          if (from == to) {
+            continue;
+          }
 
-        road_to_town(farm, places.towns[town_indices[0]]);
-        road_to_town(farm, places.towns[town_indices[1]]);
+          if (position_comparator(from, to)) {
+            continue; // to prevent double edges
+          }
+
+          if (gf::manhattan_distance(from, to) > RoadMaxDistanceFromFarm) {
+            continue;
+          }
+
+          const std::vector<gf::Vec2I> road = grid.compute_route(from, to, distance_function);
+          roads.insert(roads.end(), road.begin(), road.end());
+        }
       }
 
-      std::sort(roads.begin(), roads.end(), [](gf::Vec2I lhs, gf::Vec2I rhs) {
-        return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
-      });
+      for (const OuterTown& town : places.towns) {
+        const gf::Vec2I from = town.center;
+
+        for (const gf::Vec2I to : places.farms) {
+          if (from == to) {
+            continue;
+          }
+
+          if (gf::manhattan_distance(from, to) > RoadMaxDistanceFromTown) {
+            continue;
+          }
+
+          const std::vector<gf::Vec2I> road = grid.compute_route(from, to, distance_function);
+          roads.insert(roads.end(), road.begin(), road.end());
+        }
+      }
+
+      std::sort(roads.begin(), roads.end(), position_comparator);
 
       roads.erase(std::unique(roads.begin(), roads.end()), roads.end());
 
@@ -1196,8 +1242,10 @@ namespace ffw {
 
     std::vector<CaveAccess> compute_underground_cave_accesses(MapState& state, const WorldRegion& region, gf::Random* random)
     {
-      const std::size_t access_count = 1 + region.points.size() / SurfacePerCave;
+      std::size_t access_count = 1 + region.points.size() / SurfacePerCave;
       std::vector<CaveAccess> accesses(access_count);
+
+      std::size_t tries = 0;
 
       // gf::Log::debug("\taccess count: {}", access_count);
 
@@ -1225,6 +1273,15 @@ namespace ffw {
         if (min_distance >= CaveMinDistance) {
           return accesses;
         }
+
+        ++tries;
+
+        if (tries > MaxCaveAccessTries) {
+          --access_count;
+          accesses.pop_back();
+          tries = 0;
+        }
+
       }
 
       return {};
