@@ -62,16 +62,39 @@ namespace ffw {
     return ar | state.position | state.buildings | state.horizontal_street | state.vertical_street;
   }
 
+  constexpr std::size_t LocalityCount = TownsCount * 5;
+  constexpr int32_t LocalityRadius = 10;
+  constexpr int32_t LocalityDiameter = 2 * LocalityRadius + 1;
+
+  enum class LocalityType : uint8_t {
+    Farm,
+    Camp, // cavalry camp
+    Village, // native vilage
+  };
+
+  struct LocalityState {
+    gf::Vec2I position;
+    LocalityType type;
+    uint8_t number;
+  };
+
+  template<typename Archive>
+  Archive& operator|(Archive& ar, gf::MaybeConst<LocalityState, Archive>& state)
+  {
+    return ar | state.type | state.number;
+  }
+
   struct MapState {
     gf::Array2D<MapCell> cells;
     std::array<TownState, TownsCount> towns;
+    std::array<LocalityState, LocalityCount> localities;
     gf::Array2D<MapUndergroundCell> underground;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.cells | state.towns | state.underground;
+    return ar | state.cells | state.towns | state.localities | state.underground;
   }
 
 }

@@ -54,11 +54,8 @@ namespace ffw {
     constexpr int32_t ReducedTownDiameter = TownDiameter / ReducedFactor;
     constexpr int32_t TownMinDistanceFromOther = 1500;
 
-    constexpr std::size_t FarmsCount = TownsCount * 5;
-    constexpr int32_t FarmRadius = 10;
-    constexpr int32_t FarmDiameter = 2 * FarmRadius + 1;
-    constexpr int32_t ReducedFarmDiameter = FarmDiameter / ReducedFactor;
-    constexpr int32_t FarmMinDistanceFromOther = 200;
+    constexpr int32_t ReducedLocalityDiameter = LocalityDiameter / ReducedFactor;
+    constexpr int32_t LocalityMinDistanceFromOther = 200;
 
     constexpr std::size_t DayTime = 24 * 60 * 60;
     constexpr int32_t RailSpacing = 2;
@@ -69,9 +66,9 @@ namespace ffw {
     constexpr float RailBlockPenalty = 1.5f;
     constexpr float DoubleRailBlockPenalty = 5.0f;
 
-    constexpr int32_t RoadMaxDistanceFromFarm = 250;
+    constexpr int32_t RoadMaxDistanceFromLocality = 250;
     constexpr int32_t RoadMaxDistanceFromTown = 350;
-    static_assert(FarmMinDistanceFromOther < RoadMaxDistanceFromFarm && RoadMaxDistanceFromTown < TownMinDistanceFromOther);
+    static_assert(LocalityMinDistanceFromOther < RoadMaxDistanceFromLocality && RoadMaxDistanceFromTown < TownMinDistanceFromOther);
 
     constexpr std::size_t RegionMinimumSize = 400;
 
@@ -423,7 +420,7 @@ namespace ffw {
 
 
     /*
-     * Step 3. Generate towns and farms.
+     * Step 3. Generate towns and localities.
      *
      */
 
@@ -435,9 +432,14 @@ namespace ffw {
       gf::Vec2I road_to_next;
     };
 
+    struct OuterLocality {
+      gf::Vec2I center;
+      LocalityType type = LocalityType::Farm;
+    };
+
     struct WorldPlaces {
       std::array<OuterTown, TownsCount> towns;
-      std::array<gf::Vec2I, FarmsCount> farms;
+      std::array<OuterLocality, LocalityCount> localities;
 
       int32_t min_distance_between_towns() const
       {
@@ -453,18 +455,18 @@ namespace ffw {
         return min_distance;
       }
 
-      int32_t min_distance_between_towns_and_farms() const
+      int32_t min_distance_between_towns_and_localities() const
       {
         int32_t min_distance = std::numeric_limits<int32_t>::max();
 
-        for (std::size_t i = 0; i < FarmsCount; ++i) {
-          for (std::size_t j = i + 1; j < FarmsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(farms[i], farms[j]);
+        for (std::size_t i = 0; i < LocalityCount; ++i) {
+          for (std::size_t j = i + 1; j < LocalityCount; ++j) {
+            int32_t distance = gf::manhattan_distance(localities[i].center, localities[j].center);
             min_distance = std::min(min_distance, distance);
           }
 
           for (std::size_t j = 0; j < TownsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(farms[i], towns[j].center);
+            int32_t distance = gf::manhattan_distance(localities[i].center, towns[j].center);
             min_distance = std::min(min_distance, distance);
           }
         }
@@ -474,7 +476,7 @@ namespace ffw {
 
     };
 
-    gf::Image compute_image_add_towns_and_farms(const gf::Image& original, const WorldPlaces& places)
+    gf::Image compute_image_add_towns_and_localities(const gf::Image& original, const WorldPlaces& places)
     {
       gf::Image image(original);
 
@@ -486,10 +488,10 @@ namespace ffw {
         }
       }
 
-      for (const gf::Vec2I farm : places.farms) {
-        const gf::RectI farm_space = gf::RectI::from_center_size(to_map(farm), { FarmDiameter, FarmDiameter });
+      for (const OuterLocality& locality : places.localities) {
+        const gf::RectI locality_space = gf::RectI::from_center_size(to_map(locality.center), { LocalityDiameter, LocalityDiameter });
 
-        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+        for (const gf::Vec2I position : gf::rectangle_range(locality_space)) {
           image.put_pixel(position, gf::Azure);
         }
       }
@@ -600,35 +602,35 @@ namespace ffw {
       });
 
 
-      // second generate farms
+      // second generate localities
 
-      int farm_rounds = 0;
+      int locality_rounds = 0;
 
       for (;;) {
         [[maybe_unused]] int tries = 0;
 
-        for (gf::Vec2I& farm_position : places.farms) {
+        for (OuterLocality& locality : places.localities) {
           do {
-            farm_position = random->compute_position(reduced_world_rectangle);
+            locality.center = random->compute_position(reduced_world_rectangle);
             ++tries;
-          } while (!can_have_place(state, to_map(farm_position), FarmRadius));
+          } while (!can_have_place(state, to_map(locality.center), LocalityRadius));
         }
 
-        const int32_t min_distance = places.min_distance_between_towns_and_farms();
-        // gf::Log::info("Found potential farms after {} tries with min distance {}", tries, min_distance);
+        const int32_t min_distance = places.min_distance_between_towns_and_localities();
+        // gf::Log::info("Found potential locality after {} tries with min distance {}", tries, min_distance);
 
-        ++farm_rounds;
+        ++locality_rounds;
 
-        if (min_distance * ReducedFactor > FarmMinDistanceFromOther) {
+        if (min_distance * ReducedFactor > LocalityMinDistanceFromOther) {
           break;
         }
       }
 
-      gf::Log::info("Farms generated after {} rounds", farm_rounds);
+      gf::Log::info("Localities generated after {} rounds", locality_rounds);
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-        image = compute_image_add_towns_and_farms(image, places);
+        image = compute_image_add_towns_and_localities(image, places);
         image.save_to_file("02_places.png");
       }
 
@@ -695,10 +697,10 @@ namespace ffw {
         }
       }
 
-      for (const gf::Vec2I farm : places.farms) {
-        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { ReducedFarmDiameter, ReducedFarmDiameter }).grow_by(1);
+      for (const OuterLocality& locality : places.localities) {
+        const gf::RectI locality_space = gf::RectI::from_center_size(locality.center, { ReducedLocalityDiameter, ReducedLocalityDiameter }).grow_by(1);
 
-        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+        for (const gf::Vec2I position : gf::rectangle_range(locality_space)) {
           grid.set_walkable(position, false);
         }
       }
@@ -821,7 +823,7 @@ namespace ffw {
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-        image = compute_image_add_towns_and_farms(image, places);
+        image = compute_image_add_towns_and_localities(image, places);
         image = compute_image_add_network(image, network);
         image.save_to_file("03_railways.png");
       }
@@ -849,10 +851,10 @@ namespace ffw {
         }
       }
 
-      for (const gf::Vec2I farm : places.farms) {
-        const gf::RectI farm_space = gf::RectI::from_center_size(farm, { ReducedFarmDiameter, ReducedFarmDiameter }).grow_by(1);
+      for (const OuterLocality& locality : places.localities) {
+        const gf::RectI locality_space = gf::RectI::from_center_size(locality.center, { ReducedLocalityDiameter, ReducedLocalityDiameter }).grow_by(1);
 
-        for (const gf::Vec2I position : gf::rectangle_range(farm_space)) {
+        for (const gf::Vec2I position : gf::rectangle_range(locality_space)) {
           grid.set_blocked(position);
         }
       }
@@ -882,38 +884,36 @@ namespace ffw {
         return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
       };
 
-      for (const gf::Vec2I from : places.farms) {
-        for (const gf::Vec2I to : places.farms) {
-          if (from == to) {
+      for (const OuterLocality& from : places.localities) {
+        for (const OuterLocality& to : places.localities) {
+          if (from.center == to.center) {
             continue;
           }
 
-          if (position_comparator(from, to)) {
+          if (position_comparator(from.center, to.center)) {
             continue; // to prevent double edges
           }
 
-          if (gf::manhattan_distance(from, to) > RoadMaxDistanceFromFarm) {
+          if (gf::manhattan_distance(from.center, to.center) > RoadMaxDistanceFromLocality) {
             continue;
           }
 
-          const std::vector<gf::Vec2I> road = grid.compute_route(from, to, distance_function);
+          const std::vector<gf::Vec2I> road = grid.compute_route(from.center, to.center, distance_function);
           roads.insert(roads.end(), road.begin(), road.end());
         }
       }
 
-      for (const OuterTown& town : places.towns) {
-        const gf::Vec2I from = town.center;
-
-        for (const gf::Vec2I to : places.farms) {
-          if (from == to) {
+      for (const OuterTown& from : places.towns) {
+        for (const OuterLocality& to : places.localities) {
+          if (from.center == to.center) {
             continue;
           }
 
-          if (gf::manhattan_distance(from, to) > RoadMaxDistanceFromTown) {
+          if (gf::manhattan_distance(from.center, to.center) > RoadMaxDistanceFromTown) {
             continue;
           }
 
-          const std::vector<gf::Vec2I> road = grid.compute_route(from, to, distance_function);
+          const std::vector<gf::Vec2I> road = grid.compute_route(from.center, to.center, distance_function);
           roads.insert(roads.end(), road.begin(), road.end());
         }
       }
@@ -928,7 +928,7 @@ namespace ffw {
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-        image = compute_image_add_towns_and_farms(image, places);
+        image = compute_image_add_towns_and_localities(image, places);
         image = compute_image_add_network(image, network);
         image.save_to_file("04_roads.png");
       }
@@ -1409,7 +1409,7 @@ namespace ffw {
 
       if constexpr (Debug) {
         gf::Image image = compute_basic_image(state, ImageType::Blocks);
-        // image = compute_image_add_towns_and_farms(image, places);
+        // image = compute_image_add_towns_and_localities(image, places);
         // image = compute_image_add_railways(image, network);
         image = compute_image_add_cave_accesses(image, state);
         image.save_to_file("06_accesses.png");
