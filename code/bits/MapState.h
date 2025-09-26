@@ -32,10 +32,10 @@ namespace ffw {
 
   constexpr std::size_t TownsCount = 5;
   constexpr int32_t TownsBlockSize = 6;
-  constexpr int32_t BuildingSize = 11;
+  constexpr int32_t TownBuildingSize = 11;
   constexpr int32_t StreetSize = 3;
 
-  constexpr int32_t TownRadius = (TownsBlockSize * BuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
+  constexpr int32_t TownRadius = (TownsBlockSize * TownBuildingSize + (TownsBlockSize - 1) * StreetSize - 1) / 2;
   constexpr int32_t TownDiameter = 2 * TownRadius + 1;
 
   struct TownState {
@@ -62,8 +62,9 @@ namespace ffw {
     return ar | state.position | state.buildings | state.horizontal_street | state.vertical_street;
   }
 
-  constexpr std::size_t LocalityCount = TownsCount * 5;
-  constexpr int32_t LocalityRadius = 10;
+  constexpr std::size_t LocalityPerTown = 5;
+  constexpr std::size_t LocalityCount = TownsCount * LocalityPerTown;
+  constexpr int32_t LocalityRadius = 13;
   constexpr int32_t LocalityDiameter = 2 * LocalityRadius + 1;
 
   enum class LocalityType : uint8_t {

@@ -390,10 +390,10 @@ namespace ffw {
     // streets
 
     for (const TownState& town : state.map.towns) {
-      const int32_t horizontal_street = town.horizontal_street * (BuildingSize + StreetSize) - 2;
+      const int32_t horizontal_street = town.horizontal_street * (TownBuildingSize + StreetSize) - 2;
       const gf::Vec2I horizontal_position = town.position + gf::diry(horizontal_street);
 
-      const int32_t vertical_street = town.vertical_street * (BuildingSize + StreetSize) - 2;
+      const int32_t vertical_street = town.vertical_street * (TownBuildingSize + StreetSize) - 2;
       const gf::Vec2I vertical_position = town.position + gf::dirx(vertical_street);
 
       static constexpr int32_t Extra = 5;
@@ -461,9 +461,9 @@ namespace ffw {
 
   namespace {
 
-    using BuildingPlan = std::array<std::u16string_view, BuildingSize>;
+    using TownBuildingPlan = std::array<std::u16string_view, TownBuildingSize>;
 
-    constexpr BuildingPlan Bank = {{
+    constexpr TownBuildingPlan Bank = {{
       u"╔═════════╗",
       u"║         ║",
       u"║         ║",
@@ -477,7 +477,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan Casino = {{
+    constexpr TownBuildingPlan Casino = {{
       u"╔═════════╗",
       u"║       .≡║",
       u"║ █. ♥  .≡║",
@@ -491,7 +491,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan Church = {{
+    constexpr TownBuildingPlan Church = {{
       u"╔═─═══════╗",
       u"║         ║",
       u"║ ┼     ┼ ║",
@@ -505,7 +505,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan ClothShop = {{
+    constexpr TownBuildingPlan ClothShop = {{
       u"╔════╦════╗",
       u"║=..=║=..=║",
       u"║=..=║=..=║",
@@ -519,7 +519,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan FoodShop = {{
+    constexpr TownBuildingPlan FoodShop = {{
       u"╔═════════╗",
       u"║▒  === .=║",
       u"╠═  ... .=║",
@@ -533,7 +533,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan Hotel = {{
+    constexpr TownBuildingPlan Hotel = {{
       u"╔═══╦═╦═══╗",
       u"║   ║▒║   ║",
       u"║   ║ ║   ║",
@@ -547,7 +547,7 @@ namespace ffw {
       u"╚═══╩─══╧═╝",
     }};
 
-    constexpr BuildingPlan House1 = {{
+    constexpr TownBuildingPlan House1 = {{
       u"╔════╦═╦══╗",
       u"║    ║ ║  ║",
       u"║    │ ║  ║",
@@ -561,7 +561,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan House2 = {{
+    constexpr TownBuildingPlan House2 = {{
       u"╔═══╦═════╗",
       u"║   ║     ║",
       u"║   ║     ║",
@@ -575,7 +575,7 @@ namespace ffw {
       u"╚═══╩─╩═══╝",
     }};
 
-    constexpr BuildingPlan House3 = {{
+    constexpr TownBuildingPlan House3 = {{
       u"╔═════════╗",
       u"║         ║",
       u"║         ║",
@@ -589,7 +589,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan MarshalOffice = {{
+    constexpr TownBuildingPlan MarshalOffice = {{
       u"╔══─══════╗",
       u"║         ║",
       u"║         ║",
@@ -603,7 +603,7 @@ namespace ffw {
       u"╚════─═╩══╝",
     }};
 
-    constexpr BuildingPlan Restaurant = {{
+    constexpr TownBuildingPlan Restaurant = {{
       u"╔═════════╗",
       u"║         ║",
       u"║         ║",
@@ -617,7 +617,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan Saloon = {{
+    constexpr TownBuildingPlan Saloon = {{
       u"╔═══════╦═╗",
       u"║       ║▒║",
       u"╟██████ ║ ║",
@@ -631,7 +631,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan School = {{
+    constexpr TownBuildingPlan School = {{
       u"╔═─═══════╗",
       u"║         ║",
       u"║   ███   ║",
@@ -645,7 +645,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    constexpr BuildingPlan WeaponShop = {{
+    constexpr TownBuildingPlan WeaponShop = {{
       u"╔═════════╗",
       u"║         ║",
       u"║         ║",
@@ -660,7 +660,7 @@ namespace ffw {
     }};
 
 
-    constexpr BuildingPlan Template = {{
+    constexpr TownBuildingPlan Template = {{
       u"╔═════════╗",
       u"║         ║",
       u"║         ║",
@@ -674,7 +674,7 @@ namespace ffw {
       u"╚════─════╝",
     }};
 
-    const BuildingPlan& compute_building_plan(Building building)
+    const TownBuildingPlan& compute_building_plan(Building building)
     {
       switch (building) {
         case Building::Bank:
@@ -714,10 +714,10 @@ namespace ffw {
     }
 
 
-    char16_t compute_building_part(const BuildingPlan& building, gf::Vec2I position, gf::Direction direction)
+    char16_t compute_building_part(const TownBuildingPlan& building, gf::Vec2I position, gf::Direction direction)
     {
-      assert(0 <= position.x && position.x < BuildingSize);
-      assert(0 <= position.y && position.y < BuildingSize);
+      assert(0 <= position.x && position.x < TownBuildingSize);
+      assert(0 <= position.y && position.y < TownBuildingSize);
 
       char16_t picture = u'#';
 
@@ -726,13 +726,13 @@ namespace ffw {
           picture = building[position.y][position.x];
           break;
         case gf::Direction::Right:
-          picture = building[BuildingSize - position.x - 1][position.y];
+          picture = building[TownBuildingSize - position.x - 1][position.y];
           break;
         case gf::Direction::Down:
-          picture = building[BuildingSize - position.y - 1][BuildingSize - position.x - 1];
+          picture = building[TownBuildingSize - position.y - 1][TownBuildingSize - position.x - 1];
           break;
         case gf::Direction::Left:
-          picture = building[position.x][BuildingSize - position.y - 1];
+          picture = building[position.x][TownBuildingSize - position.y - 1];
           break;
         default:
           assert(false);
@@ -741,6 +741,69 @@ namespace ffw {
 
       return rotate_picture(picture, direction);
     }
+
+
+    using LocalityBuildingPlan = std::array<std::u16string_view, LocalityDiameter>;;
+
+    constexpr LocalityBuildingPlan Farm = {{
+      u"╔═════════╗                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"║         ║                ",
+      u"╚════─════╝                ",
+    }};
+
+    constexpr LocalityBuildingPlan Village = {{
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+      u"                           ",
+    }};
 
     enum class BuildingType {
       None,
@@ -823,15 +886,15 @@ namespace ffw {
 
           assert(direction != gf::Direction::Center);
 
-          const BuildingPlan& plan = compute_building_plan(town(block_position));
+          const TownBuildingPlan& plan = compute_building_plan(town(block_position));
 
-          for (int32_t x = 0; x < BuildingSize; ++x) {
-            for (int32_t y = 0; y < BuildingSize; ++y) {
+          for (int32_t x = 0; x < TownBuildingSize; ++x) {
+            for (int32_t y = 0; y < TownBuildingSize; ++y) {
               const gf::Vec2I position = { x, y };
               const char16_t part = compute_building_part(plan, position, direction);
               const BuildingType type = building_type(part);
 
-              const gf::Vec2I map_position = town.position + block_position * (BuildingSize + StreetSize) + position;
+              const gf::Vec2I map_position = town.position + block_position * (TownBuildingSize + StreetSize) + position;
 
               gf::ConsoleStyle style;
               style.color = building_style(type);
@@ -856,6 +919,13 @@ namespace ffw {
         }
       }
     }
+
+    for (const LocalityState& locality : state.map.localities) {
+
+
+
+    }
+
   }
 
   void MapRuntime::bind_reverse(const WorldState& state)

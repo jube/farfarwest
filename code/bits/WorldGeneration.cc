@@ -25,6 +25,7 @@
 #include "MapState.h"
 #include "Names.h"
 #include "Settings.h"
+#include "gf2/core/Color.h"
 
 namespace ffw {
 
@@ -55,7 +56,7 @@ namespace ffw {
     constexpr int32_t TownMinDistanceFromOther = 1500;
 
     constexpr int32_t ReducedLocalityDiameter = LocalityDiameter / ReducedFactor;
-    constexpr int32_t LocalityMinDistanceFromOther = 200;
+    constexpr int32_t LocalityMinDistanceFromOther = 250;
 
     constexpr std::size_t DayTime = 24 * 60 * 60;
     constexpr int32_t RailSpacing = 2;
@@ -66,7 +67,7 @@ namespace ffw {
     constexpr float RailBlockPenalty = 1.5f;
     constexpr float DoubleRailBlockPenalty = 5.0f;
 
-    constexpr int32_t RoadMaxDistanceFromLocality = 250;
+    constexpr int32_t RoadMaxDistanceFromLocality = 300;
     constexpr int32_t RoadMaxDistanceFromTown = 350;
     static_assert(LocalityMinDistanceFromOther < RoadMaxDistanceFromLocality && RoadMaxDistanceFromTown < TownMinDistanceFromOther);
 
@@ -435,6 +436,7 @@ namespace ffw {
     struct OuterLocality {
       gf::Vec2I center;
       LocalityType type = LocalityType::Farm;
+      int32_t distance = 0;
     };
 
     struct WorldPlaces {
@@ -443,13 +445,14 @@ namespace ffw {
 
       int32_t min_distance_between_towns() const
       {
+        gf::Span<const OuterTown> other_towns(towns.data(), towns.size());
+
         int32_t min_distance = std::numeric_limits<int32_t>::max();
 
-        for (std::size_t i = 0; i < TownsCount; ++i) {
-          for (std::size_t j = i + 1; j < TownsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(towns[i].center, towns[j].center);
-            min_distance = std::min(min_distance, distance);
-          }
+        for (const OuterTown& town : towns) {
+          other_towns = other_towns.last_except<1>();
+          const int32_t distance = min_distance_to(town.center, other_towns);
+          min_distance = std::min(min_distance, distance);
         }
 
         return min_distance;
@@ -457,16 +460,30 @@ namespace ffw {
 
       int32_t min_distance_between_towns_and_localities() const
       {
+        gf::Span<const OuterTown> other_towns(towns.data(), towns.size());
+        gf::Span<const OuterLocality> other_localities(localities.data(), localities.size());
+
         int32_t min_distance = std::numeric_limits<int32_t>::max();
 
-        for (std::size_t i = 0; i < LocalityCount; ++i) {
-          for (std::size_t j = i + 1; j < LocalityCount; ++j) {
-            int32_t distance = gf::manhattan_distance(localities[i].center, localities[j].center);
-            min_distance = std::min(min_distance, distance);
-          }
+        for (const OuterLocality& locality : localities) {
+          other_localities = other_localities.last_except<1>();
+          const int32_t distance_to_localities = min_distance_to(locality.center, other_localities);
+          const int32_t distance_to_towns = min_distance_to(locality.center, other_towns);
+          min_distance = std::min({ min_distance, distance_to_localities, distance_to_towns });
+        }
 
-          for (std::size_t j = 0; j < TownsCount; ++j) {
-            int32_t distance = gf::manhattan_distance(localities[i].center, towns[j].center);
+        return min_distance;
+      }
+
+      template<typename T>
+      int32_t min_distance_to(gf::Vec2I origin, gf::Span<const T> others) const
+      {
+        int32_t min_distance = std::numeric_limits<int32_t>::max();
+
+        for (const T& other : others) {
+          int32_t distance = gf::manhattan_distance(origin, other.center);
+
+          if (distance > 0) {
             min_distance = std::min(min_distance, distance);
           }
         }
@@ -484,15 +501,29 @@ namespace ffw {
         const gf::RectI town_space = gf::RectI::from_center_size(to_map(town.center), { TownDiameter, TownDiameter });
 
         for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-          image.put_pixel(position, gf::Azure);
+          image.put_pixel(position, gf::Purple);
         }
       }
 
       for (const OuterLocality& locality : places.localities) {
         const gf::RectI locality_space = gf::RectI::from_center_size(to_map(locality.center), { LocalityDiameter, LocalityDiameter });
 
+        gf::Color color = gf::Black;
+
+        switch (locality.type) {
+          case LocalityType::Farm:
+            color = gf::Chartreuse;
+            break;
+          case LocalityType::Camp:
+            color = gf::Cerulean;
+            break;
+          case LocalityType::Village:
+            color = gf::Vermilion;
+            break;
+        }
+
         for (const gf::Vec2I position : gf::rectangle_range(locality_space)) {
-          image.put_pixel(position, gf::Azure);
+          image.put_pixel(position, color);
         }
       }
 
@@ -624,6 +655,33 @@ namespace ffw {
         if (min_distance * ReducedFactor > LocalityMinDistanceFromOther) {
           break;
         }
+      }
+
+      // determine villages
+
+      gf::Span<const OuterTown> other_towns(places.towns.data(), places.towns.size());
+
+      for (OuterLocality& locality : places.localities) {
+        locality.distance = places.min_distance_to(locality.center, other_towns);
+      }
+
+      std::sort(places.localities.begin(), places.localities.end(), [](const OuterLocality& lhs, const OuterLocality& rhs) {
+        return lhs.distance > rhs.distance;
+      });
+
+      for (std::size_t i = 0; i < TownsCount; ++i) {
+        places.localities[i].type = LocalityType::Village;
+      }
+
+      // determine camps
+
+      for (const OuterTown& town : places.towns) {
+        auto iterator = std::min_element(places.localities.begin(), places.localities.end(), [&town](const OuterLocality& lhs, const OuterLocality& rhs) {
+          return gf::manhattan_distance(town.center, lhs.center) < gf::manhattan_distance(town.center, rhs.center);
+        });
+
+        assert(iterator->type != LocalityType::Village);
+        iterator->type = LocalityType::Camp;
       }
 
       gf::Log::info("Localities generated after {} rounds", locality_rounds);
@@ -922,6 +980,26 @@ namespace ffw {
 
       roads.erase(std::unique(roads.begin(), roads.end()), roads.end());
 
+      roads.erase(std::remove_if(roads.begin(), roads.end(), [&](const gf::Vec2I road) {
+        for (const OuterTown& town : places.towns) {
+          const gf::RectI town_space = gf::RectI::from_center_size(town.center, { ReducedTownDiameter, ReducedTownDiameter });
+
+          if (town_space.contains(road)) {
+            return true;
+          }
+        }
+
+        for (const OuterLocality& locality : places.localities) {
+          const gf::RectI locality_space = gf::RectI::from_center_size(locality.center, { ReducedLocalityDiameter, ReducedLocalityDiameter });
+
+          if (locality_space.contains(road)) {
+            return true;
+          }
+        }
+
+        return false;
+      }), roads.end());
+
       for (const gf::Vec2I position : roads) {
         network.roads.push_back(to_map(position));
       }
@@ -1052,6 +1130,18 @@ namespace ffw {
       }
     }
 
+    /*
+     * Generate localities
+     */
+
+    void generate_localities(MapState& map, const WorldPlaces& places, [[maybe_unused]] gf::Random* random)
+    {
+      for (auto [ index, locality ] : gf::enumerate(map.localities)) {
+        locality.position = to_map(places.localities[index].center);
+        locality.type = places.localities[index].type;
+        locality.number = 0; // TODO: make it random when available
+      }
+    }
 
     /*
      * Step X. Compute the regions.
@@ -1494,7 +1584,8 @@ namespace ffw {
 
     step.store(WorldGenerationStep::Buildings);
     generate_towns(state.map, places, random);
-    gf::Log::info("- towns ({:g}s)", clock.elapsed_time().as_seconds());
+    generate_localities(state.map, places, random);
+    gf::Log::info("- towns and localities ({:g}s)", clock.elapsed_time().as_seconds());
 
     step.store(WorldGenerationStep::Regions);
     const WorldRegions regions = compute_regions(state.map);

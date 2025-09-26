@@ -22,6 +22,9 @@ namespace ffw {
   inline constexpr gf::Color DexterityColor = gf::Aquamarine;
   inline constexpr gf::Color ConstitutionColor = gf::Purple;
 
+  inline constexpr gf::Color NativeColor = 0x8D5524;
+  inline constexpr gf::Color CavalryColor = 0x3F4C5A;
+
 }
 
 #endif // FFW_COLORS_H
