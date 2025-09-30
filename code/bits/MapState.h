@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include <gf2/core/Array2D.h>
+#include <gf2/core/Direction.h>
 #include <gf2/core/TypeTraits.h>
 
 #include "MapCell.h"
@@ -75,8 +76,9 @@ namespace ffw {
 
   struct LocalityState {
     gf::Vec2I position;
-    LocalityType type;
-    uint8_t number;
+    LocalityType type = LocalityType::Farm;
+    uint8_t number = 0;
+    gf::Direction direction = gf::Direction::Up;
   };
 
   template<typename Archive>

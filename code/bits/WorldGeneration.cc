@@ -1140,6 +1140,7 @@ namespace ffw {
         locality.position = to_map(places.localities[index].center);
         locality.type = places.localities[index].type;
         locality.number = 0; // TODO: make it random when available
+        locality.direction = static_cast<gf::Direction>(random->compute_uniform_integer(3));
       }
     }
 
