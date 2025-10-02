@@ -84,7 +84,7 @@ namespace ffw {
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<LocalityState, Archive>& state)
   {
-    return ar | state.type | state.number;
+    return ar | state.position | state.type | state.number | state.direction;
   }
 
   struct MapState {

@@ -29,19 +29,29 @@ namespace ffw {
     FloorUp,
     Herb,
 
-    // blocking
 
-    Cactus = 0x80,
-    Cliff,
+    // not walkable and transparent
+
+    Cactus = 0x40,
     Tree,
+
+
+    // not walkable and not transparent
+
+    Cliff = 0xA0,
     Wall,
 
     // TODO: ores: gold, silver, coal, copper, iron (blocking and non-blocking version)
   };
 
-  constexpr bool is_blocking(MapDecoration decoration)
+  constexpr bool is_walkable(MapDecoration decoration)
   {
-    return decoration >= MapDecoration::Cactus;
+    return decoration < MapDecoration::Cactus;
+  }
+
+  constexpr bool is_transparent(MapDecoration decoration)
+  {
+    return decoration < MapDecoration::Cliff;
   }
 
   struct MapCell {

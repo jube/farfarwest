@@ -131,6 +131,22 @@ namespace ffw {
     const FloorMap& floor_map = runtime->map.from_floor(hero.floor);
     floor_map.console.blit_to(console, view, GameBoxPosition);
 
+    for (const gf::Vec2I position : gf::rectangle_range(view)) {
+      if (floor_map.grid.visible(position)) {
+        continue;
+      }
+
+      const gf::Vec2I console_position = position - view.position() + GameBoxPosition;
+
+      if (floor_map.grid.explored(position)) {
+        console.set_background(console_position, gf::Gray, gf::ConsoleEffect::multiply());
+        console.set_character(console_position, u' ');
+      } else {
+        assert(!floor_map.grid.visible(position));
+        console.put_character(console_position, u' ', gf::Black, gf::Black);
+      }
+    }
+
     // display actors
 
     const WorldState* state = m_game->state();
@@ -139,6 +155,10 @@ namespace ffw {
 
     for (const ActorState& actor : state->actors) {
       if (!view.contains(actor.position)) {
+        continue;
+      }
+
+      if (!floor_map.grid.visible(actor.position)) {
         continue;
       }
 

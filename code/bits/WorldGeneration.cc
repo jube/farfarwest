@@ -118,13 +118,13 @@ namespace ffw {
             color = PrairieColor;
             break;
           case MapRegion::Desert:
-            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
             break;
           case MapRegion::Forest:
-            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
             break;
           case MapRegion::Moutain:
-            color = type == ImageType::Basic || !is_blocking(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);;
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);;
             break;
         }
 

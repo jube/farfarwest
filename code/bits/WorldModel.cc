@@ -17,6 +17,8 @@ namespace ffw {
 
   namespace {
 
+    constexpr int32_t HeroVisionRange = 25;
+
     constexpr gf::Time Cooldown = gf::milliseconds(20);
 
     constexpr int32_t IdleDistance = 100;
@@ -281,6 +283,9 @@ namespace ffw {
 
           if (move_human(hero, new_hero_position)) {
             need_cooldown = true;
+            FloorMap& floor_map = runtime.map.from_floor(hero.floor);
+            floor_map.grid.clear_visible();
+            floor_map.grid.compute_field_of_vision(new_hero_position, HeroVisionRange);
           } else {
             runtime.hero.moves.clear();
           }
