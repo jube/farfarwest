@@ -8,17 +8,35 @@
 
 #include <gf2/core/Array2D.h>
 #include <gf2/core/Console.h>
-#include <gf2/core/GridMap.h>
+#include <gf2/core/Grids.h>
 #include <gf2/core/Random.h>
 
 #include "Index.h"
 #include "MapFloor.h"
+#include "Settings.h"
 #include "WorldGenerationStep.h"
 
 namespace ffw {
   struct WorldState;
 
   constexpr std::size_t MinimapCount = 4;
+
+  enum RuntimeMapCellProperty : uint8_t {
+    None = 0x00,
+    Walkable = 0x01,
+  };
+
+  using RuntimeMapCellProperties = gf::Flags<RuntimeMapCellProperty>;
+
+  struct RuntimeMapCell {
+    RuntimeMapCellProperties properties;
+
+    bool walkable() const
+    {
+      return properties.test(RuntimeMapCellProperty::Walkable);
+    }
+  };
+
 
   struct ReverseMapCell {
     uint32_t actor_index = NoIndex;
@@ -40,19 +58,26 @@ namespace ffw {
 
     explicit FloorMap(gf::Vec2I size)
     : console(size)
-    , grid(gf::GridMap::make_orthogonal(size))
+    , background(size, { gf::All })
     , reverse(size)
     {
     }
 
     gf::Console console;
-    gf::GridMap grid;
+    gf::Array2D<RuntimeMapCell> background;
     gf::Array2D<ReverseMapCell> reverse;
 
     std::array<Minimap, MinimapCount> minimaps;
   };
 
   struct MapRuntime {
+    MapRuntime()
+    : grid(WorldSize, { 1, 1 })
+    {
+    }
+
+    gf::OrthogonalGrid grid;
+
     FloorMap underground;
     FloorMap ground;
 
@@ -76,5 +101,9 @@ namespace ffw {
   };
 
 }
+
+template<>
+struct gf::EnableBitmaskOperators<ffw::RuntimeMapCellProperty> : std::true_type {
+};
 
 #endif // FFW_MAP_RUNTIME_H

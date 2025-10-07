@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstdint>
 
+#include <gf2/core/FieldOfVision.h>
+
 #include "ActorData.h"
 #include "ActorState.h"
 #include "Index.h"
@@ -146,18 +148,18 @@ namespace ffw {
 
   bool WorldModel::is_prairie(gf::Vec2I position) const
   {
-    if (!state.map.cells.valid(position)) {
+    if (!state.map.ground.valid(position)) {
       return false;
     }
 
-    return state.map.cells(position).region == MapRegion::Prairie;
+    return state.map.ground(position).region == MapCellBiome::Prairie;
   }
 
   bool WorldModel::is_walkable(Floor floor, gf::Vec2I position) const
   {
     const FloorMap& floor_map = runtime.map.from_floor(floor);
 
-    if (!floor_map.grid.walkable(position)) {
+    if (!floor_map.background(position).walkable()) {
       return false;
     }
 
@@ -283,9 +285,15 @@ namespace ffw {
 
           if (move_human(hero, new_hero_position)) {
             need_cooldown = true;
-            FloorMap& floor_map = runtime.map.from_floor(hero.floor);
-            floor_map.grid.clear_visible();
-            floor_map.grid.compute_field_of_vision(new_hero_position, HeroVisionRange);
+
+            BackgroundMap& map = state.map.from_floor(hero.floor);
+            clear_visible(map);
+
+            gf::compute_symmetric_shadowcasting(map, map, new_hero_position, HeroVisionRange, [](MapCell& cell) {
+              cell.properties.set(MapCellProperty::Visible);
+              cell.properties.set(MapCellProperty::Explored);
+            });
+
           } else {
             runtime.hero.moves.clear();
           }
@@ -315,14 +323,14 @@ namespace ffw {
 
   bool WorldModel::check_actor_position(ActorState& actor)
   {
-    MapDecoration decoration = MapDecoration::None;
+    MapCellDecoration decoration = MapCellDecoration::None;
 
     switch (actor.floor) {
       case Floor::Underground:
         decoration = state.map.underground(actor.position).decoration;
         break;
       case Floor::Ground:
-        decoration = state.map.cells(actor.position).decoration;
+        decoration = state.map.ground(actor.position).decoration;
         break;
       case Floor::Upstairs:
         assert(false); // TODO: upstairs
@@ -330,9 +338,9 @@ namespace ffw {
     }
 
     switch (decoration) {
-      case MapDecoration::FloorDown:
+      case MapCellDecoration::FloorDown:
         return change_floor(actor, compute_floor_down(actor.floor));
-      case MapDecoration::FloorUp:
+      case MapCellDecoration::FloorUp:
         return change_floor(actor, compute_floor_up(actor.floor));
       default:
         break;

@@ -8,6 +8,7 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "MapCell.h"
+#include "MapFloor.h"
 
 namespace ffw {
 
@@ -87,17 +88,24 @@ namespace ffw {
     return ar | state.position | state.type | state.number | state.direction;
   }
 
+  using BackgroundMap = gf::Array2D<MapCell>;
+
+  void clear_visible(BackgroundMap& map);
+
   struct MapState {
-    gf::Array2D<MapCell> cells;
+    BackgroundMap ground;
+    BackgroundMap underground;
     std::array<TownState, TownsCount> towns;
     std::array<LocalityState, LocalityCount> localities;
-    gf::Array2D<MapUndergroundCell> underground;
+
+    BackgroundMap& from_floor(Floor floor);
+    const BackgroundMap& from_floor(Floor floor) const;
   };
 
   template<typename Archive>
   Archive& operator|(Archive& ar, gf::MaybeConst<MapState, Archive>& state)
   {
-    return ar | state.cells | state.towns | state.localities | state.underground;
+    return ar | state.ground | state.underground | state.towns | state.localities;
   }
 
 }

@@ -1,11 +1,15 @@
 #include "ControlScene.h"
 
+#include <gf2/core/Flags.h>
+#include <gf2/core/PathFinding.h>
+
 #include "ActorState.h"
 #include "FarFarWest.h"
 #include "MapRuntime.h"
 #include "Settings.h"
 #include "WorldRuntime.h"
 #include "WorldState.h"
+
 
 namespace ffw {
 
@@ -167,11 +171,23 @@ namespace ffw {
 
     const FloorMap& floor_map = runtime->map.from_floor(state->hero().floor);
 
-    if (floor_map.reverse(target).empty() && floor_map.grid.walkable(target)) {
+    if (floor_map.reverse(target).empty() && floor_map.background(target).walkable()) {
+      using gf::operators::operator|;
 
       if (runtime->hero.moves.empty()) {
         gf::Log::debug("computing path to {},{}", target.x, target.y);
-        m_computed_path = m_grid.compute_route(state->hero().position, target);
+
+        m_computed_path = gf::compute_route_astar(floor_map.background, runtime->map.grid, state->hero().position, target, [](gf::Vec2I position, gf::Vec2I neighbor) {
+          // TODO: take the scenery into account
+          const int32_t distance = gf::manhattan_distance(position, neighbor);
+
+          if (distance == 2) {
+            return gf::Sqrt2;
+          }
+
+          return 1.0f;
+        }, gf::CellNeighborQuery::Valid | gf::CellNeighborQuery::Diagonal);
+
         gf::Log::debug("path computed");
       }
 
@@ -216,11 +232,11 @@ namespace ffw {
     const Floor hero_floor = state->hero().floor;
     const FloorMap& floor_map = runtime->map.from_floor(hero_floor);
 
-    m_grid = floor_map.grid;
+    m_grid = floor_map.background;
 
     for (const ActorState& actor : state->actors) {
       if (actor.floor == hero_floor) {
-        m_grid.set_walkable(actor.position, false);
+        m_grid(actor.position).properties.set(RuntimeMapCellProperty::Walkable);
       }
     }
 
@@ -239,7 +255,7 @@ namespace ffw {
               const gf::Vec2I neighbor = { i, j };
               const gf::Vec2I neighbor_position = position + neighbor;
 
-              m_grid.set_walkable(neighbor_position, false);
+              m_grid(neighbor_position).properties.set(RuntimeMapCellProperty::Walkable);
             }
           }
 
@@ -253,13 +269,13 @@ namespace ffw {
     const gf::Vec2I view_se = view.position_at(gf::Orientation::SouthEast) + 1;
 
     for (int x = view_nw.x; x <= view_se.x; ++x) {
-      m_grid.set_walkable({ x, view_nw.y }, false);
-      m_grid.set_walkable({ x, view_se.y }, false);
+      m_grid({ x, view_nw.y }).properties.set(RuntimeMapCellProperty::Walkable);
+      m_grid({ x, view_se.y }).properties.set(RuntimeMapCellProperty::Walkable);
     }
 
     for (int y = view_nw.y; y <= view_se.y; ++y) {
-      m_grid.set_walkable({ view_nw.x, y }, false);
-      m_grid.set_walkable({ view_se.x, y }, false);
+      m_grid({ view_nw.x, y }).properties.set(RuntimeMapCellProperty::Walkable);
+      m_grid({ view_se.x, y }).properties.set(RuntimeMapCellProperty::Walkable);
     }
 
     m_last_grid_update = state->current_date;

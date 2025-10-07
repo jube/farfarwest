@@ -15,6 +15,7 @@
 #include "Settings.h"
 #include "Utils.h"
 #include "WorldState.h"
+#include "gf2/core/Color.h"
 #include "gf2/core/Vec2.h"
 
 namespace ffw {
@@ -32,7 +33,7 @@ namespace ffw {
     }
 
     template<typename T, T MapCell::* Field>
-    uint8_t compute_neighbor_bits(const MapState& state, gf::Vec2I position, T type)
+    uint8_t compute_neighbor_bits(const BackgroundMap& state, gf::Vec2I position, T type)
     {
       uint8_t neighbor_bits = 0b0000;
       uint8_t direction_bit = 0b0001;
@@ -40,7 +41,7 @@ namespace ffw {
       for (const gf::Orientation orientation : { gf::Orientation::North, gf::Orientation::East, gf::Orientation::South, gf::Orientation::West }) {
         const gf::Vec2I target = position + gf::displacement(orientation);
 
-        if (!state.cells.valid(target) || state.cells(target).*Field == type) {
+        if (!state.valid(target) || state(target).*Field == type) {
           neighbor_bits |= direction_bit;
         }
 
@@ -106,37 +107,37 @@ namespace ffw {
 
   namespace {
 
-    std::tuple<char16_t, gf::Color> compute_decoration(const WorldState& state, gf::Vec2I position, MapDecoration decoration, gf::Color background_color, gf::Random* random)
+    std::tuple<char16_t, gf::Color> compute_decoration(const BackgroundMap& state, gf::Vec2I position, MapCellDecoration decoration, gf::Color background_color, gf::Random* random)
     {
       gf::Color foreground_color = gf::Transparent;
       char16_t character = u' ';
 
       switch (decoration) {
-        case MapDecoration::None:
+        case MapCellDecoration::None:
           break;
-        case MapDecoration::FloorDown:
+        case MapCellDecoration::FloorDown:
           character = u'▼';
           foreground_color = gf::darker(background_color);
           break;
-        case MapDecoration::FloorUp:
+        case MapCellDecoration::FloorUp:
           character = u'▲';
           foreground_color = gf::darker(background_color);
           break;
-        case MapDecoration::Herb:
+        case MapCellDecoration::Herb:
           character = generate_character({ u'.', u',', u'`', u'\'' /*, gf::ConsoleChar::SquareRoot */ }, random);
           foreground_color = gf::darker(background_color, 0.1f);
           break;
-        case MapDecoration::Cactus:
+        case MapCellDecoration::Cactus:
           character = generate_character({ u'!', gf::ConsoleChar::InvertedExclamationMark }, random);
           foreground_color = gf::darker(gf::Green, 0.3f);
           break;
-        case MapDecoration::Tree:
+        case MapCellDecoration::Tree:
           character = generate_character({ gf::ConsoleChar::GreekPhiSymbol, gf::ConsoleChar::YenSign }, random);
           foreground_color = gf::darker(gf::Green, 0.7f);
           break;
-        case MapDecoration::Cliff:
+        case MapCellDecoration::Cliff:
           {
-            const uint8_t neighbor_bits = compute_neighbor_bits<MapDecoration, &MapCell::decoration>(state.map, position, MapDecoration::Cliff);
+            const uint8_t neighbor_bits = compute_neighbor_bits<MapCellDecoration, &MapCell::decoration>(state, position, MapCellDecoration::Cliff);
 
             // clang-format off
             constexpr char16_t BlockCharacters[] = {
@@ -165,97 +166,81 @@ namespace ffw {
             foreground_color = gf::darker(background_color, 0.5f);
           }
           break;
-        case MapDecoration::Wall:
+        case MapCellDecoration::Wall:
           character = gf::ConsoleChar::FullBlock;
           foreground_color = gf::darker(background_color, 0.5f);
+          break;
+        case MapCellDecoration::Rock:
+          character = gf::ConsoleChar::FullBlock;
+          foreground_color = RockColor;
           break;
       }
 
       return { character, foreground_color };
     }
 
+    void bind_floor_map(const BackgroundMap& state, FloorMap& map, gf::Random* random)
+    {
+      for (const gf::Vec2I position : state.position_range()) {
+        const MapCell& cell = state(position);
+
+        gf::Color background_color = gf::White;
+
+        switch (cell.region) {
+          case MapCellBiome::None:
+            background_color = gf::Transparent;
+            break;
+          case MapCellBiome::Prairie:
+            background_color = PrairieColor;
+            break;
+          case MapCellBiome::Desert:
+            background_color = DesertColor;
+            break;
+          case MapCellBiome::Forest:
+            background_color = ForestColor;
+            break;
+          case MapCellBiome::Moutain:
+            background_color = MountainColor;
+            break;
+          case MapCellBiome::Water:
+            background_color = gf::Azure; // TODO
+            break;
+          case MapCellBiome::Underground:
+            background_color = DirtColor;
+            break;
+          case MapCellBiome::Building:
+            background_color = gf::Black; // TODO
+            break;
+
+        }
+
+        background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
+
+        const auto [ character, foreground_color ] = compute_decoration(state, position, cell.decoration, background_color, random);
+
+        map.console.put_character(position, character, foreground_color, background_color);
+
+        if (!is_walkable(cell.decoration)) {
+          map.background(position).properties |= RuntimeMapCellProperty::Walkable;
+        }
+      }
+    }
+
+
   }
 
   void MapRuntime::bind_ground(const WorldState& state, gf::Random* random)
   {
     ground = FloorMap(WorldSize);
-
-    for (const gf::Vec2I position : state.map.cells.position_range()) {
-      const MapCell& cell = state.map.cells(position);
-
-      gf::Color background_color = gf::White;
-
-      switch (cell.region) {
-        case MapRegion::Prairie:
-          background_color = PrairieColor;
-          break;
-        case MapRegion::Desert:
-          background_color = DesertColor;
-          break;
-        case MapRegion::Forest:
-          background_color = ForestColor;
-          break;
-        case MapRegion::Moutain:
-          background_color = MountainColor;
-          break;
-      }
-
-      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
-
-      const auto [ character, foreground_color ] = compute_decoration(state, position, cell.decoration, background_color, random);
-
-      ground.console.put_character(position, character, foreground_color, background_color);
-
-      if (!is_walkable(cell.decoration)) {
-        ground.grid.set_walkable(position, false);
-      }
-
-      if (!is_transparent(cell.decoration)) {
-        ground.grid.set_transparent(position, false);
-      }
-    }
+    bind_floor_map(state.map.ground, ground, random);
   }
 
 
   void MapRuntime::bind_underground(const WorldState& state, gf::Random* random)
   {
     underground = FloorMap(WorldSize);
-
-    for (const gf::Vec2I position : state.map.underground.position_range()) {
-      const MapUndergroundCell& cell = state.map.underground(position);
-
-      gf::Color background_color = gf::White;
-
-      switch (cell.type) {
-        case MapUnderground::Dirt:
-          background_color = DirtColor;
-          break;
-        case MapUnderground::Rock:
-          background_color = RockColor;
-          break;
-      }
-
-      background_color = gf::lighter(background_color, random->compute_uniform_float(0.0f, ColorLighterBound));
-
-      const auto [ character, foreground_color ] = compute_decoration(state, position, cell.decoration, background_color, random);
-
-      underground.console.put_character(position, character, foreground_color, background_color);
-
-      if (cell.type == MapUnderground::Rock) {
-        underground.grid.set_walkable(position, false);
-        underground.grid.set_transparent(position, false);
-      } else {
-        if (!is_walkable(cell.decoration)) {
-          underground.grid.set_walkable(position, false);
-        }
-
-        if (!is_transparent(cell.decoration)) {
-          underground.grid.set_transparent(position, false);
-        }
-      }
-    }
+    bind_floor_map(state.map.underground, underground, random);
   }
-
 
   namespace {
 
@@ -985,11 +970,8 @@ namespace ffw {
                   // nothing to do
                   break;
                 case BuildingType::Furniture:
-                  ground.grid.set_walkable(map_position, false);
-                  break;
                 case BuildingType::Wall:
-                  ground.grid.set_walkable(map_position, false);
-                  ground.grid.set_transparent(map_position, false);
+                  ground.background(map_position).properties.reset(RuntimeMapCellProperty::Walkable);
                   break;
               }
             }
@@ -1026,11 +1008,8 @@ namespace ffw {
               // nothing to do
               break;
             case BuildingType::Furniture:
-              ground.grid.set_walkable(map_position, false);
-              break;
             case BuildingType::Wall:
-              ground.grid.set_walkable(map_position, false);
-              ground.grid.set_transparent(map_position, false);
+              ground.background(map_position).properties.reset(RuntimeMapCellProperty::Walkable);
               break;
           }
         }
@@ -1081,7 +1060,7 @@ namespace ffw {
 
   namespace {
 
-    Minimap compute_ground_minimap(const WorldState& state, int factor) {
+    gf::Console compute_base_minimap(const BackgroundMap& state, int factor) {
       gf::Console minimap(WorldSize / factor);
 
       // base colors
@@ -1089,46 +1068,68 @@ namespace ffw {
       for (const gf::Vec2I position : gf::position_range(minimap.size())) {
         gf::Color color = gf::Transparent;
 
-        int count[4] = { 0, 0, 0, 0 };
+        std::array<int, MapCellBiomeCount> count = { };
 
         for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
           gf::Vec2I origin_position = position * factor + offset;
-          const MapRegion region = state.map.cells(origin_position).region;
-          ++count[static_cast<uint8_t>(region)];
+          const MapCellBiome region = state(origin_position).region;
+          const std::size_t index = static_cast<std::size_t>(region);
+          assert(index < count.size());
+          ++count[index];
         }
 
         const auto iterator = std::max_element(std::begin(count), std::end(count));
         const std::ptrdiff_t index = iterator - std::begin(count);
-        assert(0 <= index && index < 4);
-        const MapRegion region = static_cast<MapRegion>(index);
+        assert(0 <= index && std::size_t(index) < count.size());
+        const MapCellBiome region = static_cast<MapCellBiome>(index);
 
         switch (region) {
-          case MapRegion::Prairie:
+          case MapCellBiome::None:
+            color = gf::Transparent;
+            break;
+          case MapCellBiome::Prairie:
             color = PrairieColor;
             break;
-          case MapRegion::Desert:
+          case MapCellBiome::Desert:
             color = DesertColor;
             break;
-          case MapRegion::Forest:
+          case MapCellBiome::Forest:
             color = ForestColor;
             break;
-          case MapRegion::Moutain:
+          case MapCellBiome::Moutain:
             color = MountainColor;
+            break;
+          case MapCellBiome::Water:
+            color = gf::Azure; // TODO
+            break;
+          case MapCellBiome::Underground:
+            color = DirtColor;
+            break;
+          case MapCellBiome::Building:
+            color = StreetColor; // TODO
             break;
         }
 
         minimap.set_background(position, color);
       }
 
+      return minimap;
+    }
+
+
+
+    Minimap compute_ground_minimap(const WorldState& state, int factor) {
+      gf::Console minimap = compute_base_minimap(state.map.ground, factor);
+
       // towns
 
-      for (const TownState& town : state.map.towns) {
-        const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
-
-        for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-          minimap.set_background(position / factor, StreetColor);
-        }
-      }
+      // for (const TownState& town : state.map.towns) {
+      //   const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
+      //
+      //   for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
+      //     minimap.set_background(position / factor, StreetColor);
+      //   }
+      // }
 
       // train
 
@@ -1186,39 +1187,7 @@ namespace ffw {
     }
 
     Minimap compute_underground_minimap(const WorldState& state, int factor) {
-      gf::Console minimap(WorldSize / factor);
-
-      // base colors
-
-      for (const gf::Vec2I position : gf::position_range(minimap.size())) {
-        gf::Color color = gf::Transparent;
-
-        int count[2] = { 0, 0 };
-
-        for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
-          gf::Vec2I origin_position = position * factor + offset;
-
-          const MapUnderground type = state.map.underground(origin_position).type;
-          ++count[static_cast<uint8_t>(type)];
-        }
-
-        const auto iterator = std::max_element(std::begin(count), std::end(count));
-        const std::ptrdiff_t index = iterator - std::begin(count);
-        assert(0 <= index && index < 2);
-        const MapUnderground type = static_cast<MapUnderground>(index);
-
-        switch (type) {
-          case MapUnderground::Rock:
-            color = RockColor;
-            break;
-          case MapUnderground::Dirt:
-            color = DirtColor;
-            break;
-        }
-
-        minimap.set_background(position, color);
-      }
-
+      gf::Console minimap = compute_base_minimap(state.map.underground, factor);
       return { minimap, factor };
     }
 

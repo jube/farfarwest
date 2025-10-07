@@ -25,7 +25,6 @@
 #include "MapState.h"
 #include "Names.h"
 #include "Settings.h"
-#include "gf2/core/Color.h"
 
 namespace ffw {
 
@@ -106,26 +105,39 @@ namespace ffw {
       Blocks,
     };
 
-    gf::Image compute_basic_image(const MapState& state, ImageType type = ImageType::Basic) {
+    gf::Image compute_basic_image(const BackgroundMap& state, ImageType type = ImageType::Basic) {
       gf::Image image(WorldSize);
 
       for (const gf::Vec2I position : image.position_range()) {
-        const MapCell& cell = state.cells(position);
+        const MapCell& cell = state(position);
         gf::Color color = gf::Transparent;
 
         switch (cell.region) {
-          case MapRegion::Prairie:
+          case MapCellBiome::None:
+            color = gf::Transparent;
+            break;
+          case MapCellBiome::Prairie:
             color = PrairieColor;
             break;
-          case MapRegion::Desert:
+          case MapCellBiome::Desert:
             color = type == ImageType::Basic || !is_walkable(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
             break;
-          case MapRegion::Forest:
+          case MapCellBiome::Forest:
             color = type == ImageType::Basic || !is_walkable(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
             break;
-          case MapRegion::Moutain:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);;
+          case MapCellBiome::Moutain:
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);
             break;
+          case MapCellBiome::Water:
+            color = gf::Azure; // TODO
+            break;
+          case MapCellBiome::Underground:
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? DirtColor : RockColor;
+            break;
+          case MapCellBiome::Building:
+            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? StreetColor : gf::darker(StreetColor, 0.5f);
+            break;
+
         }
 
         image.put_pixel(position, color);
@@ -133,30 +145,6 @@ namespace ffw {
 
       return image;
     }
-
-    gf::Image compute_basic_underground_image(const MapState& state) {
-      gf::Image image(WorldSize);
-
-      for (const gf::Vec2I position : image.position_range()) {
-        const MapUndergroundCell& cell = state.underground(position);
-        gf::Color color = gf::Transparent;
-
-        switch (cell.type) {
-          case MapUnderground::Rock:
-            color = RockColor;
-            break;
-          case MapUnderground::Dirt:
-            color = DirtColor;
-            break;
-        }
-
-        image.put_pixel(position, color);
-      }
-
-      return image;
-    }
-
-
 
     /*
      * Step 1. Generate a raw map.
@@ -235,10 +223,10 @@ namespace ffw {
     MapState generate_outline(const RawWorld& raw, gf::Random* random)
     {
       MapState state = {};
-      state.cells = { WorldSize };
+      state.ground = { WorldSize };
 
-      for (const gf::Vec2I position : state.cells.position_range()) {
-        MapCell& cell = state.cells(position);
+      for (const gf::Vec2I position : state.ground.position_range()) {
+        MapCell& cell = state.ground(position);
         const RawCell& raw_cell = raw(position);
 
         /*
@@ -253,35 +241,35 @@ namespace ffw {
 
         if (raw_cell.altitude < AltitudeThreshold) {
           if (raw_cell.moisture < MoistureLoThreshold) {
-            cell.region = MapRegion::Desert;
+            cell.region = MapCellBiome::Desert;
 
             if (random->compute_bernoulli(DesertCactusProbability * raw_cell.moisture / MoistureLoThreshold)) {
-              cell.decoration = MapDecoration::Cactus;
+              cell.decoration = MapCellDecoration::Cactus;
             }
           } else {
-            cell.region = MapRegion::Prairie;
+            cell.region = MapCellBiome::Prairie;
 
             if (random->compute_bernoulli(PrairieHerbProbability * raw_cell.moisture)) {
-              cell.decoration = MapDecoration::Herb;
+              cell.decoration = MapCellDecoration::Herb;
             }
           }
         } else {
           if (raw_cell.moisture < MoistureHiThreshold) {
-            cell.region = MapRegion::Moutain;
+            cell.region = MapCellBiome::Moutain;
 
             // cliffs are put later
           } else {
-            cell.region = MapRegion::Forest;
+            cell.region = MapCellBiome::Forest;
 
             if (is_on_side(position) || random->compute_bernoulli(ForestTreeProbability * raw_cell.moisture)) {
-              cell.decoration = MapDecoration::Tree;
+              cell.decoration = MapCellDecoration::Tree;
             }
           }
         }
       }
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state);
+        gf::Image image = compute_basic_image(state.ground);
         image.save_to_file("00_outline.png");
       }
 
@@ -304,8 +292,8 @@ namespace ffw {
 
       gf::Array2D<Type> map(WorldSize, Ground);
 
-      for (const gf::Vec2I position : state.cells.position_range()) {
-        if (state.cells(position).region == MapRegion::Moutain) {
+      for (const gf::Vec2I position : state.ground.position_range()) {
+        if (state.ground(position).region == MapCellBiome::Moutain) {
           if (random->compute_bernoulli(MoutainThreshold)) {
             map(position) = Cliff;
           }
@@ -341,7 +329,7 @@ namespace ffw {
 
       for (int i = 0; i < MoutainIterations; ++i) {
         for (const gf::Vec2I position : map.position_range()) {
-          if (state.cells(position).region != MapRegion::Moutain) {
+          if (state.ground(position).region != MapCellBiome::Moutain) {
             continue;
           }
 
@@ -380,7 +368,7 @@ namespace ffw {
       };
 
       for (const gf::Vec2I position : map.position_range()) {
-        if (state.cells(position).region != MapRegion::Moutain) {
+        if (state.ground(position).region != MapCellBiome::Moutain) {
           continue;
         }
 
@@ -406,14 +394,14 @@ namespace ffw {
 
       for (const gf::Vec2I position : map.position_range()) {
         if (map(position) == Cliff) {
-          state.cells(position).decoration = MapDecoration::Cliff;
-        } else if (state.cells(position).region == MapRegion::Moutain && is_on_side(position)) {
-          state.cells(position).decoration = MapDecoration::Cliff;
+          state.ground(position).decoration = MapCellDecoration::Cliff;
+        } else if (state.ground(position).region == MapCellBiome::Moutain && is_on_side(position)) {
+          state.ground(position).decoration = MapCellDecoration::Cliff;
         }
       }
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        gf::Image image = compute_basic_image(state.ground, ImageType::Blocks);
         image.save_to_file("01_blocks.png");
       }
 
@@ -533,14 +521,14 @@ namespace ffw {
 
     bool can_have_place(const MapState& state, gf::Vec2I position, int32_t radius)
     {
-      assert(state.cells.valid(position));
+      assert(state.ground.valid(position));
 
-      if (state.cells(position).region != MapRegion::Prairie) {
+      if (state.ground(position).region != MapCellBiome::Prairie) {
         return false;
       }
 
-      for (const gf::Vec2I neighbor : state.cells.square_range(position, radius)) {
-        if (!state.cells.valid(neighbor) || state.cells(neighbor).region != MapRegion::Prairie) {
+      for (const gf::Vec2I neighbor : state.ground.square_range(position, radius)) {
+        if (!state.ground.valid(neighbor) || state.ground(neighbor).region != MapCellBiome::Prairie) {
           return false;
         }
       }
@@ -687,7 +675,7 @@ namespace ffw {
       gf::Log::info("Localities generated after {} rounds", locality_rounds);
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        gf::Image image = compute_basic_image(state.ground, ImageType::Blocks);
         image = compute_image_add_towns_and_localities(image, places);
         image.save_to_file("02_places.png");
       }
@@ -723,8 +711,8 @@ namespace ffw {
 
         int cliffs = 0;
 
-        for (const gf::Vec2I neighbor : state.cells.compute_24_neighbors_range(map_position)) {
-          if (state.cells(neighbor).decoration == MapDecoration::Cliff) {
+        for (const gf::Vec2I neighbor : state.ground.compute_24_neighbors_range(map_position)) {
+          if (state.ground(neighbor).decoration == MapCellDecoration::Cliff) {
             ++cliffs;
           }
         }
@@ -875,12 +863,12 @@ namespace ffw {
 
       for (const gf::Vec2I position : network.railway) {
         for (const gf::Vec2I relative_neighbor : EightNeighbors) {
-          state.cells(position + relative_neighbor).decoration = MapDecoration::None;
+          state.ground(position + relative_neighbor).decoration = MapCellDecoration::None;
         }
       }
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        gf::Image image = compute_basic_image(state.ground, ImageType::Blocks);
         image = compute_image_add_towns_and_localities(image, places);
         image = compute_image_add_network(image, network);
         image.save_to_file("03_railways.png");
@@ -1005,7 +993,7 @@ namespace ffw {
       }
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        gf::Image image = compute_basic_image(state.ground, ImageType::Blocks);
         image = compute_image_add_towns_and_localities(image, places);
         image = compute_image_add_network(image, network);
         image.save_to_file("04_roads.png");
@@ -1125,7 +1113,7 @@ namespace ffw {
         const gf::RectI town_space = gf::RectI::from_position_size(town.position, { TownDiameter, TownDiameter });
 
         for (const gf::Vec2I position : gf::rectangle_range(town_space)) {
-          map.cells(position).decoration = MapDecoration::None;
+          map.ground(position).decoration = MapCellDecoration::None;
         }
       }
     }
@@ -1162,21 +1150,24 @@ namespace ffw {
       std::vector<WorldRegion> forest_regions;
       std::vector<WorldRegion> mountain_regions;
 
-      std::vector<WorldRegion>& operator()(MapRegion region)
+      std::vector<WorldRegion> trash_regions;
+
+      std::vector<WorldRegion>& operator()(MapCellBiome region)
       {
         switch (region) {
-          case MapRegion::Prairie:
+          case MapCellBiome::Prairie:
             return prairie_regions;
-          case MapRegion::Desert:
+          case MapCellBiome::Desert:
             return desert_regions;
-          case MapRegion::Forest:
+          case MapCellBiome::Forest:
             return forest_regions;
-          case MapRegion::Moutain:
+          case MapCellBiome::Moutain:
             return mountain_regions;
+          default:
+            break;
         }
 
-        assert(false);
-        return prairie_regions;
+        return trash_regions;
       }
     };
 
@@ -1191,12 +1182,12 @@ namespace ffw {
 
       WorldRegions regions = {};
 
-      for (const gf::Vec2I position : state.cells.position_range()) {
+      for (const gf::Vec2I position : state.ground.position_range()) {
         if (status(position) == Status::Visited) {
           continue;
         }
 
-        const MapRegion region_type = state.cells(position).region;
+        const MapCellBiome region_type = state.ground(position).region;
 
         std::queue<gf::Vec2I> queue;
         queue.emplace(position);
@@ -1210,12 +1201,12 @@ namespace ffw {
           assert(status(current) == Status::Visited);
           region.points.push_back(current);
 
-          for (const gf::Vec2I neighbor : state.cells.compute_4_neighbors_range(current)) {
+          for (const gf::Vec2I neighbor : state.ground.compute_4_neighbors_range(current)) {
             if (status(neighbor) == Status::Visited) {
               continue;
             }
 
-            if (state.cells(neighbor).region != region_type) {
+            if (state.ground(neighbor).region != region_type) {
               continue;
             }
 
@@ -1276,10 +1267,10 @@ namespace ffw {
       gf::Image image(original);
 
       for (const gf::Vec2I position : image.position_range()) {
-        const MapCell& cell = state.cells(position);
+        const MapCell& cell = state.ground(position);
 
         switch (cell.decoration) {
-          case MapDecoration::FloorDown:
+          case MapCellDecoration::FloorDown:
             image.put_pixel(position, gf::Yellow);
             break;
           default:
@@ -1296,10 +1287,10 @@ namespace ffw {
       gf::Image image(original);
 
       for (const gf::Vec2I position : image.position_range()) {
-        const MapUndergroundCell& cell = state.underground(position);
+        const MapCell& cell = state.underground(position);
 
         switch (cell.decoration) {
-          case MapDecoration::FloorUp:
+          case MapCellDecoration::FloorUp:
             image.put_pixel(position, gf::Orange);
             break;
           default:
@@ -1317,12 +1308,12 @@ namespace ffw {
         const std::size_t index = random->compute_uniform_integer(region.points.size());
         const gf::Vec2I entrance = region.points[index];
 
-        if (is_on_side(entrance) || state.cells(entrance).decoration != MapDecoration::Cliff) {
+        if (is_on_side(entrance) || state.ground(entrance).decoration != MapCellDecoration::Cliff) {
           continue;
         }
 
-        for (const gf::Vec2I exit : state.cells.compute_4_neighbors_range(entrance)) {
-          if (!is_on_side(exit) && state.cells(exit).decoration != MapDecoration::Cliff) {
+        for (const gf::Vec2I exit : state.ground.compute_4_neighbors_range(entrance)) {
+          if (!is_on_side(exit) && state.ground(exit).decoration != MapCellDecoration::Cliff) {
             return { entrance, exit };
           }
         }
@@ -1426,11 +1417,11 @@ namespace ffw {
       const std::vector<gf::Vec2I> tunnel = compute_tunnel(from, to, random);
 
       for (const gf::Vec2I position : tunnel) {
-       state.underground(position).type = MapUnderground::Dirt;
+        state.underground(position).decoration = MapCellDecoration::None;
 
         for (const gf::Vec2I neighbor : state.underground.compute_8_neighbors_range(position)) {
           if (Limits.contains(neighbor)) {
-            state.underground(neighbor).type = MapUnderground::Dirt;
+            state.underground(neighbor).decoration = MapCellDecoration::None;
           }
         }
       }
@@ -1438,21 +1429,21 @@ namespace ffw {
 
     void compute_underground(MapState& state, const WorldRegions& regions, gf::Random* random)
     {
-      state.underground = { WorldSize, { MapUnderground::Rock, MapDecoration::None } };
+      state.underground = { WorldSize, { MapCellBiome::Underground, MapCellProperty::None, MapCellDecoration::Rock } };
 
       for (const WorldRegion& region : regions.mountain_regions) {
         const std::vector<CaveAccess> accesses = compute_underground_cave_accesses(state, region, random);
 
         for (const auto [ entrance, exit ] : accesses) {
-          state.underground(entrance).type = MapUnderground::Dirt;
+          state.underground(entrance).decoration = MapCellDecoration::None;
 
           for (const gf::Vec2I cave : state.underground.compute_8_neighbors_range(entrance)) {
-            MapUndergroundCell& cell = state.underground(cave);
-            cell.type = MapUnderground::Dirt;
+            MapCell& cell = state.underground(cave);
+            cell.decoration = MapCellDecoration::None;
           }
 
-          state.underground(exit).decoration = MapDecoration::FloorUp;
-          state.cells(entrance).decoration = MapDecoration::FloorDown;
+          state.underground(exit).decoration = MapCellDecoration::FloorUp;
+          state.ground(entrance).decoration = MapCellDecoration::FloorDown;
         }
 
         const std::size_t access_count = accesses.size();
@@ -1499,13 +1490,13 @@ namespace ffw {
       }
 
       if constexpr (Debug) {
-        gf::Image image = compute_basic_image(state, ImageType::Blocks);
+        gf::Image image = compute_basic_image(state.ground, ImageType::Blocks);
         // image = compute_image_add_towns_and_localities(image, places);
         // image = compute_image_add_railways(image, network);
         image = compute_image_add_cave_accesses(image, state);
         image.save_to_file("06_accesses.png");
 
-        gf::Image underground_image = compute_basic_underground_image(state);
+        gf::Image underground_image = compute_basic_image(state.underground, ImageType::Blocks);
         underground_image = compute_underground_image_add_cave_accesses(underground_image, state);
         underground_image.save_to_file("06_access_underground.png");
       }

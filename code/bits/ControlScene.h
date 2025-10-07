@@ -6,9 +6,9 @@
 #include <gf2/core/ActionGroup.h>
 #include <gf2/core/ActionSettings.h>
 #include <gf2/core/ConsoleScene.h>
-#include <gf2/core/GridMap.h>
 
 #include "Date.h"
+#include "MapRuntime.h"
 
 namespace ffw {
   class FarFarWest;
@@ -32,7 +32,7 @@ namespace ffw {
     std::optional<gf::Vec2I> m_mouse;
 
     Date m_last_grid_update = {};
-    gf::GridMap m_grid;
+    gf::Array2D<RuntimeMapCell> m_grid;
     std::vector<gf::Vec2I> m_computed_path;
   };
 

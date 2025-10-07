@@ -7,7 +7,9 @@
 
 #include "ActorState.h"
 #include "FarFarWest.h"
+#include "MapCell.h"
 #include "MapRuntime.h"
+#include "MapState.h"
 #include "NetworkState.h"
 #include "Pictures.h"
 #include "Settings.h"
@@ -131,25 +133,28 @@ namespace ffw {
     const FloorMap& floor_map = runtime->map.from_floor(hero.floor);
     floor_map.console.blit_to(console, view, GameBoxPosition);
 
+    const WorldState* state = m_game->state();
+    const BackgroundMap& map = state->map.from_floor(hero.floor);
+
     for (const gf::Vec2I position : gf::rectangle_range(view)) {
-      if (floor_map.grid.visible(position)) {
+      const MapCell& cell = map(position);
+
+      if (cell.visible()) {
         continue;
       }
 
       const gf::Vec2I console_position = position - view.position() + GameBoxPosition;
 
-      if (floor_map.grid.explored(position)) {
+      if (cell.explored()) {
         console.set_background(console_position, gf::Gray, gf::ConsoleEffect::multiply());
         console.set_character(console_position, u' ');
       } else {
-        assert(!floor_map.grid.visible(position));
+        assert(!cell.visible());
         console.put_character(console_position, u' ', gf::Black, gf::Black);
       }
     }
 
     // display actors
-
-    const WorldState* state = m_game->state();
 
     gf::ConsoleStyle actor_style;
 
@@ -158,7 +163,7 @@ namespace ffw {
         continue;
       }
 
-      if (!floor_map.grid.visible(actor.position)) {
+      if (!map(actor.position).visible()) {
         continue;
       }
 
@@ -219,6 +224,10 @@ namespace ffw {
             const gf::Vec2I neighbor_position = position + neighbor;
 
             if (!view.contains(neighbor_position)) {
+              continue;
+            }
+
+            if (!map(neighbor_position).visible()) {
               continue;
             }
 
