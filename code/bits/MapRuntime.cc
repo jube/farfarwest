@@ -221,7 +221,7 @@ namespace ffw {
         map.console.put_character(position, character, foreground_color, background_color);
 
         if (!is_walkable(cell.decoration)) {
-          map.background(position).properties |= RuntimeMapCellProperty::Walkable;
+          map.background(position).properties.reset(RuntimeMapCellProperty::Walkable);
         }
       }
     }

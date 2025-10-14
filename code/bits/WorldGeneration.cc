@@ -120,22 +120,22 @@ namespace ffw {
             color = PrairieColor;
             break;
           case MapCellBiome::Desert:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
+            color = type == ImageType::Basic || is_walkable(cell.decoration) ? DesertColor : gf::darker(gf::Green, 0.3f);
             break;
           case MapCellBiome::Forest:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
+            color = type == ImageType::Basic || is_walkable(cell.decoration) ? ForestColor : gf::darker(gf::Green, 0.7f);
             break;
           case MapCellBiome::Moutain:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);
+            color = type == ImageType::Basic || is_walkable(cell.decoration) ? MountainColor : gf::darker(MountainColor, 0.5f);
             break;
           case MapCellBiome::Water:
             color = gf::Azure; // TODO
             break;
           case MapCellBiome::Underground:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? DirtColor : RockColor;
+            color = type == ImageType::Basic || is_walkable(cell.decoration) ? DirtColor : RockColor;
             break;
           case MapCellBiome::Building:
-            color = type == ImageType::Basic || !is_walkable(cell.decoration) ? StreetColor : gf::darker(StreetColor, 0.5f);
+            color = type == ImageType::Basic || is_walkable(cell.decoration) ? StreetColor : gf::darker(StreetColor, 0.5f);
             break;
 
         }
@@ -1421,7 +1421,11 @@ namespace ffw {
 
         for (const gf::Vec2I neighbor : state.underground.compute_8_neighbors_range(position)) {
           if (Limits.contains(neighbor)) {
-            state.underground(neighbor).decoration = MapCellDecoration::None;
+            MapCell& cell = state.underground(neighbor);
+
+            if (cell.decoration == MapCellDecoration::Rock) {
+              cell.decoration = MapCellDecoration::None;
+            }
           }
         }
       }
@@ -1435,9 +1439,7 @@ namespace ffw {
         const std::vector<CaveAccess> accesses = compute_underground_cave_accesses(state, region, random);
 
         for (const auto [ entrance, exit ] : accesses) {
-          state.underground(entrance).decoration = MapCellDecoration::None;
-
-          for (const gf::Vec2I cave : state.underground.compute_8_neighbors_range(entrance)) {
+          for (const gf::Vec2I cave : state.underground.compute_8_neighbors_range(exit)) {
             MapCell& cell = state.underground(cave);
             cell.decoration = MapCellDecoration::None;
           }
