@@ -19,8 +19,6 @@ namespace ffw {
 
   namespace {
 
-    constexpr int32_t HeroVisionRange = 25;
-
     constexpr gf::Time Cooldown = gf::milliseconds(20);
 
     constexpr int32_t IdleDistance = 100;
@@ -376,6 +374,17 @@ namespace ffw {
 
     std::swap(old_map_cell.actor_index, new_map_cell.actor_index);
     actor.floor = new_floor;
+
+    // update fov for hero
+
+    if (&actor == &state.hero()) {
+      BackgroundMap& map = state.map.from_floor(new_floor);
+      gf::compute_symmetric_shadowcasting(map, map, actor.position, HeroVisionRange, [](MapCell& cell) {
+        cell.properties.set(MapCellProperty::Visible);
+        cell.properties.set(MapCellProperty::Explored);
+      });
+    }
+
     return true;
   }
 

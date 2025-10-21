@@ -17,6 +17,8 @@
 
 namespace ffw {
 
+  inline constexpr int32_t HeroVisionRange = 25;
+
   enum class Gender : uint8_t {
     Girl,
     Boy,

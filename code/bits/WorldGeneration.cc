@@ -10,6 +10,7 @@
 #include <gf2/core/Clock.h>
 #include <gf2/core/Direction.h>
 #include <gf2/core/Easing.h>
+#include <gf2/core/FieldOfVision.h>
 #include <gf2/core/Geometry.h>
 #include <gf2/core/GridMap.h>
 #include <gf2/core/Heightmap.h>
@@ -1594,6 +1595,11 @@ namespace ffw {
     ActorState hero = {};
     hero.data = "Hero";
     hero.position = compute_starting_position(state.network);
+
+    gf::compute_symmetric_shadowcasting(state.map.ground, state.map.ground, hero.position, HeroVisionRange, [](MapCell& cell) {
+      cell.properties.set(MapCellProperty::Visible);
+      cell.properties.set(MapCellProperty::Explored);
+    });
 
     HumanFeature human;
     human.gender = generate_gender(random);
