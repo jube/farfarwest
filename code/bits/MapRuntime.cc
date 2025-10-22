@@ -16,6 +16,7 @@
 #include "Utils.h"
 #include "WorldState.h"
 #include "gf2/core/Color.h"
+#include "gf2/core/Math.h"
 #include "gf2/core/Vec2.h"
 
 namespace ffw {
@@ -1060,12 +1061,16 @@ namespace ffw {
 
   namespace {
 
-    gf::Console compute_base_minimap(const BackgroundMap& state, int factor) {
-      gf::Console minimap(WorldSize / factor);
+    Minimap compute_base_minimap(const BackgroundMap& state, int factor) {
+      /*
+       * console
+       */
+
+      gf::Console console(WorldSize / factor);
 
       // base colors
 
-      for (const gf::Vec2I position : gf::position_range(minimap.size())) {
+      for (const gf::Vec2I position : gf::position_range(console.size())) {
         gf::Color color = gf::Transparent;
 
         std::array<int, MapCellBiomeCount> count = { };
@@ -1110,16 +1115,34 @@ namespace ffw {
             break;
         }
 
-        minimap.set_background(position, color);
+        console.set_background(position, color);
       }
 
-      return minimap;
+      /*
+       * explored
+       */
+
+      gf::Array2D<float> explored(WorldSize / factor);
+
+      for (const gf::Vec2I position : gf::position_range(explored.size())) {
+        int count = 0;
+
+        for (const gf::Vec2I offset : gf::position_range({ factor, factor })) {
+          gf::Vec2I origin_position = position * factor + offset;
+
+          if (state(origin_position).explored()) {
+            ++count;
+          }
+        }
+
+        explored(position) = static_cast<float>(count) / static_cast<float>(gf::square(factor));
+      }
+
+      return { console, explored, factor };
     }
 
-
-
     Minimap compute_ground_minimap(const WorldState& state, int factor) {
-      gf::Console minimap = compute_base_minimap(state.map.ground, factor);
+      Minimap minimap = compute_base_minimap(state.map.ground, factor);
 
       // towns
 
@@ -1160,8 +1183,8 @@ namespace ffw {
 
         const char16_t picture = compute_minimap_rail_plan(direction_before, direction_after);
 
-        minimap.set_foreground(position, gf::Black);
-        minimap.set_character(position, picture);
+        minimap.console.set_foreground(position, gf::Black);
+        minimap.console.set_character(position, picture);
       }
 
       // roads
@@ -1179,16 +1202,15 @@ namespace ffw {
       minimap_roads.erase(std::unique(minimap_roads.begin(), minimap_roads.end()), minimap_roads.end());
 
       for (const gf::Vec2I position : minimap_roads) {
-        const gf::Color background = minimap.background(position);
-        minimap.set_background(position, gf::darker(background, 0.2f / factor));
+        const gf::Color background = minimap.console.background(position);
+        minimap.console.set_background(position, gf::darker(background, 0.2f / factor));
       }
 
-      return { minimap, factor };
+      return minimap;
     }
 
     Minimap compute_underground_minimap(const WorldState& state, int factor) {
-      gf::Console minimap = compute_base_minimap(state.map.underground, factor);
-      return { minimap, factor };
+      return compute_base_minimap(state.map.underground, factor);
     }
 
   }

@@ -50,6 +50,7 @@ namespace ffw {
 
   struct Minimap {
     gf::Console console;
+    gf::Array2D<float> explored;
     int factor;
   };
 

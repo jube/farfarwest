@@ -40,6 +40,10 @@ namespace ffw {
 
     minimap_console.put_character(hero_position, u'@', hero_style);
 
+    for (const gf::Vec2I position : minimap.explored.position_range()) {
+      minimap_console.set_background(position, gf::gray(minimap.explored(position)), gf::ConsoleEffect::multiply());
+    }
+
     const int32_t min_extent = std::min(ConsoleSize.x, ConsoleSize.y);
     const gf::RectI hero_box = gf::RectI::from_center_size(hero_position, { min_extent, min_extent });
 

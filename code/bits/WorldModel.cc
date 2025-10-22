@@ -287,7 +287,7 @@ namespace ffw {
             BackgroundMap& map = state.map.from_floor(hero.floor);
             clear_visible(map);
 
-            gf::compute_symmetric_shadowcasting(map, map, new_hero_position, HeroVisionRange, [](MapCell& cell) {
+            gf::compute_symmetric_shadowcasting(map, map, new_hero_position, HeroVisionRange, [](gf::Vec2I position, MapCell& cell) {
               cell.properties.set(MapCellProperty::Visible);
               cell.properties.set(MapCellProperty::Explored);
             });
@@ -379,7 +379,7 @@ namespace ffw {
 
     if (&actor == &state.hero()) {
       BackgroundMap& map = state.map.from_floor(new_floor);
-      gf::compute_symmetric_shadowcasting(map, map, actor.position, HeroVisionRange, [](MapCell& cell) {
+      gf::compute_symmetric_shadowcasting(map, map, actor.position, HeroVisionRange, [](gf::Vec2I position, MapCell& cell) {
         cell.properties.set(MapCellProperty::Visible);
         cell.properties.set(MapCellProperty::Explored);
       });
