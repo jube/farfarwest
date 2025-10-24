@@ -284,14 +284,11 @@ namespace ffw {
           if (move_human(hero, new_hero_position)) {
             need_cooldown = true;
 
-            BackgroundMap& map = state.map.from_floor(hero.floor);
-            clear_visible(map);
+            BackgroundMap& state_map = state.map.from_floor(hero.floor);
+            const std::vector<gf::Vec2I> explored = compute_hero_fov(new_hero_position, state_map);
 
-            gf::compute_symmetric_shadowcasting(map, map, new_hero_position, HeroVisionRange, [](gf::Vec2I position, MapCell& cell) {
-              cell.properties.set(MapCellProperty::Visible);
-              cell.properties.set(MapCellProperty::Explored);
-            });
-
+            FloorMap& runtime_map = runtime.map.from_floor(hero.floor);
+            runtime_map.update_minimap_explored(explored);
           } else {
             runtime.hero.moves.clear();
           }
@@ -379,10 +376,8 @@ namespace ffw {
 
     if (&actor == &state.hero()) {
       BackgroundMap& map = state.map.from_floor(new_floor);
-      gf::compute_symmetric_shadowcasting(map, map, actor.position, HeroVisionRange, [](gf::Vec2I position, MapCell& cell) {
-        cell.properties.set(MapCellProperty::Visible);
-        cell.properties.set(MapCellProperty::Explored);
-      });
+      const std::vector<gf::Vec2I> explored = compute_hero_fov(actor.position, map);
+      new_floor_map.update_minimap_explored(explored);
     }
 
     return true;

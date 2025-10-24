@@ -69,6 +69,8 @@ namespace ffw {
     gf::Array2D<ReverseMapCell> reverse;
 
     std::array<Minimap, MinimapCount> minimaps;
+
+    void update_minimap_explored(const std::vector<gf::Vec2I>& explored);
   };
 
   struct MapRuntime {

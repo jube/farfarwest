@@ -11,7 +11,6 @@
 #include "MapFloor.h"
 
 namespace ffw {
-
   enum class Building : uint8_t {
     Empty,
     None,
@@ -91,6 +90,7 @@ namespace ffw {
   using BackgroundMap = gf::Array2D<MapCell>;
 
   void clear_visible(BackgroundMap& map);
+  std::vector<gf::Vec2I>  compute_hero_fov(gf::Vec2I position, BackgroundMap& state_map);
 
   struct MapState {
     BackgroundMap ground;

@@ -1596,10 +1596,7 @@ namespace ffw {
     hero.data = "Hero";
     hero.position = compute_starting_position(state.network);
 
-    gf::compute_symmetric_shadowcasting(state.map.ground, state.map.ground, hero.position, HeroVisionRange, [](gf::Vec2I position, MapCell& cell) {
-      cell.properties.set(MapCellProperty::Visible);
-      cell.properties.set(MapCellProperty::Explored);
-    });
+    compute_hero_fov(hero.position, state.map.ground);
 
     HumanFeature human;
     human.gender = generate_gender(random);

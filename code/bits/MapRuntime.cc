@@ -6,6 +6,7 @@
 #include <gf2/core/ConsoleChar.h>
 #include <gf2/core/Direction.h>
 #include <gf2/core/Easing.h>
+#include <gf2/core/Math.h>
 
 #include "Colors.h"
 #include "MapCell.h"
@@ -15,11 +16,19 @@
 #include "Settings.h"
 #include "Utils.h"
 #include "WorldState.h"
-#include "gf2/core/Color.h"
-#include "gf2/core/Math.h"
-#include "gf2/core/Vec2.h"
 
 namespace ffw {
+
+  void FloorMap::update_minimap_explored(const std::vector<gf::Vec2I>& explored)
+  {
+    for (Minimap& minimap : minimaps) {
+      for (const gf::Vec2I position : explored) {
+        float& value = minimap.explored(position / minimap.factor);
+        value += 1.0f / static_cast<float>(gf::square(minimap.factor));
+        assert(value <= 1.0f);
+      }
+    }
+  }
 
   namespace {
 
