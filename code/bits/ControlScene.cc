@@ -6,6 +6,7 @@
 #include "ActorState.h"
 #include "FarFarWest.h"
 #include "MapRuntime.h"
+#include "MapState.h"
 #include "Settings.h"
 #include "WorldRuntime.h"
 #include "WorldState.h"
@@ -169,15 +170,24 @@ namespace ffw {
       return;
     }
 
-    const FloorMap& floor_map = runtime->map.from_floor(state->hero().floor);
+    const Floor floor = state->hero().floor;
 
-    if (floor_map.reverse(target).empty() && floor_map.background(target).walkable()) {
+    const BackgroundMap& state_map = state->map.from_floor(floor);
+
+    if (!state_map(target).explored()) {
+      m_computed_path.clear();
+      return;
+    }
+
+    const FloorMap& runtime_map = runtime->map.from_floor(floor);
+
+    if (runtime_map.reverse(target).empty() && runtime_map.background(target).walkable()) {
       using gf::operators::operator|;
 
       if (runtime->hero.moves.empty()) {
         gf::Log::debug("computing path to {},{}", target.x, target.y);
 
-        m_computed_path = gf::compute_route_astar(floor_map.background, runtime->map.grid, state->hero().position, target, [](gf::Vec2I position, gf::Vec2I neighbor) {
+        m_computed_path = gf::compute_route_astar(runtime_map.background, runtime->map.grid, state->hero().position, target, [](gf::Vec2I position, gf::Vec2I neighbor) {
           // TODO: take the scenery into account
           const int32_t distance = gf::manhattan_distance(position, neighbor);
 

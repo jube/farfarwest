@@ -3,8 +3,6 @@
 #include <cassert>
 #include <cstdint>
 
-#include <gf2/core/FieldOfVision.h>
-
 #include "ActorData.h"
 #include "ActorState.h"
 #include "Index.h"
