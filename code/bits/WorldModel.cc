@@ -121,7 +121,7 @@ namespace fw {
     runtime.phase = state.current_date.phase();
   }
 
-  void WorldModel::update_current_task_in_queue(uint16_t seconds)
+  void WorldModel::update_current_task_in_queue(Second seconds)
   {
     Task task = state.scheduler.queue.top();
     state.scheduler.queue.pop();

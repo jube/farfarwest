@@ -12,6 +12,7 @@
 #include "Combat.h"
 #include "DisplayData.h"
 #include "DataLabel.h"
+#include "DateTypes.h"
 
 namespace fw {
   struct ItemData;
@@ -40,14 +41,14 @@ namespace fw {
 
   struct MeleeWeaponElement {
     Attack attack;
-    uint16_t use_time;
+    Second use_time;
     int8_t modifier;
   };
 
   struct DistanceWeaponElement {
     int32_t range;
-    uint16_t shoot_time;
-    uint16_t reload_time;
+    Second shoot_time;
+    Second reload_time;
     int16_t capacity;
     int8_t modifier;
     ProjectileKind projectile;

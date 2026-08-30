@@ -9,18 +9,20 @@
 #include <gf2/core/Random.h>
 #include <gf2/core/TypeTraits.h>
 
+#include "DateTypes.h"
+
 namespace fw {
 
-  constexpr uint16_t SecondsInMinute = 60;
-  constexpr uint16_t MinutesInHour = 60;
-  constexpr uint8_t HoursInDay = 24;
-  constexpr uint8_t DaysInWeek = 7;
-  constexpr uint8_t MonthsInYear = 12;
+  constexpr Second SecondsInMinute = 60;
+  constexpr Minute MinutesInHour = 60;
+  constexpr Hour HoursInDay = 24;
+  constexpr Day DaysInWeek = 7;
+  constexpr MonthType MonthsInYear = 12;
 
-  constexpr uint8_t DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+  constexpr DayType DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
   constexpr uint32_t DaysInYear = std::accumulate(std::begin(DaysInMonth), std::end(DaysInMonth), 0u);
 
-  enum class WeekDay : uint8_t {
+  enum class WeekDay : DayType {
     Mon,
     Tue,
     Wed,
@@ -32,10 +34,10 @@ namespace fw {
 
   constexpr WeekDay next_weekday(WeekDay weekday)
   {
-    return WeekDay{uint8_t((uint8_t(weekday) + 1) % DaysInWeek)};
+    return WeekDay{static_cast<DayType>((static_cast<DayType>(weekday) + 1) % DaysInWeek)};
   }
 
-  enum class Month : uint8_t {
+  enum class Month : MonthType {
     Jan,
     Feb,
     Mar,
@@ -49,14 +51,14 @@ namespace fw {
     Dec,
   };
 
-  constexpr uint8_t days_in_month(Month month)
+  constexpr DayType days_in_month(Month month)
   {
-    return DaysInMonth[uint8_t(month)];
+    return DaysInMonth[static_cast<MonthType>(month)];
   }
 
   constexpr Month next_month(Month month)
   {
-    return Month{uint8_t((uint8_t(month) + 1) % MonthsInYear)};
+    return Month{static_cast<MonthType>((static_cast<MonthType>(month) + 1) % MonthsInYear)};
   }
 
   enum class Phase {
@@ -69,18 +71,18 @@ namespace fw {
   };
 
   struct Date {
-    uint8_t year;
+    Year year;
     Month month;
-    uint8_t day;
+    Day day;
     WeekDay weekday;
-    uint8_t hours;
-    uint16_t minutes;
-    uint16_t seconds;
+    Hour hours;
+    Minute minutes;
+    Second seconds;
 
     std::string to_string() const;
     std::string to_string_hours_minutes() const;
 
-    void add_seconds(uint16_t duration_in_seconds);
+    void add_seconds(Second duration_in_seconds);
 
     Phase phase() const;
 
@@ -98,7 +100,7 @@ namespace fw {
 
   struct MonthDay {
     Month month;
-    uint8_t day;
+    Day day;
   };
 
   MonthDay generate_random_birthday(gf::Random* random);
@@ -110,9 +112,9 @@ namespace fw {
   }
 
   struct HourMinuteSeconds {
-    uint8_t hours;
-    uint16_t minutes;
-    uint16_t seconds;
+    Hour hours;
+    Minute minutes;
+    Second seconds;
 
     std::string to_string() const;
   };

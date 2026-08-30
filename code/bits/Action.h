@@ -6,6 +6,8 @@
 #include <gf2/core/TaggedVariant.h>
 #include <gf2/core/Vec2.h>
 
+#include "DateTypes.h"
+
 namespace fw {
   struct WorldModel;
   struct ActorState;
@@ -23,7 +25,7 @@ namespace fw {
   };
 
   struct IdleAction {
-    uint16_t time;
+    Second time;
   };
 
   struct MoveAction {

@@ -29,7 +29,7 @@ namespace fw {
 
     bool is_walkable(Floor floor, gf::Vec2I position) const;
 
-    void update_current_task_in_queue(uint16_t seconds);
+    void update_current_task_in_queue(Second seconds);
 
 
     bool check() const;

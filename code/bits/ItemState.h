@@ -55,6 +55,8 @@ namespace fw {
     DataReference<ItemData> data;
     ItemComponent component;
     Location location;
+
+    ItemType type() const { return component.type(); }
   };
 
   template<typename Archive>
@@ -74,13 +76,15 @@ namespace fw {
     return ar | state.data | state.count;
   }
 
-  struct WeaponItemState {
+  struct EquippedItemState {
     DataReference<ItemData> data;
     ItemComponent component;
+
+    ItemType type() const { return component.type(); }
   };
 
   template<typename Archive>
-  Archive& operator|(Archive& ar, gf::MaybeConst<WeaponItemState, Archive>& state)
+  Archive& operator|(Archive& ar, gf::MaybeConst<EquippedItemState, Archive>& state)
   {
     return ar | state.data | state.component;
   }

@@ -16,7 +16,8 @@ namespace fw {
     template<typename T>
     bool check_type(T& object)
     {
-      return object.data && object.data->element.type() == object.component.type();
+      return object.data && object.data->type() == object.type();
+      // return object.data && object.data->element.type() == object.component.type();
     }
 
   }

@@ -7,6 +7,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "DateTypes.h"
+
 namespace fw {
 
   struct BodyData {
@@ -15,7 +17,7 @@ namespace fw {
     std::string dexterity;
     std::string constitution;
     std::string luck;
-    uint16_t attack_time;
+    Second attack_time;
     std::string attack;
     std::string defense;
   };

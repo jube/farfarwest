@@ -35,7 +35,7 @@ namespace fw {
     uint32_t mounting = NoIndex;
     InventoryState inventory;
 
-    WeaponItemState weapon;
+    EquippedItemState weapon;
     InventoryItemState projectile;
   };
 

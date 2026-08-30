@@ -7,6 +7,7 @@
 #include <gf2/core/TypeTraits.h>
 
 #include "Combat.h"
+#include "DateTypes.h"
 
 namespace fw {
 
@@ -25,7 +26,7 @@ namespace fw {
     Stat precision;
     Stat endurance;
     // combat
-    uint16_t attack_time;
+    Second attack_time;
     Attack attack;
     Defense defense;
   };
