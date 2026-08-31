@@ -5,9 +5,9 @@
 
 namespace fw {
 
-  using Second = int16_t;
-  using Minute = int16_t;
-  using Hour = int16_t;
+  using Second = int32_t;
+  using Minute = int32_t;
+  using Hour = int32_t;
   using Day = uint8_t;
 
   using DayType = Day;

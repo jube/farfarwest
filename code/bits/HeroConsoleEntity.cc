@@ -96,7 +96,8 @@ namespace fw {
 
     gf::Vec2I position = CharacterBoxPosition + 1;
 
-    gf::console_print_text(console, position, gf::ConsoleAlignment::Left, rich_style, "<style=date>{}</>", state->current_date.to_string());
+    const Date current_date = state->current_date;
+    gf::console_print_text(console, position, gf::ConsoleAlignment::Left, rich_style, "<style=date>{}</>", current_date.to_string());
     gf::console_print_picture(console, position + gf::dirx(12), gf::ConsoleAlignment::Left, rich_style, "<style={}>{}</>", phase_style(runtime->phase), phase_symbol(runtime->phase));
 
     position.y += 2;

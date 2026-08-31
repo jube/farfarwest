@@ -80,6 +80,9 @@ namespace fw {
       style.set_style("key", gf::Cerise);
       style.set_style("context", gf::gray(0.7f));
 
+      style.set_style("better", gf::Green);
+      style.set_style("worse", gf::Red);
+
       return style;
     }
 

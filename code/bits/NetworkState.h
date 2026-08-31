@@ -8,13 +8,15 @@
 #include <gf2/core/TypeTraits.h>
 #include <gf2/core/Vec2.h>
 
+#include "DateTypes.h"
+
 namespace fw {
 
   constexpr std::size_t TrainLength = 12;
 
   struct StationState {
     uint32_t index;
-    uint16_t stop_time;
+    Second stop_time;
   };
 
   template<typename Archive>

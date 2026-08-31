@@ -70,7 +70,7 @@ namespace fw {
       hms.minutes = minutes % MinutesInHour;
       const int32_t hours = minutes / MinutesInHour;
 
-      hms.hours = static_cast<uint8_t>(hours % HoursInDay);
+      hms.hours = static_cast<Hour>(hours % HoursInDay);
       return hms;
     }
 
@@ -101,10 +101,14 @@ namespace fw {
       seconds %= SecondsInMinute;
     }
 
+    assert(0 <= seconds && seconds < SecondsInMinute);
+
     if (minutes >= MinutesInHour) {
       hours += minutes / MinutesInHour;
       minutes %= MinutesInHour;
     }
+
+    assert(0 <= minutes && minutes < MinutesInHour);
 
     while (hours >= HoursInDay) {
       ++day;
@@ -186,7 +190,9 @@ namespace fw {
 
     date.hours = 12;
     date.minutes = random->compute_uniform_integer(MinutesInHour);
+    assert(0 <= date.minutes && date.minutes < MinutesInHour);
     date.seconds = random->compute_uniform_integer(SecondsInMinute);
+    assert(0 <= date.seconds && date.seconds < SecondsInMinute);
 
     return date;
   }

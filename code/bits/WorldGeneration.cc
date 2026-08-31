@@ -31,6 +31,7 @@
 #include "MapCellBiome.h"
 #include "MapState.h"
 #include "Settings.h"
+#include "Times.h"
 #include "WorldData.h"
 
 namespace fw {
@@ -75,7 +76,6 @@ namespace fw {
     constexpr int32_t ReducedLocalityDiameter = LocalityDiameter / ReducedFactor;
     constexpr int32_t LocalityMinDistanceFromOther = 250;
 
-    constexpr std::size_t DayTime = 24 * 60 * 60;
     constexpr int32_t RailSpacing = 2;
 
     constexpr int CliffThreshold = 2;
@@ -1071,10 +1071,10 @@ namespace fw {
 
       // determine the stop time
 
-      const std::size_t total_travel_time = network.railway.size() * ReducedFactor * 5; // TODO: constant for train time
-      const std::size_t total_stop_time = DayTime - total_travel_time;
-      const std::size_t stop_time = total_stop_time / places.towns.size();
-      const std::size_t remaining_stop_time = total_stop_time % places.towns.size();
+      const Second total_travel_time = static_cast<Second>(network.railway.size()) * ReducedFactor * TrainTime;
+      const Second total_stop_time = DayTime - total_travel_time;
+      const Second stop_time = total_stop_time / static_cast<Second>(places.towns.size());
+      const Second remaining_stop_time = total_stop_time % static_cast<Second>(places.towns.size());
 
       gf::Log::info("Train stop time: {} ({})", stop_time, stop_time + remaining_stop_time);
 
@@ -1086,10 +1086,10 @@ namespace fw {
 
           if (network.stations.empty()) {
             assert(stop_time + remaining_stop_time <= std::numeric_limits<uint16_t>::max());
-            network.stations.push_back({ index, uint16_t(stop_time + remaining_stop_time) });
+            network.stations.push_back({ index, stop_time + remaining_stop_time });
           } else {
             assert(stop_time <= std::numeric_limits<uint16_t>::max());
-            network.stations.push_back({ index, uint16_t(stop_time) });
+            network.stations.push_back({ index, stop_time });
           }
 
         } else {
@@ -1990,6 +1990,9 @@ namespace fw {
       InventoryItemState item;
       item.count = 1;
       item.data = "Colt Walker Revolver";
+      component.inventory.items.push_back(item);
+
+      item.data = "LeMat Revolver";
       component.inventory.items.push_back(item);
 
       item.data = "Knife";

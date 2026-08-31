@@ -19,6 +19,8 @@ namespace fw {
   constexpr Day DaysInWeek = 7;
   constexpr MonthType MonthsInYear = 12;
 
+  constexpr Second DayTime = HoursInDay * MinutesInHour * SecondsInMinute;
+
   constexpr DayType DaysInMonth[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
   constexpr uint32_t DaysInYear = std::accumulate(std::begin(DaysInMonth), std::end(DaysInMonth), 0u);
 
