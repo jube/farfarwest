@@ -14,9 +14,9 @@ jobs:
         configurations:
         - { name: Windows,  runner: windows-latest, shell: pwsh, plat: windows, arch: x64,    mode: debug       }
         - { name: Windows,  runner: windows-latest, shell: pwsh, plat: windows, arch: x64,    mode: release     }
-        - { name: Linux,    runner: ubuntu-latest,  shell: bash, plat: linux,   arch: x86_64, mode: debug       }
-        - { name: Linux,    runner: ubuntu-latest,  shell: bash, plat: linux,   arch: x86_64, mode: release     }
-        - { name: Linux,    runner: ubuntu-latest,  shell: bash, plat: linux,   arch: x86_64, mode: sanitizers  }
+        - { name: Linux,    runner: ubuntu-26.04,   shell: bash, plat: linux,   arch: x86_64, mode: debug       }
+        - { name: Linux,    runner: ubuntu-26.04,   shell: bash, plat: linux,   arch: x86_64, mode: release     }
+        - { name: Linux,    runner: ubuntu-26.04,   shell: bash, plat: linux,   arch: x86_64, mode: sanitizers  }
 
     defaults:
       run:
