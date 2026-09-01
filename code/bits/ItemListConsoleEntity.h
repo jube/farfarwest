@@ -27,14 +27,13 @@ namespace fw {
     void render(gf::Console& console) override;
 
   private:
-    void normalize_page();
-    void normalize_index();
+    void normalize_index(int32_t shift);
 
     FarWest* m_game = nullptr;
     const InventoryState* m_state = nullptr;
 
     int32_t m_current_page = 0;
-    int32_t m_current_index = 0;
+    int32_t m_current_offset = 0;
   };
 
 }

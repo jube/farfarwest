@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <gf2/core/ConsoleOperations.h>
+#include <gf2/core/Math.h>
 
 #include "FarWest.h"
 #include "ItemState.h"
@@ -34,7 +35,7 @@ namespace fw {
     }
 
     [[maybe_unused]] const int32_t size = static_cast<int32_t>(m_state->items.size());
-    const int32_t index = m_current_page * ItemListPageSize + m_current_index;
+    const int32_t index = m_current_page * ItemListPageSize + m_current_offset;
 
     assert(0 <= index && index < size);
 
@@ -43,28 +44,22 @@ namespace fw {
 
   void ItemListConsoleEntity::next_page()
   {
-    ++m_current_page;
-    m_current_index = 0;
-    normalize_page();
+    normalize_index(+ItemListPageSize);
   }
 
   void ItemListConsoleEntity::prev_page()
   {
-    --m_current_page;
-    m_current_index = 0;
-    normalize_page();
+    normalize_index(-ItemListPageSize);
   }
 
   void ItemListConsoleEntity::next_item()
   {
-    ++m_current_index;
-    normalize_index();
+    normalize_index(+1);
   }
 
   void ItemListConsoleEntity::prev_item()
   {
-    --m_current_index;
-    normalize_index();
+    normalize_index(-1);
   }
 
   void ItemListConsoleEntity::update([[maybe_unused]] gf::Time time)
@@ -95,7 +90,7 @@ namespace fw {
       for (int32_t i = 0; i < ItemListPageSize && start_index + i < size; ++i) {
         const InventoryItemState& item = m_state->items[start_index + i];
 
-        if (i == m_current_index) {
+        if (i == m_current_offset) {
           gf::console_write_picture(console, position - gf::dirx(2), u'\u2192' /* '→' */, style);
         }
 
@@ -107,43 +102,31 @@ namespace fw {
     }
   }
 
-  void ItemListConsoleEntity::normalize_page()
+  void ItemListConsoleEntity::normalize_index(int32_t shift)
   {
-    if (m_state == nullptr) {
+    if (m_state == nullptr || m_state->items.empty()) {
       m_current_page = 0;
-      m_current_index = 0;
+      m_current_offset = 0;
     }
 
     const int32_t size = static_cast<int32_t>(m_state->items.size());
-    const int32_t index = m_current_page * ItemListPageSize + m_current_index;
+    [[maybe_unused]] const int32_t page_count = gf::div_ceil(size, ItemListPageSize);
 
-    if (index >= size) {
-      const int32_t new_index = index % size;
-      m_current_page = new_index / ItemListPageSize;
-      m_current_index = new_index % ItemListPageSize;
-    } else if (index < 0) {
-      m_current_page = 0;
-      m_current_index = 0;
-    }
-  }
+    int32_t index = m_current_page * ItemListPageSize + m_current_offset + shift;
 
-  void ItemListConsoleEntity::normalize_index()
-  {
-    if (m_state == nullptr) {
-      m_current_page = 0;
-      m_current_index = 0;
+    if (index < 0) {
+      index += size;
+    } else if (index >= size) {
+      index = (index % size);
     }
 
-    if (m_current_index < 0) {
-      m_current_index += ItemListPageSize;
-      --m_current_page;
-    } else if (m_current_index >= ItemListPageSize) {
-      m_current_page += (m_current_index / ItemListPageSize);
-      m_current_index = m_current_index % ItemListPageSize;
-    }
+    assert(0 <= index && index < size);
 
-    assert(0 <= m_current_index && m_current_index < ItemListPageSize);
-    normalize_page();
+    m_current_page = index / ItemListPageSize;
+    m_current_offset = index % ItemListPageSize;
+
+    assert(0 <= m_current_offset && m_current_offset < ItemListPageSize);
+    assert(0 <= m_current_page && m_current_page < page_count);
   }
 
 }
