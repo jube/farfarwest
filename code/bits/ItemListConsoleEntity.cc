@@ -28,18 +28,27 @@ namespace fw {
     m_state = state;
   }
 
-  const ItemData* ItemListConsoleEntity::current_item() const
+  std::optional<int32_t> ItemListConsoleEntity::current_index() const
   {
-    if (m_state == nullptr) {
-      return nullptr;
+    if (m_state == nullptr || m_state->items.empty()) {
+      return std::nullopt;
     }
 
     [[maybe_unused]] const int32_t size = static_cast<int32_t>(m_state->items.size());
     const int32_t index = m_current_page * ItemListPageSize + m_current_offset;
-
     assert(0 <= index && index < size);
+    return index;
+  }
 
-    return m_state->items[index].data.origin;
+  const ItemData* ItemListConsoleEntity::current_item() const
+  {
+    const std::optional<int32_t> index = current_index();
+
+    if (!index) {
+      return nullptr;
+    }
+
+    return m_state->items[index.value()].data.origin;
   }
 
   void ItemListConsoleEntity::next_page()
@@ -104,15 +113,16 @@ namespace fw {
 
   void ItemListConsoleEntity::normalize_index(int32_t shift)
   {
-    if (m_state == nullptr || m_state->items.empty()) {
+    const std::optional<int32_t> maybe_index = current_index();
+
+    if (!maybe_index) {
       m_current_page = 0;
       m_current_offset = 0;
+      return;
     }
 
     const int32_t size = static_cast<int32_t>(m_state->items.size());
-    [[maybe_unused]] const int32_t page_count = gf::div_ceil(size, ItemListPageSize);
-
-    int32_t index = m_current_page * ItemListPageSize + m_current_offset + shift;
+    int32_t index = maybe_index.value() + shift;
 
     if (index < 0) {
       index += size;
@@ -125,6 +135,7 @@ namespace fw {
     m_current_page = index / ItemListPageSize;
     m_current_offset = index % ItemListPageSize;
 
+    [[maybe_unused]] const int32_t page_count = gf::div_ceil(size, ItemListPageSize);
     assert(0 <= m_current_offset && m_current_offset < ItemListPageSize);
     assert(0 <= m_current_page && m_current_page < page_count);
   }

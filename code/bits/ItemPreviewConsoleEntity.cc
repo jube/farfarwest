@@ -159,7 +159,7 @@ namespace fw {
         ProjectileElement reference = element;
         ItemComparison comparison = ItemComparison::Disabled;
 
-        if (hero_component.projectile.data->type() == ItemType::Projectile) {
+        if (hero_component.projectile.data && hero_component.projectile.data->type() == ItemType::Projectile) {
           reference = hero_component.projectile.data->element.from<ItemType::Projectile>();
           comparison = ItemComparison::Enabled;
         }

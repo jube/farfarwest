@@ -16,6 +16,7 @@ namespace fw {
     InventoryConsoleEntity(FarWest* game);
 
     void set_inventory(const InventoryState* state);
+    std::optional<int32_t> current_index() const;
 
     void next_page() { m_list_entity.next_page(); }
     void prev_page() { m_list_entity.prev_page(); }

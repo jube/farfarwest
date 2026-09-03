@@ -3,6 +3,7 @@
 #include <gf2/core/ConsoleOperations.h>
 
 #include "FarWest.h"
+#include "WorldHelpers.h"
 
 namespace fw {
 
@@ -47,6 +48,14 @@ namespace fw {
       m_inventory.next_page();
     }
 
+    if (m_action_group.active("equip"_id)) {
+      std::optional<int32_t> maybe_index = m_inventory.current_index();
+
+      if (maybe_index.has_value()) {
+        equip_hero(*m_game->model(), maybe_index.value());
+      }
+    }
+
     m_action_group.reset();
   }
 
@@ -72,6 +81,8 @@ namespace fw {
     settings.actions.emplace("next_item"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::Down));
     settings.actions.emplace("prev_page"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::PageUp));
     settings.actions.emplace("next_page"_id, gf::instantaneous_action().add_scancode_control(gf::Scancode::PageDown));
+
+    settings.actions.emplace("equip"_id, gf::instantaneous_action().add_keycode_control(gf::Keycode::E));
 
     return settings;
   }

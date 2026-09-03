@@ -5,6 +5,7 @@
 #include <gf2/core/ConsoleEntity.h>
 
 #include "InventoryState.h"
+#include "ItemState.h"
 
 namespace fw {
   class FarWest;
@@ -16,6 +17,7 @@ namespace fw {
     ItemListConsoleEntity(FarWest* game);
 
     void set_inventory(const InventoryState* state);
+    std::optional<int32_t> current_index() const;
     const ItemData* current_item() const;
 
     void next_page();

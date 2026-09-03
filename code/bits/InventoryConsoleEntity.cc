@@ -36,6 +36,11 @@ namespace fw {
     m_list_entity.set_inventory(state);
   }
 
+  std::optional<int32_t> InventoryConsoleEntity::current_index() const
+  {
+    return m_list_entity.current_index();
+  }
+
   void InventoryConsoleEntity::update(gf::Time time)
   {
     m_preview_entity.set_item(m_list_entity.current_item());

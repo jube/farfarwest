@@ -68,6 +68,8 @@ namespace fw {
   struct InventoryItemState {
     DataReference<ItemData> data;
     int16_t count = 0;
+
+    ItemType type() const { return data->type(); }
   };
 
   template<typename Archive>

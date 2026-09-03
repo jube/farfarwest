@@ -62,6 +62,12 @@ namespace fw {
     }
   };
 
+  template<typename T>
+  bool operator==(const DataReference<T>& lhs, const DataReference<T>& rhs)
+  {
+    return lhs.id == rhs.id;
+  }
+
   namespace details {
 
     template<typename Archive, typename Self>
